@@ -1,144 +1,206 @@
-d<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Quantummathtrading</title>
   <style>
-  /* Existing CSS... */
-p {
-    text-align: justify;
-  }
     body {
-      font-family: Arial, sans-serif;
+      font-family: "Segoe UI", Arial, sans-serif;
       margin: 0;
       padding: 0;
       background: #ffffff;
       color: #000000;
+      line-height: 1.6;
     }
+
+    /* ===== HEADER ===== */
     header {
       background: #000000;
       color: #fff;
       text-align: center;
-      padding: 30px 0 0 0;
+      padding: 30px 10px;
     }
+
     header img {
-      max-width: 300px;
+      max-width: 280px;
       height: auto;
       display: block;
-      margin: 0 auto;
+      margin: 0 auto 15px auto;
     }
-    header p {
+
+    header h2 {
+      font-weight: 400;
       margin: 0;
-      padding: 10px 0 20px 0;
+      font-size: 1.5rem;
+      color: #ffffff;
     }
+
+    /* ===== NAVBAR ===== */
     nav {
       background: #222;
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
     }
+
     nav a {
       color: white;
-      padding: 15px;
+      padding: 15px 25px;
       text-decoration: none;
+      font-weight: 500;
     }
+
     nav a:hover {
       background: #444;
     }
+
+    /* ===== CONTAINER ===== */
     .container {
       max-width: 1000px;
       margin: auto;
-      padding: 20px;
+      padding: 30px 20px;
       background: white;
     }
-    .post {
-      margin-bottom: 40px;
+
+    section {
+      margin-bottom: 50px;
     }
-    .post h2 {
+
+    section h2 {
       color: #00509e;
+      border-bottom: 2px solid #00509e;
+      padding-bottom: 8px;
     }
+
+    p {
+      text-align: justify;
+      text-justify: inter-word;
+    }
+
+    /* ===== BLOG POST ===== */
+    .post {
+      margin-bottom: 50px;
+      border: 1px solid #ddd;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .post h3 {
+      color: #004080;
+      margin-top: 0;
+    }
+
+    .post img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 15px auto;
+      border-radius: 6px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+    }
+
+    /* ===== FOOTER ===== */
     footer {
       text-align: center;
-      padding: 20px;
+      padding: 25px;
       background: #111;
       color: white;
-      margin-top: 40px;
+      font-size: 0.9rem;
+      margin-top: 60px;
     }
+
     @media screen and (max-width: 600px) {
       nav {
         flex-direction: column;
+      }
+      header h2 {
+        font-size: 1.2rem;
+      }
+      .post {
+        padding: 20px;
       }
     }
   </style>
 </head>
 <body>
+
   <header>
     <img src="Logo-bianco-trasparente.png" alt="Quantummathtrading Logo">
-    <h2>Where Mathematics Meets Options Trading</p>
+    <h2>Where Mathematics Meets Options Trading</h2>
   </header>
+
   <nav>
     <a href="#about">About</a>
     <a href="#book">The Book</a>
     <a href="#blog">Training Blog</a>
     <a href="#contact">Contact</a>
   </nav>
+
   <div class="container">
+    <!-- === ABOUT === -->
     <section id="about">
       <h2>About Quantummathtrading</h2>
       <p>
-        Quantummathtrading is a platform dedicated to exploring the fascinating world of Quantitative Mathematical Trading with options. Our goal is to educate and train users in applying advanced mathematical and quantitative concepts to modern options trading strategies.
+        Quantummathtrading is a platform dedicated to exploring the fascinating world of Quantitative Mathematical Trading with options.
+        Our goal is to educate and train users in applying advanced mathematical and quantitative concepts to modern options trading strategies.
       </p>
     </section>
 
+    <!-- === BOOK === -->
     <section id="book">
       <h2>The Essence of Quantum Math Trading with Options</h2>
-          <p>
-        Discover the groundbreaking book that lays the foundation of Quantitative Math Trading. "The Essence of Quantitative Math Trading with Options" introduces readers to innovative models and techniques that merge quantitative mechanics principles with financial derivatives trading.
+      <p>
+        Discover the groundbreaking book that lays the foundation of Quantitative Math Trading.
+        <em>"The Essence of Quantitative Math Trading with Options"</em> introduces readers to innovative models and techniques
+        that merge quantitative mechanics principles with financial derivatives trading.
       </p>
-      <p><strong>Coming Soon: Purchase link and exclusive excerpts.</strong></p>
+      <p><strong>Coming Soon:</strong> Purchase link and exclusive excerpts.</p>
     </section>
 
+    <!-- === BLOG === -->
     <section id="blog">
       <h2>Training Blog</h2>
-  
-<!-- === POST 1 === -->
-<div class="post">
-  <h3>Understanding Covered Call Option Strategies</h3>
-  <p><em>Posted on November 10th, 2025</em></p>
-  <img src="delta-neutral.png" 
-       alt="Covered Call Options Strategy Example"
-       style="max-width:500px; display:block; margin:10px auto;">
-  <p>
-    Covered calls offer investors a strategic way to generate income and reduce the effective cost basis of an investment, particularly in neutral or slightly bullish markets. While this strategy can enhance returns by collecting premiums, it limits potential upside gains if the stock price exceeds the strike price.
-  </p>
-  <p>
-    <strong>Example:</strong> buying 100 shares of SPY and selling one in-the-money call option creates a covered call position. 
-  </p>
-   <p>
-   <h3>Covered Call Strategy — Simple Overview</h3>
-<p>
-    A Covered Call is a conservative options strategy used to generate extra income from stocks you already own.
-Let’s say you hold 100 shares of XZY, bought at $100 each. The stock now trades at $110, but you’re willing to sell at $115.
-You sell one Call option (strike $115) for $1 premium — earning $100 immediately.
-If the stock rises above $115, the buyer exercises the option.
-You sell your shares at $115, locking in a 15% gain, plus the 1% premium — total 16% profit.
-If the stock stays below $115, the option expires worthless.
-You keep both your shares and the $100 premium, which can be repeated every week or month.
-The main advantage: you earn income while holding a stock you already like.
-The main trade-off: if the stock rallies strongly above $115, your profit is capped — but at a level you’ve already chosen.
-In essence, the Covered Call allows investors to generate steady returns with limited downside and predefined upside — a disciplined way to make capital work efficiently.
-  </p>
-  <img src="Covered Call 115.png" 
-       alt="Covered Call Options Strategy Example"
-       style="max-width:500px; display:block; margin:10px auto;">
-  <p>
 
-     
-</div>
-        
-        
+      <div class="post">
+        <h3>Understanding Covered Call Option Strategies</h3>
+        <p><em>Posted on November 10, 2025</em></p>
 
+        <img src="delta-neutral.png" alt="Covered Call Strategy Example">
+
+        <p>
+          Covered calls offer investors a strategic way to generate income and reduce the effective cost basis of an investment,
+          particularly in neutral or slightly bullish markets. While this strategy can enhance returns by collecting premiums,
+          it limits potential upside gains if the stock price exceeds the strike price.
+        </p>
+
+        <p><strong>Example:</strong> buying 100 shares of SPY and selling one in-the-money call option creates a covered call position.</p>
+
+        <h3>Covered Call Strategy — Simple Overview</h3>
+        <p>
+          A Covered Call is a conservative options strategy used to generate extra income from stocks you already own.
+          Let’s say you hold 100 shares of XZY, bought at $100 each. The stock now trades at $110, but you’re willing to sell at $115.
+          You sell one Call option (strike $115) for $1 premium — earning $100 immediately.
+        </p>
+
+        <p>
+          If the stock rises above $115, the buyer exercises the option.
+          You sell your shares at $115, locking in a 15% gain, plus the 1% premium — total 16% profit.
+          If the stock stays below $115, the option expires worthless and you keep both your shares and the premium.
+          This can be repeated periodically to generate consistent income.
+        </p>
+
+        <p>
+          In essence, the Covered Call allows investors to generate steady returns with limited downside
+          and predefined upside — a disciplined way to make capital work efficiently.
+        </p>
+
+        <img src="Covered Call 115.png" alt="Covered Call Payoff Chart">
+      </div>
+    </section>
+
+    <!-- === CONTACT === -->
     <section id="contact">
       <h2>Contact</h2>
       <p>
@@ -147,8 +209,11 @@ In essence, the Covered Call allows investors to generate steady returns with li
       </p>
     </section>
   </div>
+
   <footer>
     <p>&copy; 2025 Quantummathtrading. All rights reserved.</p>
   </footer>
+
 </body>
 </html>
+
