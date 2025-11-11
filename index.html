@@ -10,57 +10,59 @@
       margin: 0;
       padding: 0;
       background: #ffffff;
-      color: #000000;
+      color: #111111;
       line-height: 1.6;
     }
 
     /* ===== HEADER ===== */
     header {
       background: #000000;
-      color: #fff;
+      color: #ffffff;
       text-align: center;
       padding: 30px 10px;
     }
 
     header img {
-      max-width: 280px;
+      max-width: 240px;
       height: auto;
       display: block;
-      margin: 0 auto 15px auto;
+      margin: 0 auto 12px auto;
     }
 
     header h2 {
       font-weight: 400;
       margin: 0;
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       color: #ffffff;
+      letter-spacing: 0.5px;
     }
 
     /* ===== NAVBAR ===== */
     nav {
-      background: #222;
+      background: #1c1c1c;
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
     }
 
     nav a {
-      color: white;
-      padding: 15px 25px;
+      color: #ffffff;
+      padding: 14px 22px;
       text-decoration: none;
       font-weight: 500;
+      letter-spacing: 0.4px;
     }
 
     nav a:hover {
-      background: #444;
+      background: #333333;
     }
 
     /* ===== CONTAINER ===== */
     .container {
-      max-width: 1000px;
+      max-width: 900px;
       margin: auto;
       padding: 30px 20px;
-      background: white;
+      background: #ffffff;
     }
 
     section {
@@ -68,9 +70,10 @@
     }
 
     section h2 {
-      color: #00509e;
-      border-bottom: 2px solid #00509e;
-      padding-bottom: 8px;
+      color: #111111;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 6px;
+      margin-bottom: 15px;
     }
 
     p {
@@ -80,46 +83,51 @@
 
     /* ===== BLOG POST ===== */
     .post {
-      margin-bottom: 50px;
-      border: 1px solid #ddd;
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      margin-bottom: 45px;
+      border: 1px solid #e0e0e0;
+      padding: 22px;
+      border-radius: 10px;
+      background: #fafafa;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
     }
 
     .post h3 {
-      color: #004080;
+      color: #000000;
       margin-top: 0;
+      font-size: 1.2rem;
     }
 
     .post img {
-      max-width: 100%;
+      max-width: 75%;
       height: auto;
       display: block;
       margin: 15px auto;
-      border-radius: 6px;
-      box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+      border-radius: 4px;
+    }
+
+    em {
+      color: #555;
     }
 
     /* ===== FOOTER ===== */
     footer {
       text-align: center;
       padding: 25px;
-      background: #111;
-      color: white;
+      background: #000000;
+      color: #ffffff;
       font-size: 0.9rem;
       margin-top: 60px;
     }
 
-    @media screen and (max-width: 600px) {
+    @media screen and (max-width: 700px) {
       nav {
         flex-direction: column;
       }
       header h2 {
         font-size: 1.2rem;
       }
-      .post {
-        padding: 20px;
+      .post img {
+        max-width: 100%;
       }
     }
   </style>
@@ -150,11 +158,11 @@
 
     <!-- === BOOK === -->
     <section id="book">
-      <h2>The Essence of Quantum Math Trading with Options</h2>
+      <h2>The Essence of Quantitative Math Trading with Options</h2>
       <p>
         Discover the groundbreaking book that lays the foundation of Quantitative Math Trading.
         <em>"The Essence of Quantitative Math Trading with Options"</em> introduces readers to innovative models and techniques
-        that merge quantitative mechanics principles with financial derivatives trading.
+        that merge mathematical precision with financial derivatives trading.
       </p>
       <p><strong>Coming Soon:</strong> Purchase link and exclusive excerpts.</p>
     </section>
@@ -170,30 +178,20 @@
         <img src="delta-neutral.png" alt="Covered Call Strategy Example">
 
         <p>
-          Covered calls offer investors a strategic way to generate income and reduce the effective cost basis of an investment,
-          particularly in neutral or slightly bullish markets. While this strategy can enhance returns by collecting premiums,
-          it limits potential upside gains if the stock price exceeds the strike price.
-        </p>
-
-        <p><strong>Example:</strong> buying 100 shares of SPY and selling one in-the-money call option creates a covered call position.</p>
-
-        <h3>Covered Call Strategy — Simple Overview</h3>
-        <p>
-          A Covered Call is a conservative options strategy used to generate extra income from stocks you already own.
-          Let’s say you hold 100 shares of XZY, bought at $100 each. The stock now trades at $110, but you’re willing to sell at $115.
-          You sell one Call option (strike $115) for $1 premium — earning $100 immediately.
+          Covered calls offer a disciplined and conservative way to earn income while holding stocks you already own.
+          This strategy works best in neutral or slightly bullish markets and can be repeated to generate steady income.
         </p>
 
         <p>
-          If the stock rises above $115, the buyer exercises the option.
-          You sell your shares at $115, locking in a 15% gain, plus the 1% premium — total 16% profit.
-          If the stock stays below $115, the option expires worthless and you keep both your shares and the premium.
-          This can be repeated periodically to generate consistent income.
+          <strong>Example:</strong> You hold 100 shares of XZY at $100 each, now trading at $110.  
+          You sell a call with a $115 strike for $1 premium.  
+          If the stock rises above $115, you sell at that level — locking in your target profit plus the premium.  
+          If it stays below, you keep both your shares and the premium.
         </p>
 
         <p>
-          In essence, the Covered Call allows investors to generate steady returns with limited downside
-          and predefined upside — a disciplined way to make capital work efficiently.
+          The main advantage is earning consistent income from assets you already hold.  
+          The trade-off is a capped upside, but at a profit level you’ve already predetermined.
         </p>
 
         <img src="Covered Call 115.png" alt="Covered Call Payoff Chart">
@@ -204,7 +202,7 @@
     <section id="contact">
       <h2>Contact</h2>
       <p>
-        For inquiries, collaborations, or contributions, please contact the site administrator at:
+        For inquiries, collaborations, or contributions, please contact:
         <a href="mailto:info@quantummathtrading.com">info@quantummathtrading.com</a>
       </p>
     </section>
@@ -216,4 +214,6 @@
 
 </body>
 </html>
+
+        For inquiries, collaborations,
 
