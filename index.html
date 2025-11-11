@@ -10,31 +10,61 @@
       margin: 0;
       padding: 0;
       background: #ffffff;
-      color: #111111;
+      color: #111;
       line-height: 1.6;
     }
 
     /* ===== HEADER ===== */
     header {
-      background: #000000;
+      background: linear-gradient(to bottom, #000000 0%, #111111 100%);
       color: #ffffff;
       text-align: center;
-      padding: 30px 10px;
+      padding: 70px 20px;
+      position: relative;
+    }
+
+    header::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 3px;
+      background: #fff;
+      border-radius: 3px;
+    }
+
+    .hero-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      max-width: 700px;
+      margin: 0 auto;
     }
 
     header img {
-      max-width: 240px;
+      max-width: 260px;
       height: auto;
       display: block;
-      margin: 0 auto 12px auto;
+      margin-bottom: 15px;
+      filter: brightness(100%);
     }
 
-    header h2 {
+    header h1 {
       font-weight: 400;
+      font-size: 1.8rem;
       margin: 0;
-      font-size: 1.4rem;
-      color: #ffffff;
+      color: #fff;
       letter-spacing: 0.5px;
+    }
+
+    header p {
+      font-size: 1rem;
+      margin: 8px 0 0;
+      color: #dcdcdc;
     }
 
     /* ===== NAVBAR ===== */
@@ -61,12 +91,12 @@
     .container {
       max-width: 900px;
       margin: auto;
-      padding: 30px 20px;
+      padding: 40px 20px;
       background: #ffffff;
     }
 
     section {
-      margin-bottom: 50px;
+      margin-bottom: 60px;
     }
 
     section h2 {
@@ -85,7 +115,7 @@
     .post {
       margin-bottom: 45px;
       border: 1px solid #e0e0e0;
-      padding: 22px;
+      padding: 25px;
       border-radius: 10px;
       background: #fafafa;
       box-shadow: 0 2px 4px rgba(0,0,0,0.03);
@@ -98,10 +128,10 @@
     }
 
     .post img {
-      max-width: 75%;
+      max-width: 70%;
       height: auto;
       display: block;
-      margin: 15px auto;
+      margin: 20px auto;
       border-radius: 4px;
     }
 
@@ -120,25 +150,36 @@
     }
 
     @media screen and (max-width: 700px) {
-      nav {
-        flex-direction: column;
+      header {
+        padding: 50px 10px;
       }
-      header h2 {
-        font-size: 1.2rem;
+
+      header h1 {
+        font-size: 1.4rem;
       }
+
       .post img {
         max-width: 100%;
+      }
+
+      nav {
+        flex-direction: column;
       }
     }
   </style>
 </head>
 <body>
 
+  <!-- ===== HEADER ===== -->
   <header>
-    <img src="Logo-bianco-trasparente.png" alt="Quantummathtrading Logo">
-    <h4>Where Mathematics Meets Options Trading</h2>
+    <div class="hero-content">
+      <img src="Logo-bianco-trasparente.png" alt="Quantummathtrading Logo">
+      <h1>Where Mathematics Meets Options Trading</h1>
+      <p>Blending quantitative precision with strategic finance</p>
+    </div>
   </header>
 
+  <!-- ===== NAV ===== -->
   <nav>
     <a href="#about">About</a>
     <a href="#book">The Book</a>
@@ -146,28 +187,28 @@
     <a href="#contact">Contact</a>
   </nav>
 
+  <!-- ===== MAIN CONTENT ===== -->
   <div class="container">
-    <!-- === ABOUT === -->
+
     <section id="about">
       <h2>About Quantummathtrading</h2>
       <p>
-        Quantummathtrading is a platform dedicated to exploring the fascinating world of Quantitative Mathematical Trading with options.
-        Our goal is to educate and train users in applying advanced mathematical and quantitative concepts to modern options trading strategies.
+        Quantummathtrading explores the intersection between advanced mathematics and modern options trading.
+        Our mission is to share quantitative insights and methods that help traders apply disciplined logic
+        and mathematical modeling to financial markets.
       </p>
     </section>
 
-    <!-- === BOOK === -->
     <section id="book">
       <h2>The Essence of Quantitative Math Trading with Options</h2>
       <p>
-        Discover the groundbreaking book that lays the foundation of Quantitative Math Trading.
-        <em>"The Essence of Quantitative Math Trading with Options"</em> introduces readers to innovative models and techniques
-        that merge mathematical precision with financial derivatives trading.
+        Discover the groundbreaking book that introduces the principles of quantitative option mechanics.
+        <em>"The Essence of Quantitative Math Trading with Options"</em> bridges theory and practice through
+        examples, models, and strategies designed for professional and individual investors alike.
       </p>
-      <p><strong>Coming Soon:</strong> Purchase link and exclusive excerpts.</p>
+      <p><strong>Coming Soon:</strong> Purchase link and exclusive previews.</p>
     </section>
 
-    <!-- === BLOG === -->
     <section id="blog">
       <h2>Training Blog</h2>
 
@@ -178,27 +219,22 @@
         <img src="delta-neutral.png" alt="Covered Call Strategy Example">
 
         <p>
-          Covered calls offer a disciplined and conservative way to earn income while holding stocks you already own.
-          This strategy works best in neutral or slightly bullish markets and can be repeated to generate steady income.
+          Covered calls are a practical and conservative strategy that allows investors to generate
+          income while maintaining ownership of their stocks. Ideal in stable or slightly bullish markets,
+          the strategy combines income generation with disciplined risk control.
         </p>
 
         <p>
-          <strong>Example:</strong> You hold 100 shares of XZY at $100 each, now trading at $110.  
-          You sell a call with a $115 strike for $1 premium.  
-          If the stock rises above $115, you sell at that level — locking in your target profit plus the premium.  
-          If it stays below, you keep both your shares and the premium.
-        </p>
-
-        <p>
-          The main advantage is earning consistent income from assets you already hold.  
-          The trade-off is a capped upside, but at a profit level you’ve already predetermined.
+          <strong>Example:</strong> You own 100 shares of XZY at $100 each.  
+          The stock now trades at $110, and you sell a call option with a $115 strike for a $1 premium.  
+          If XZY rises above $115, you sell the shares at your target price, plus the premium.  
+          If not, the option expires worthless, and you keep both your shares and the income.
         </p>
 
         <img src="Covered Call 115.png" alt="Covered Call Payoff Chart">
       </div>
     </section>
 
-    <!-- === CONTACT === -->
     <section id="contact">
       <h2>Contact</h2>
       <p>
@@ -206,14 +242,13 @@
         <a href="mailto:info@quantummathtrading.com">info@quantummathtrading.com</a>
       </p>
     </section>
+
   </div>
 
+  <!-- ===== FOOTER ===== -->
   <footer>
     <p>&copy; 2025 Quantummathtrading. All rights reserved.</p>
   </footer>
 
 </body>
 </html>
-
-        For inquiries, collaborations,
-
