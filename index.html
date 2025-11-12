@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Quantummathtrading</title>
   <style>
-    html { scroll-behavior: smooth; } /* still useful for non-JS fallback */
+    html { scroll-behavior: smooth; }
 
     body {
       font-family: "Segoe UI", Arial, sans-serif;
@@ -26,6 +26,7 @@
       background: #000;
       color: #fff;
       border-bottom: 2px solid #111;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.25); /* 🔹 Ombra morbida sotto barra nera */
     }
 
     .topbar {
@@ -36,7 +37,7 @@
       gap: 12px;
     }
 
-    .topbar img { height: 100px; width:auto; } /* bigger logo per request */
+    .topbar img { height: 100px; width:auto; }
     .topbar .tagline {
       font-size: 1.15rem;
       color: #e6e6e6;
@@ -45,7 +46,6 @@
       margin: 0;
     }
 
-    /* nav sits inside the fixed header (under topbar) */
     nav {
       background: #111;
       display:flex;
@@ -54,17 +54,15 @@
     }
     nav a {
       display:inline-block;
-      color:#fff; text-decoration:none;
-      padding:12px 20px; font-weight:500;
+      color:#fff;
+      text-decoration:none;
+      padding:12px 20px;
+      font-weight:500;
     }
     nav a:hover { background:#222; }
 
-    /* reserve space for header: will be updated by JS on load/resizes */
-    .spacer {
-      height: 0px; /* JS will set this equal to header height */
-    }
+    .spacer { height: 0px; }
 
-    /* content */
     .container {
       max-width: 900px;
       margin: 0 auto;
@@ -74,16 +72,34 @@
 
     section { margin-bottom: 48px; }
     section h2 {
-      color:#111; border-bottom:1px solid #ddd; padding-bottom:8px; margin-bottom:14px;
+      color:#111;
+      border-bottom:1px solid #ddd;
+      padding-bottom:8px;
+      margin-bottom:14px;
     }
 
-    /* posts */
-    .post { background:#fafafa; border:1px solid #e8e8e8; padding:20px; border-radius:8px; }
-    .post img { max-width:70%; display:block; margin:18px auto; height:auto; border-radius:4px; }
+    .post {
+      background:#fafafa;
+      border:1px solid #e8e8e8;
+      padding:20px;
+      border-radius:8px;
+    }
+    .post img {
+      max-width:70%;
+      display:block;
+      margin:18px auto;
+      height:auto;
+      border-radius:4px;
+    }
 
-    footer { text-align:center; padding:26px; background:#000; color:#fff; margin-top:40px; }
+    footer {
+      text-align:center;
+      padding:26px;
+      background:#000;
+      color:#fff;
+      margin-top:40px;
+    }
 
-    /* responsive */
     @media (max-width:900px){
       .topbar { padding:12px 16px; }
       .topbar img { height:78px; }
@@ -115,10 +131,8 @@
     </nav>
   </header>
 
-  <!-- spacer: JS sets its height = header height so content starts below header -->
   <div id="header-spacer" class="spacer" aria-hidden="true"></div>
 
-  <!-- main content -->
   <main class="container">
     <section id="about"><h2>About Quantummathtrading</h2>
       <p>Quantummathtrading is a platform dedicated to exploring the fascinating world of Quantitative Mathematical Trading with options.
@@ -147,20 +161,17 @@
 
   <footer><p>&copy; 2025 Quantummathtrading. All rights reserved.</p></footer>
 
-  <!-- ===== SCRIPT: correct anchor scrolling with fixed header ===== -->
   <script>
     (function(){
       const header = document.getElementById('site-header');
       const spacer = document.getElementById('header-spacer');
       const navLinks = document.querySelectorAll('a.nav-link');
 
-      // function to update spacer height equal to header total height
       function updateSpacer() {
         const h = header.getBoundingClientRect().height;
         spacer.style.height = h + 'px';
       }
 
-      // scroll to target with header offset
       function scrollToHash(hash, instant = false) {
         if (!hash) return;
         const id = hash.replace('#','');
@@ -168,49 +179,36 @@
         if (!el) return;
         const headerHeight = header.getBoundingClientRect().height;
         const elTop = el.getBoundingClientRect().top + window.pageYOffset;
-        const targetY = elTop - headerHeight - 10; // 10px gap
+        const targetY = elTop - headerHeight - 10;
         if (instant) window.scrollTo(0, targetY);
         else window.scrollTo({ top: targetY, behavior: 'smooth' });
       }
 
-      // attach click listeners to nav links to override default and use offset scrolling
       navLinks.forEach(a => {
         a.addEventListener('click', function(e){
           const href = this.getAttribute('href');
           if (href && href.startsWith('#')) {
             e.preventDefault();
-            // update in history
             history.pushState(null, '', href);
             scrollToHash(href);
           }
         });
       });
 
-      // handle page load with hash (or when user refreshes with #)
       window.addEventListener('load', function(){
         updateSpacer();
-        if (location.hash) {
-          // wait a tick to ensure layout, then jump instantly (no animation) to correct offset
-          setTimeout(() => scrollToHash(location.hash, true), 50);
-        }
+        if (location.hash) setTimeout(() => scrollToHash(location.hash, true), 50);
       });
 
-      // update on resize (header height can change on responsive)
       let resizeTimer;
       window.addEventListener('resize', function(){
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(updateSpacer, 80);
       });
-
-      // also if fonts/images load and change layout
       window.addEventListener('load', updateSpacer);
-      // mutation observer in case header content changes dynamically
-      const obs = new MutationObserver(updateSpacer);
-      obs.observe(header, { childList: true, subtree: true, attributes: true });
-
     })();
   </script>
-
 </body>
 </html>
+
 
