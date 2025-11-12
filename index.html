@@ -14,7 +14,6 @@
       background: #fff;
       color: #111;
       line-height: 1.6;
-      overflow-x: hidden;
     }
 
     p { text-align: justify; text-justify: inter-word; }
@@ -24,13 +23,11 @@
       position: fixed;
       top: 0; left: 0; right: 0;
       z-index: 1000;
-      background: rgba(0,0,0,0.95);
+      background: rgba(0,0,0,0.97);
       color: #fff;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
-      transition: all 0.3s ease;
     }
 
     .topbar {
@@ -38,33 +35,31 @@
       justify-content: space-between;
       align-items: center;
       padding: 16px 40px;
-      gap: 12px;
     }
 
     .topbar img {
-      height: 130px;
+      height: 150px;
       width: auto;
+      display: block;
     }
 
     .tagline {
       font-size: 1.3rem;
       color: #e6e6e6;
-      text-align: right;
       font-style: italic;
       letter-spacing: 0.4px;
       margin: 0;
+      text-align: right;
     }
 
     nav {
-      background: #111;
+      background: #000;
       display: flex;
       justify-content: center;
       border-top: 1px solid #222;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
     }
 
     nav a {
-      display: inline-block;
       color: #fff;
       text-decoration: none;
       padding: 14px 24px;
@@ -81,14 +76,13 @@
     .spacer { height: 0; }
 
     .container {
-      max-width: 900px;
+      max-width: 1000px;
       margin: 0 auto;
-      padding: 30px 20px;
-      background: #fff;
+      padding: 40px 20px;
     }
 
     section {
-      margin-bottom: 60px;
+      margin-bottom: 70px;
       opacity: 0;
       transform: translateY(30px);
       transition: opacity 1s ease, transform 1s ease;
@@ -100,7 +94,7 @@
     }
 
     section h2 {
-      color: #111;
+      color: #000;
       border-bottom: 1px solid #ddd;
       padding-bottom: 8px;
       margin-bottom: 16px;
@@ -109,23 +103,31 @@
     .post {
       background: #fafafa;
       border: 1px solid #e8e8e8;
-      padding: 22px;
+      padding: 28px;
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.05);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
     .post:hover {
       transform: translateY(-3px);
-      box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+      box-shadow: 0 8px 22px rgba(0,0,0,0.08);
     }
 
     .post img {
-      max-width: 60%;
+      max-width: 65%;
       display: block;
-      margin: 18px auto;
+      margin: 25px auto;
       height: auto;
-      border-radius: 8px;
+      border-radius: 10px;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 1.2s ease, transform 1.2s ease;
+    }
+
+    .post img.visible {
+      opacity: 1;
+      transform: translateY(0);
     }
 
     footer {
@@ -134,22 +136,22 @@
       background: #000;
       color: #fff;
       font-size: 0.9rem;
-      letter-spacing: 0.2px;
       margin-top: 60px;
+      letter-spacing: 0.2px;
     }
 
     @media (max-width: 900px) {
-      .topbar { padding: 12px 16px; }
-      .topbar img { height: 100px; }
-      .tagline { font-size: 1rem; text-align: center; }
+      .topbar { padding: 12px 20px; }
+      .topbar img { height: 120px; }
+      .tagline { font-size: 1.1rem; text-align: center; }
       nav { flex-wrap: wrap; }
-      .post img { max-width: 80%; }
+      .post img { max-width: 85%; }
     }
 
     @media (max-width: 600px) {
       .topbar { flex-direction: column; gap: 8px; align-items: center; }
-      .topbar img { height: 80px; }
-      .container { padding-top: 22px; }
+      .topbar img { height: 90px; }
+      .container { padding-top: 24px; }
       .post img { max-width: 100%; }
     }
   </style>
@@ -162,19 +164,20 @@
       <p class="tagline">Where mathematics meets options trading…</p>
     </div>
     <nav id="site-nav">
-      <a class="nav-link" href="#about">About</a>
-      <a class="nav-link" href="#book">The Book</a>
-      <a class="nav-link" href="#blog">Training Blog</a>
-      <a class="nav-link" href="#contact">Contact</a>
+      <a href="#about">About</a>
+      <a href="#book">The Book</a>
+      <a href="#blog">Training Blog</a>
+      <a href="#contact">Contact</a>
     </nav>
   </header>
 
-  <div id="header-spacer" class="spacer" aria-hidden="true"></div>
+  <div id="header-spacer" class="spacer"></div>
 
   <main class="container">
+
     <section id="about">
       <h2>About Quantummathtrading</h2>
-      <p>Quantummathtrading is a platform dedicated to exploring the fascinating world of Quantitative Mathematical Trading with options.
+      <p>Quantummathtrading is a platform dedicated to exploring the fascinating world of quantitative mathematical trading with options.
       Our goal is to educate and train users in applying advanced mathematical and quantitative concepts to modern options trading strategies.</p>
     </section>
 
@@ -183,79 +186,101 @@
       <p>Discover the groundbreaking book that lays the foundation of Quantitative Math Trading.
       <em>"The Essence of Quantitative Math Trading with Options"</em> introduces readers to innovative models and techniques
       that merge mathematical precision with financial derivatives trading.</p>
+      <img src="Cover Mathematical Trading.png" alt="Book cover of The Essence of Quantitative Math Trading" class="fade-img" />
     </section>
 
     <section id="blog">
       <h2>Training Blog</h2>
+
       <article class="post">
-        <h3>Understanding Covered Call Option Strategies</h3>
+        <h3>Covered Call Strategy with Stock</h3>
         <p><em>Posted on November 10, 2025</em></p>
-        <img src="CoveredCall115.png" alt="Covered Call example">
-        <p>Covered calls offer a disciplined and conservative way to earn income while holding stocks you already own. This strategy generates consistent cash flow and reduces volatility, while keeping your portfolio productive.</p>
+
+        <p>Let’s assume we hold 100 shares of stock XZY in our portfolio, purchased at $100 each. Today, the stock is worth $110.
+        The cost basis is $10,000, while the current market value is $11,000 — an unrealized profit of $1,000 (10%).
+        We don’t want to sell XZY yet because we believe it could rise further, up to $115. So, we sell a Call option with a strike of $115,
+        expiring in one week, for a $1 premium.</p>
+
+        <p>If, at expiration, the price of XZY exceeds $115 (say $117), we are obligated to sell XZY at $115.
+        The buyer profits by $2 per share, while we achieve our 15% target gain, plus the $1 premium — a total return of 16%.</p>
+
+        <p>If the price remains below $115, the Call expires worthless. We keep the $100 premium as profit — a 1% return —
+        while continuing to hold our shares. This can be repeated weekly or monthly.</p>
+
+        <p>The main advantage: steady income from stocks already owned.
+        The trade-off: capped upside if the stock rallies beyond the strike. Still, it’s a disciplined way to make capital work efficiently.</p>
+
+        <img src="Covered Call 115.png" alt="Covered Call Payoff Chart" class="fade-img">
+
+        <p>As shown in the figure, the Covered Call strategy generates a smooth, capped profit line — combining the linear gain of long stock
+        with a flat plateau beyond the strike price.</p>
+
+        <p>Even in case of a price drop, the Call premium acts as partial protection, offsetting small declines.
+        The risk remains limited to the underlying stock's decline, not to the option itself.</p>
+
+        <p>This method can be repeated indefinitely — a popular approach among fund managers to generate consistent cash flow
+        without altering portfolio composition.</p>
+
+        <p>Importantly, selling a Call on an existing position doesn’t introduce new risks: the asset is already owned.
+        If the stock gets “called away” (sold at strike), it simply leaves the portfolio, locking in profit. The position can later be rebuilt
+        by repurchasing the asset — or selling a Put to re-enter at a discount.</p>
+
+        <p>From a mathematical standpoint, the maximum theoretical loss equals the total stock value (if XZY goes to zero).
+        In practice, such scenarios are extremely rare for solid companies. Hence, the Covered Call remains a conservative, income-focused strategy.</p>
+
+        <p>It’s also essential to compare Covered Calls with Short Puts. Although their P/L charts are almost identical,
+        the key difference lies in capital allocation: in a Short Put, the collateral remains liquid and interest-bearing;
+        in a Covered Call, the capital is invested in the stock, generating dividends but no interest on cash reserves.</p>
+
+        <p>Ultimately, both strategies share the same risk/reward profile — the choice depends on whether you prefer to hold the underlying stock
+        or keep your capital in cash while collecting option premiums.</p>
       </article>
     </section>
 
     <section id="contact">
       <h2>Contact</h2>
-      <p>For inquiries: <a href="mailto:info@quantummathtrading.com">info@quantummathtrading.com</a></p>
+      <p>For inquiries or collaborations: <a href="mailto:info@quantummathtrading.com">info@quantummathtrading.com</a></p>
     </section>
+
   </main>
 
-  <footer><p>&copy; 2025 Quantummathtrading. All rights reserved.</p></footer>
+  <footer>
+    <p>&copy; 2025 Quantummathtrading. All rights reserved.</p>
+  </footer>
 
   <script>
-    // === Sticky spacer for fixed header ===
-    (function(){
-      const header = document.getElementById('site-header');
-      const spacer = document.getElementById('header-spacer');
-      const navLinks = document.querySelectorAll('a.nav-link');
+    // Adjust header spacer for fixed bar
+    const header = document.getElementById('site-header');
+    const spacer = document.getElementById('header-spacer');
+    function updateSpacer() { spacer.style.height = header.offsetHeight + 'px'; }
+    window.addEventListener('load', updateSpacer);
+    window.addEventListener('resize', updateSpacer);
 
-      function updateSpacer() {
-        const h = header.getBoundingClientRect().height;
-        spacer.style.height = h + 'px';
-      }
-
-      function scrollToHash(hash, instant = false) {
-        if (!hash) return;
-        const el = document.querySelector(hash);
-        if (!el) return;
-        const headerHeight = header.getBoundingClientRect().height;
-        const targetY = el.offsetTop - headerHeight - 8;
-        if (instant) window.scrollTo(0, targetY);
-        else window.scrollTo({ top: targetY, behavior: 'smooth' });
-      }
-
-      navLinks.forEach(a => {
-        a.addEventListener('click', e => {
-          const href = a.getAttribute('href');
-          if (href.startsWith('#')) {
-            e.preventDefault();
-            history.pushState(null, '', href);
-            scrollToHash(href);
-          }
-        });
+    // Smooth scroll fix for header height
+    document.querySelectorAll('nav a').forEach(link => {
+      link.addEventListener('click', e => {
+        const id = link.getAttribute('href');
+        if (id.startsWith('#')) {
+          e.preventDefault();
+          const target = document.querySelector(id);
+          const offset = header.offsetHeight + 8;
+          window.scrollTo({ top: target.offsetTop - offset, behavior: 'smooth' });
+        }
       });
+    });
 
-      window.addEventListener('load', () => {
-        updateSpacer();
-        if (location.hash) setTimeout(() => scrollToHash(location.hash, true), 50);
-      });
-
-      window.addEventListener('resize', () => setTimeout(updateSpacer, 80));
-    })();
-
-    // === Fade-in animation for sections ===
+    // Fade-in for sections
     const sections = document.querySelectorAll('section');
+    const imgs = document.querySelectorAll('.fade-img');
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         if (entry.isIntersecting) entry.target.classList.add('visible');
       });
     }, { threshold: 0.2 });
-
     sections.forEach(sec => observer.observe(sec));
+    imgs.forEach(img => observer.observe(img));
   </script>
 </body>
 </html>
-
 
 
