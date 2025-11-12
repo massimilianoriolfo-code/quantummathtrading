@@ -6,6 +6,9 @@
   <title>Quantummathtrading</title>
   <style>
     /* ===== BASE ===== */
+    html {
+      scroll-behavior: smooth; /* 🔹 Scroll fluido */
+    }
     body {
       font-family: "Segoe UI", Arial, sans-serif;
       margin: 0;
@@ -47,20 +50,21 @@
     }
 
     .topbar img {
-      height: 100px; /* 🔹 logo più grande */
+      height: 90px; /* 🔹 Logo più grande e visibile */
       width: auto;
     }
 
     .topbar h2 {
-      font-size: 1.1rem;
+      font-size: 1.25rem;
       font-weight: 400;
       margin: 0;
       color: #e0e0e0;
       text-align: right;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
+      font-style: italic;
     }
 
-    /* ===== NAVIGATION BAR (now fixed inside header) ===== */
+    /* ===== NAVIGATION BAR ===== */
     nav {
       width: 100%;
       background: #1c1c1c;
@@ -86,13 +90,14 @@
     /* ===== MAIN CONTENT ===== */
     .container {
       max-width: 900px;
-      margin: 160px auto 40px auto; /* 🔹 spazio per header e nav fissi */
+      margin: 190px auto 40px auto; /* 🔹 Più spazio per header e nav fissi */
       padding: 30px 20px;
       background: #ffffff;
     }
 
     section {
-      margin-bottom: 50px;
+      margin-bottom: 60px;
+      scroll-margin-top: 180px; /* 🔹 Compensa l’altezza del header per il link */
     }
 
     section h2 {
@@ -141,23 +146,23 @@
     }
 
     /* ===== RESPONSIVE ===== */
-    @media screen and (max-width: 800px) {
+    @media screen and (max-width: 850px) {
       .topbar {
         flex-direction: column;
         text-align: center;
-        gap: 6px;
+        gap: 8px;
       }
 
       .topbar img {
-        height: 55px;
+        height: 75px;
       }
 
       .topbar h2 {
-        font-size: 0.95rem;
+        font-size: 1rem;
       }
 
       .container {
-        margin-top: 200px;
+        margin-top: 230px;
       }
 
       nav {
