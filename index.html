@@ -5,74 +5,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Quantummathtrading</title>
   <style>
+    /* ===== BASE ===== */
     body {
       font-family: "Segoe UI", Arial, sans-serif;
       margin: 0;
       padding: 0;
       background: #ffffff;
-      color: #111;
+      color: #111111;
       line-height: 1.6;
     }
 
-    /* ===== HEADER ===== */
+    p {
+      text-align: justify;
+      text-justify: inter-word;
+    }
+
+    /* ===== FIXED HEADER ===== */
     header {
-      background: linear-gradient(to bottom, #000000 0%, #111111 100%);
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 1000;
+      background: #000000;
       color: #ffffff;
-      text-align: center;
-      padding: 70px 20px;
-      position: relative;
-    }
-
-    header::after {
-      content: "";
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 80px;
-      height: 3px;
-      background: #fff;
-      border-radius: 3px;
-    }
-
-    .hero-content {
       display: flex;
-      flex-direction: column;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-      gap: 15px;
-      max-width: 700px;
-      margin: 0 auto;
+      padding: 10px 30px;
+      box-sizing: border-box;
+      height: 70px;
+      border-bottom: 2px solid #111;
     }
 
     header img {
-      max-width: 560px;
-      height: auto;
-      display: block;
-      margin-bottom: 15px;
-      filter: brightness(100%);
+      height: 45px;
+      width: auto;
     }
 
-    header h1 {
+    header h2 {
+      font-size: 1rem;
       font-weight: 400;
-      font-size: 1.8rem;
       margin: 0;
-      color: #fff;
+      text-align: right;
+      color: #e0e0e0;
       letter-spacing: 0.5px;
     }
 
-    header p {
-      font-size: 1rem;
-      margin: 8px 0 0;
-      color: #dcdcdc;
-    }
-
-    /* ===== NAVBAR ===== */
+    /* ===== NAVIGATION BAR ===== */
     nav {
       background: #1c1c1c;
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
+      margin-top: 70px; /* offset per il fixed header */
     }
 
     nav a {
@@ -87,16 +73,16 @@
       background: #333333;
     }
 
-    /* ===== CONTAINER ===== */
+    /* ===== MAIN CONTENT ===== */
     .container {
       max-width: 900px;
-      margin: auto;
-      padding: 40px 20px;
+      margin: 40px auto;
+      padding: 30px 20px;
       background: #ffffff;
     }
 
     section {
-      margin-bottom: 60px;
+      margin-bottom: 50px;
     }
 
     section h2 {
@@ -106,16 +92,11 @@
       margin-bottom: 15px;
     }
 
-    p {
-      text-align: justify;
-      text-justify: inter-word;
-    }
-
     /* ===== BLOG POST ===== */
     .post {
       margin-bottom: 45px;
       border: 1px solid #e0e0e0;
-      padding: 25px;
+      padding: 22px;
       border-radius: 10px;
       background: #fafafa;
       box-shadow: 0 2px 4px rgba(0,0,0,0.03);
@@ -131,7 +112,7 @@
       max-width: 70%;
       height: auto;
       display: block;
-      margin: 20px auto;
+      margin: 15px auto;
       border-radius: 4px;
     }
 
@@ -149,21 +130,31 @@
       margin-top: 60px;
     }
 
+    /* ===== RESPONSIVE ===== */
     @media screen and (max-width: 700px) {
       header {
-        padding: 50px 10px;
+        flex-direction: column;
+        align-items: center;
+        height: auto;
+        padding: 10px;
       }
 
-      header h1 {
-        font-size: 1.4rem;
+      header img {
+        height: 40px;
+        margin-bottom: 8px;
+      }
+
+      header h2 {
+        font-size: 0.9rem;
+        text-align: center;
+      }
+
+      nav {
+        margin-top: 120px;
       }
 
       .post img {
         max-width: 100%;
-      }
-
-      nav {
-        flex-direction: column;
       }
     }
   </style>
@@ -172,13 +163,11 @@
 
   <!-- ===== HEADER ===== -->
   <header>
-    <div class="hero-content">
-      <img src="Logo-bianco-trasparente.png" alt="Quantummathtrading Logo">
-      <h2>Where Mathematics Meets Options Trading </h2>
-    </div>
+    <img src="Logo-bianco-trasparente.png" alt="Quantummathtrading Logo">
+    <h2>Where mathematics meets options trading…</h2>
   </header>
 
-  <!-- ===== NAV ===== -->
+  <!-- ===== NAVIGATION ===== -->
   <nav>
     <a href="#about">About</a>
     <a href="#book">The Book</a>
@@ -186,26 +175,24 @@
     <a href="#contact">Contact</a>
   </nav>
 
-  <!-- ===== MAIN CONTENT ===== -->
+  <!-- ===== CONTENT ===== -->
   <div class="container">
-
     <section id="about">
       <h2>About Quantummathtrading</h2>
       <p>
-        Quantummathtrading explores the intersection between advanced mathematics and modern options trading.
-        Our mission is to share quantitative insights and methods that help traders apply disciplined logic
-        and mathematical modeling to financial markets.
+        Quantummathtrading is a platform dedicated to exploring the fascinating world of Quantitative Mathematical Trading with options.
+        Our goal is to educate and train users in applying advanced mathematical and quantitative concepts to modern options trading strategies.
       </p>
     </section>
 
     <section id="book">
       <h2>The Essence of Quantitative Math Trading with Options</h2>
       <p>
-        Discover the groundbreaking book that introduces the principles of quantitative option mechanics.
-        <em>"The Essence of Quantitative Math Trading with Options"</em> bridges theory and practice through
-        examples, models, and strategies designed for professional and individual investors alike.
+        Discover the groundbreaking book that lays the foundation of Quantitative Math Trading.
+        <em>"The Essence of Quantitative Math Trading with Options"</em> introduces readers to innovative models and techniques
+        that merge mathematical precision with financial derivatives trading.
       </p>
-      <p><strong>Coming Soon:</strong> Purchase link and exclusive previews.</p>
+      <p><strong>Coming Soon:</strong> Purchase link and exclusive excerpts.</p>
     </section>
 
     <section id="blog">
@@ -214,22 +201,17 @@
       <div class="post">
         <h3>Understanding Covered Call Option Strategies</h3>
         <p><em>Posted on November 10, 2025</em></p>
-
         <img src="delta-neutral.png" alt="Covered Call Strategy Example">
-
         <p>
-          Covered calls are a practical and conservative strategy that allows investors to generate
-          income while maintaining ownership of their stocks. Ideal in stable or slightly bullish markets,
-          the strategy combines income generation with disciplined risk control.
+          Covered calls offer a disciplined and conservative way to earn income while holding stocks you already own.
+          This strategy works best in neutral or slightly bullish markets and can be repeated to generate steady income.
         </p>
-
         <p>
-          <strong>Example:</strong> You own 100 shares of XZY at $100 each.  
-          The stock now trades at $110, and you sell a call option with a $115 strike for a $1 premium.  
-          If XZY rises above $115, you sell the shares at your target price, plus the premium.  
-          If not, the option expires worthless, and you keep both your shares and the income.
+          <strong>Example:</strong> You hold 100 shares of XZY at $100 each, now trading at $110.  
+          You sell a call with a $115 strike for $1 premium.  
+          If the stock rises above $115, you sell at that level — locking in your target profit plus the premium.  
+          If it stays below, you keep both your shares and the premium.
         </p>
-
         <img src="Covered Call 115.png" alt="Covered Call Payoff Chart">
       </div>
     </section>
@@ -241,7 +223,6 @@
         <a href="mailto:info@quantummathtrading.com">info@quantummathtrading.com</a>
       </p>
     </section>
-
   </div>
 
   <!-- ===== FOOTER ===== -->
@@ -251,3 +232,4 @@
 
 </body>
 </html>
+
