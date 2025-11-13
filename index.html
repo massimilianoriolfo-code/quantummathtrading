@@ -196,6 +196,18 @@
       .container { padding-top: 28px; }
       .post img { max-width: 100%; margin: 18px auto; }
     }
+    /* === Fade-in scroll animation for blog posts === */
+.post {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 1s ease-out, transform 1s ease-out;
+}
+
+.post.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
   </style>
 </head>
 <body>
@@ -237,6 +249,73 @@
     <!-- BLOG: FULL ORIGINAL TEXT (formatted in paragraphs, with subtitles) -->
     <section id="blog">
       <h2>Training Blog</h2>
+      <!-- === NEW BLOG POST: Short Put Strategy Example === -->
+<article class="post" id="short-put">
+  <h3>Short Put Strategy Example</h3>
+  <p><em>Posted on October 10th, 2025</em></p>
+
+  <p>
+    The Short Put strategy allows traders to generate income by selling a put option and collecting the premium, 
+    with the potential obligation to buy the underlying asset if its price drops below the strike level.
+    This strategy is particularly useful when you expect the asset’s price to remain stable or rise moderately.
+  </p>
+
+  <p>
+    Let’s assume we are analyzing stock <strong>XZY</strong>, currently trading at <strong>$110</strong>. 
+    Instead of buying shares immediately, we sell one Put option contract (representing 100 shares) with:
+  </p>
+
+  <ul>
+    <li><strong>Strike price (K):</strong> $95</li>
+    <li><strong>Premium:</strong> $1.00 (or $100 total)</li>
+    <li><strong>Expiration:</strong> 1 week</li>
+  </ul>
+
+  <p>
+    By selling this option, we immediately receive a premium of <strong>$100</strong>. 
+    This amount is our maximum potential profit from the trade. 
+    If, at expiration, the price of XZY remains above $95, the option expires worthless — 
+    we keep the premium and are not obligated to buy the stock.
+  </p>
+
+  <p>
+    If, instead, the stock falls below the strike price of $95, we will likely be assigned 
+    and required to purchase 100 shares at $95 each. 
+    However, since we collected a $1 premium, our <strong>effective purchase price</strong> 
+    becomes <strong>$94 per share</strong>. 
+    Below this level, the position starts to incur a loss.
+  </p>
+
+  <p>
+    The profit and loss structure of the position is summarized as follows:
+  </p>
+
+  <ul>
+    <li><strong>Maximum Profit:</strong> $100 (the premium collected)</li>
+    <li><strong>Break-even Price:</strong> $94 (strike − premium)</li>
+    <li><strong>Maximum Theoretical Loss:</strong> $9,400 (if XZY were to fall to $0)</li>
+  </ul>
+
+  <p>
+    This strategy is often chosen by investors who are comfortable owning the underlying asset at a discount, 
+    since assignment results in buying the stock at a lower effective price while still earning income from the premium.
+  </p>
+
+  <img 
+    src="Short Put 95.png" 
+    alt="Short Put Profit and Loss Chart" 
+    style="max-width:500px; display:block; margin:20px auto;"
+  >
+
+  <p>
+    The chart above illustrates the Short Put payoff profile: 
+    profits remain constant above the strike price, while losses increase linearly below it. 
+    This approach can be repeated periodically to collect option premiums, 
+    provided the underlying’s fundamentals and volatility remain within acceptable risk levels.
+  </p>
+</article>
+<!-- === END NEW BLOG POST === -->
+
 
       <article class="post" id="covered-call-full">
         <h3>Covered Call Strategy with Stock</h3>
@@ -434,6 +513,27 @@
     document.querySelectorAll('section').forEach(s => observer.observe(s));
     document.querySelectorAll('img.fade-img, .post img').forEach(img => observer.observe(img));
   </script>
+
+  <script>
+  // Fade-in animation on scroll
+  document.addEventListener("DOMContentLoaded", function () {
+    const posts = document.querySelectorAll(".post");
+
+    function revealOnScroll() {
+      const triggerBottom = window.innerHeight * 0.9;
+      posts.forEach(post => {
+        const boxTop = post.getBoundingClientRect().top;
+        if (boxTop < triggerBottom) {
+          post.classList.add("visible");
+        }
+      });
+    }
+
+    window.addEventListener("scroll", revealOnScroll);
+    revealOnScroll(); // initial check
+  });
+</script>
+
 </body>
 </html>
 
