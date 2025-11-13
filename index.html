@@ -13,29 +13,28 @@
       padding: 0;
       background: #fff;
       color: #111;
-      line-height: 1.6;
+      line-height: 1.65;
     }
 
-    p { text-align: justify; text-justify: inter-word; }
+    p { text-align: justify; text-justify: inter-word; margin-bottom: 1rem; }
 
-    /* ===== Header (sticky) ===== */
+    /* ===== Header (sticky glossy Apple-style) ===== */
     header {
       position: fixed;
       top: 0; left: 0; right: 0;
       z-index: 1000;
-      background: rgba(0,0,0,0.88);
+      background: rgba(0,0,0,0.92);
       color: #fff;
-      box-shadow: 0 18px 40px rgba(0,0,0,0.22);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
 
     header .gloss {
-      pointer-events: none;
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 20%, rgba(0,0,0,0) 40%);
-      mix-blend-mode: overlay;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 22%, rgba(0,0,0,0) 60%);
+      pointer-events: none;
       z-index: 2;
     }
 
@@ -44,7 +43,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 14px 40px;
+      padding: 14px 36px;
+      gap: 16px;
       z-index: 10;
     }
 
@@ -55,7 +55,7 @@
     }
 
     .tagline {
-      font-size: 1.3rem;
+      font-size: 1.26rem;
       color: #e6e6e6;
       font-style: italic;
       letter-spacing: 0.4px;
@@ -70,8 +70,8 @@
       background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
       display: flex;
       justify-content: center;
-      border-top: 1px solid rgba(255,255,255,0.03);
-      border-bottom: 1px solid rgba(0,0,0,0.18);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      border-bottom: 1px solid rgba(0,0,0,0.2);
     }
 
     nav a {
@@ -87,7 +87,7 @@
     nav a:hover,
     nav a:focus {
       color: #fff;
-      text-shadow: 0 0 10px rgba(255,255,255,0.9);
+      text-shadow: 0 0 10px rgba(255,255,255,0.92);
       background: rgba(255,255,255,0.04);
       outline: none;
     }
@@ -101,13 +101,13 @@
     .container {
       max-width: 1000px;
       margin: 0 auto;
-      padding: 40px 20px;
+      padding: 46px 20px;
     }
 
     section {
-      margin-bottom: 70px;
+      margin-bottom: 64px;
       opacity: 0;
-      transform: translateY(30px);
+      transform: translateY(28px);
       transition: opacity 0.9s ease, transform 0.9s ease;
     }
 
@@ -118,9 +118,9 @@
 
     section h2 {
       color: #000;
-      border-bottom: 1px solid #ddd;
+      border-bottom: 1px solid #e0e0e0;
       padding-bottom: 8px;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
 
     .post {
@@ -138,18 +138,25 @@
     }
 
     .post img {
-      max-width: 65%;
+      max-width: 68%;
       display: block;
-      margin: 25px auto;
+      margin: 26px auto;
       height: auto;
       border-radius: 10px;
       opacity: 0;
-      transform: translateY(30px);
+      transform: translateY(26px);
       transition: opacity 1s cubic-bezier(.2,.8,.2,1), transform 1s cubic-bezier(.2,.8,.2,1);
     }
     .post img.visible {
       opacity: 1;
       transform: translateY(0);
+    }
+
+    .subheading {
+      font-weight: 700;
+      margin-top: 14px;
+      margin-bottom: 8px;
+      color: #0b0b0b;
     }
 
     footer {
@@ -162,9 +169,8 @@
       letter-spacing: 0.2px;
     }
 
-    /* Disclaimer link clearly visible */
     footer a.disclaimer {
-      color: #ffffff;
+      color: #fff;
       font-weight: 600;
       text-decoration: underline;
       margin-left: 8px;
@@ -175,32 +181,33 @@
       text-shadow: 0 0 12px rgba(255,255,255,0.9);
     }
 
-    @media (max-width: 900px) {
-      .topbar { padding: 12px 20px; }
+    @media (max-width: 980px) {
+      .topbar { padding: 12px 20px; gap: 10px; }
       .topbar img { height: 120px; }
-      .tagline { font-size: 1.1rem; text-align: center; }
+      .tagline { font-size: 1.06rem; text-align: center; }
       nav { flex-wrap: wrap; }
       .post img { max-width: 85%; }
+      .container { padding-top: 34px; }
     }
 
     @media (max-width: 600px) {
-      .topbar { flex-direction: column; gap: 8px; align-items: center; }
-      .topbar img { height: 90px; }
-      .container { padding-top: 24px; }
-      .post img { max-width: 100%; }
+      .topbar { flex-direction: column; gap: 8px; align-items: center; padding: 10px 16px; }
+      .topbar img { height: 84px; }
+      .container { padding-top: 28px; }
+      .post img { max-width: 100%; margin: 18px auto; }
     }
   </style>
 </head>
 <body>
 
-  <header id="site-header">
-    <div class="gloss"></div>
+  <header id="site-header" role="banner">
+    <div class="gloss" aria-hidden="true"></div>
     <div class="topbar">
-      <img src="Logo-bianco-trasparente.png" alt="Quantummathtrading logo">
+      <img src="Logo-bianco-trasparente.png" alt="Quantummathtrading logo" id="site-logo">
       <p class="tagline">Where mathematics meets options trading…</p>
     </div>
 
-    <nav id="site-nav">
+    <nav id="site-nav" role="navigation" aria-label="Main navigation">
       <a href="#about" class="nav-link">About</a>
       <a href="#book" class="nav-link">The Book</a>
       <a href="#blog" class="nav-link">Training Blog</a>
@@ -208,15 +215,17 @@
     </nav>
   </header>
 
-  <div id="header-spacer" class="spacer"></div>
+  <div id="header-spacer" class="spacer" aria-hidden="true"></div>
 
-  <main class="container">
+  <main class="container" id="main-content">
+    <!-- ABOUT -->
     <section id="about">
       <h2>About Quantummathtrading</h2>
       <p>Quantummathtrading is a platform dedicated to exploring the fascinating world of quantitative mathematical trading with options.
       Our goal is to educate and train users in applying advanced mathematical and quantitative concepts to modern options trading strategies.</p>
     </section>
 
+    <!-- BOOK (image removed as requested) -->
     <section id="book">
       <h2>The Essence of Quantitative Math Trading with Options</h2>
       <p>Discover the groundbreaking book that lays the foundation of Quantitative Math Trading.
@@ -225,25 +234,130 @@
       <p><strong>Coming Soon: Purchase link and exclusive excerpts.</strong></p>
     </section>
 
+    <!-- BLOG: FULL ORIGINAL TEXT (formatted in paragraphs, with subtitles) -->
     <section id="blog">
       <h2>Training Blog</h2>
 
-      <article class="post">
+      <article class="post" id="covered-call-full">
         <h3>Covered Call Strategy with Stock</h3>
         <p><em>Posted on November 10, 2025</em></p>
 
-        <!-- Full blog content preserved -->
-        <p>Let’s assume we hold 100 shares of stock XZY in our portfolio, purchased some time ago at $100 each...</p>
-        <img src="Covered Call 115.png" alt="Covered Call Payoff Chart" class="fade-img">
+        <p>Let’s assume we hold 100 shares of stock XZY in our portfolio, purchased some time ago at $100 each. Today, the stock is worth $110.
+        The cost basis (initial investment) is therefore $10,000 (100 shares × $100), while the current market value is $11,000 (100 shares × $110).
+        This gives us an unrealized profit of $1,000 (10%). However, we don’t want to sell XZY yet because we believe it could rise further — up to $115,
+        a price at which we’d be satisfied to sell, locking in a 15% gain.</p>
+
+        <p><span class="subheading">Example — Selling the Call</span><br>
+        So, we sell a Call option with a strike price of $115, expiring in one week, for a premium of $1. The buyer of the Call immediately pays $100
+        ($1 × 100 contracts) to us.</p>
+
+        <p>What happens at expiration, seven days later? If the price of XZY exceeds the strike price — for example, it rises to $117 — we are
+        obligated to sell XZY at $115 to the buyer of the Call. Important note: the buyer is not obligated to exercise the option, but since they hold a
+        Call contract that allows them to acquire an asset worth $117 on the market for just $115 (an immediate $2 profit), they will almost certainly
+        choose to exercise it.</p>
+
+        <p>The seller (us), in turn, will be satisfied because they achieve exactly what they aimed for: selling XZY with a 15% gain. Of course, the seller
+        forgoes $2 compared to selling directly on the market at $117 (since they’re selling at the $115 strike price), but they’ve still reached their target profit:
+        $15 per share from capital appreciation (15%) plus the $1 premium from selling the Call (1%), for a total gain of 16%.</p>
+
+        <p>If, instead, the price of the underlying stays below the strike price — say it reaches $114 — nothing happens because the Call expires worthless.
+        The buyer loses the $100 paid to the seller, who keeps the amount as profit, earning a 1% return ($100) on their investment, which consists of the 100 shares of XZY still held in the portfolio.
+        These shares remain in the portfolio, and the same strategy can be repeated each week. Obviously, if our asset drops sharply in price — say, down to $95 —
+        everything previously stated still applies (we still collect the $100), but we now have an unrealized loss of $5 per share. However, this has nothing to do with the sale of the Call,
+        which still generated $100 in income — money we wouldn’t have earned without that transaction.</p>
+
+        <p>As is clear, this is a way to generate relatively consistent profits, with the “risk” of having to sell the asset to the Call buyer — but still doing so at a profit.
+        In other words, there’s no actual risk involved. There are no additional risks because the asset was already part of the portfolio: the Call seller wouldn't have acted differently
+        even if the asset’s price had fallen, since exit levels (such as a drop below a certain threshold) or other risk management measures — like an evaluation of the asset’s fundamentals
+        (which are considered strong in this case) — had already been taken into account.</p>
+
+        <p>This operation can be repeated indefinitely, and that’s exactly what many fund managers do with the assets in their portfolios. It is a widely used method for generating cash
+        without making any changes to the underlying holdings.</p>
+
+        <p>Another important aspect: if the stock gets "called away," as they say (meaning it is sold because it has reached or exceeded the strike price),
+        that asset is removed from the portfolio. At that point, if you still consider it a good investment, XZY can simply be repurchased — either
+        directly on the market or at a discount by selling a Put, as discussed earlier (Short Put-Based Machine).</p>
+
+        <p>The maximum risk is described as "undefined" because, in advance, it cannot be precisely quantified. In the event of a significant drop in the price of the underlying stock,
+        the potential loss can be substantial. However, this risk was already inherent in the position held prior to selling the call — that is, when the XZY stock was in the portfolio without
+        an associated call.</p>
+
+        <p>The decision to retain this asset in the portfolio was made following a thorough evaluation of the issuer’s solidity and reliability. Any price pullbacks were considered temporary
+        and normal market fluctuations. It was also determined that, in such circumstances, there would be no need to liquidate the position at a loss, thus keeping the investment strategy unchanged.</p>
+
+        <p>From a strictly mathematical perspective, the maximum risk is not technically infinite, but rather equal to the total loss of the value of the XZY stock —
+        i.e., in the event the stock price drops to zero. This is an extremely rare scenario, especially for companies considered solid and fundamentally sound. In such an extreme case,
+        the maximum loss would correspond to the entire amount invested in the position, which is $10,000, calculated as 100 shares purchased at $100 each.</p>
+
+        <p>Contrary to what is often inaccurately stated, commonly referred “undefined risk” strategies — such as Short Puts, Short Calls, and Covered Calls, among others —
+        do not imply technically infinite risk. In every case, there is a theoretical cap on the maximum loss, no matter how large. This cap is based on the fact that an asset’s price cannot
+        fall below zero (as with the maximum losses in Short Put and Covered Call strategies), nor can it grow indefinitely in practical terms, even though this represents a theoretical risk for the Short Call.</p>
+
+        <p class="subheading">Important Note: Use of Available Capital</p>
+
+        <p>It is important to note that the Profit/Loss (P/L) charts for the Short Put and Covered Call strategies are virtually overlapping.
+        This indicates that, under identical operating parameters, both strategies offer a substantially equivalent risk/reward profile.
+        In other words, selling a Put or establishing a Covered Call position (i.e., holding the asset and selling a Call option) leads to the same
+        expected outcomes in terms of potential return and maximum risk.</p>
+
+        <p>However, there is a significant difference between the two setups, which can become particularly relevant in environments characterized by high interest rates —
+        both on the earning and borrowing sides:</p>
+
+        <p class="subheading">Short Put – Financial Aspects and Implied Return on Unused Capital</p>
+
+        <p>In the case of a Short Put strategy, the investor sells a put option without directly deploying the available capital, which remains simply locked as collateral for the trade without being physically used to purchase any asset. For example, suppose we have $100,000 in capital and use it entirely as margin to sell a put (a scenario not recommended — ideally, only $30,000 should be used, but this serves illustrative purposes): in reality, that $100,000 remains in the account, it is neither invested nor spent. It is held as collateral for the trade, but it continues to earn interest.</p>
+
+        <p>In a high-interest rate environment — such as in 2024 — some brokers offered an average yearly yield on cash of around 4%. This means that by keeping the $100,000 in a brokerage account without allocating it elsewhere, one could potentially earn approximately $4,000 annually, before taxes (which vary depending on the account holder’s tax jurisdiction).</p>
+
+        <p>This represents a significant return, especially when compared to the virtually zero risk of the operation: the only real risk lies in the unlikely event of default by the financial intermediary. However, with strong, regulated international brokers, such risk is considered negligible.</p>
+
+        <p>In summary, in the absence of put assignment, the Short Put strategy allows for two separate sources of return: 1) The interest earned from the capital that is locked as collateral but not invested; 2) The premiums collected from selling the Put option.</p>
+
+        <p class="subheading">Covered Call – Impact on Capital Allocation and Residual Passive Return</p>
+
+        <p>Unlike the Short Put strategy, the Covered Call approach requires the actual deployment of available capital to purchase the underlying asset.</p>
+
+        <p>In other words, the funds needed to buy the asset on which the Call will be written are directly withdrawn from the account. For example, suppose you have an initial capital of $100,000 and decide to purchase 1,000 shares of XZY at $100 each. The entire amount would be used for the purchase, leaving the account balance at zero. After this, a Call option is sold with a predetermined strike price and expiration date. Assuming a premium of $1 per contract, selling 10 contracts (each representing 100 shares) would generate a total income of $1,000.</p>
+
+        <p>This ($1,000) is the only amount remaining in the account after the transaction, compared to the original $100,000.</p>
+
+        <p>Interest continues to accrue on this $1,000 only — assuming a 4% annual rate, it equates to about $40 per year. This is significantly lower than the $4,000 potentially earned through the Short Put strategy, where the entire capital remains in cash and continues to generate interest.</p>
+
+        <p class="subheading">Characteristic Comparison</p>
+
+        <p>Characteristic | Short Put | Covered Call</p>
+        <p><strong>Capital Usage:</strong> Capital not used, but held as margin collateral | Capital actually invested in purchasing the underlying asset</p>
+        <p><strong>Remaining Capital in Account:</strong> Fully available (but restricted) | Virtually depleted, except for the Call premium received</p>
+        <p><strong>Interest Income Generated:</strong> On $100,000 → approx. $4,000 annually (at 4%) | On $1,000 (premium received) → approx. $40 annually (at 4%)</p>
+        <p><strong>Premium Collected:</strong> From selling the Put | From selling the Call</p>
+        <p><strong>Maximum Profit:</strong> Limited to the Put premium | Limited: Call premium + stock appreciation up to the strike</p>
+        <p><strong>Primary Risk:</strong> Obligation to buy the stock at the strike price if assigned | Risk of holding a stock that may decline in value</p>
+        <p><strong>Capital Liquidity:</strong> Liquid and interest-bearing capital, though locked | Illiquid capital, converted into assets</p>
+        <p><strong>Favorable Condition:</strong> Stock remains above the strike (no assignment) | Stock stays flat or slightly above strike</p>
+
+        <p>Despite having a similar theoretical profit/loss (P/L) profile, the Short Put and Covered Call strategies differ significantly in their operational nature and the investor’s objectives. The Covered Call is typically used by investors who already hold the underlying asset and wish to enhance its profitability by periodically collecting premiums from selling call options. In this way, the asset is "put to work" and contributes to generating an additional cash flow.</p>
+
+        <p>In contrast, the Short Put strategy is adopted by those seeking to collect recurring premiums without a direct use of capital, while accepting the potential risk of having to purchase the underlying asset at a discounted price, should the option be assigned at expiration.</p>
+
+        <p>Another important distinction lies in the ability to receive dividends. In a Covered Call, since the investor actually owns the asset, they retain the right to collect any dividends distributed during the life of the option. This advantage remains fully intact even after selling the Call.</p>
+
+        <p>In conclusion, as previously noted, selling a Call in a Covered Call strategy does not introduce additional risks beyond those already present from simply holding the stock, nor does it deprive the investor of the typical benefits of asset ownership.</p>
+
+        <p>(End of the complete blog text — unchanged from the original you provided.)</p>
+
+        <!-- payoff diagram image -->
+        <img src="Covered Call 115.png" alt="Covered Call Payoff Diagram" class="fade-img">
       </article>
     </section>
 
+    <!-- CONTACT -->
     <section id="contact">
       <h2>Contact</h2>
       <p>For inquiries or collaborations: <a href="mailto:info@quantummathtrading.com">info@quantummathtrading.com</a></p>
     </section>
   </main>
 
+  <!-- FOOTER with visible Disclaimer link -->
   <footer>
     <p>&copy; 2025 Quantummathtrading. All rights reserved.
       <a href="disclaimer.html" class="disclaimer" target="_blank" rel="noopener">Disclaimer</a>
@@ -251,12 +365,25 @@
   </footer>
 
   <script>
+    // Adjust header spacer for fixed bar
     const header = document.getElementById('site-header');
     const spacer = document.getElementById('header-spacer');
-    function updateSpacer() { spacer.style.height = header.offsetHeight + 'px'; }
+    function updateSpacer() { 
+      const h = header.getBoundingClientRect().height;
+      // ensure there's a spacer element present (if not, create it)
+      let s = document.getElementById('header-spacer');
+      if (!s) {
+        s = document.createElement('div');
+        s.id = 'header-spacer';
+        s.className = 'spacer';
+        header.insertAdjacentElement('afterend', s);
+      }
+      s.style.height = h + 'px';
+    }
     window.addEventListener('load', updateSpacer);
     window.addEventListener('resize', updateSpacer);
 
+    // Smooth scroll fix for header height and nav link handling
     const navLinks = document.querySelectorAll('nav a.nav-link');
     function scrollToId(id) {
       const target = document.querySelector(id);
@@ -275,6 +402,7 @@
       });
     });
 
+    // Highlight active nav link based on scroll position
     const sections = Array.from(document.querySelectorAll('main section'));
     function onScroll() {
       const fromTop = window.scrollY + header.offsetHeight + 12;
@@ -292,10 +420,12 @@
     window.addEventListener('scroll', onScroll);
     window.addEventListener('load', onScroll);
 
+    // Fade-in for sections and images using IntersectionObserver
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('visible');
+          // reveal contained images if any
           const imgs = entry.target.querySelectorAll && entry.target.querySelectorAll('img.fade-img, .post img');
           imgs && imgs.forEach(img => img.classList.add('visible'));
         }
@@ -307,6 +437,7 @@
   </script>
 </body>
 </html>
+
 
 
 
