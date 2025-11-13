@@ -468,13 +468,12 @@ section { display: block; } /* <— questa è la sola aggiunta */
     </p>
   </footer>
 
-  <script>
-    // Adjust header spacer for fixed bar
+  <!-- REPLACE existing scripts with this single script -->
+<script>
+  // --- helper: update header spacer (keeps current logic) ---
+  (function () {
     const header = document.getElementById('site-header');
-    const spacer = document.getElementById('header-spacer');
-    function updateSpacer() { 
-      const h = header.getBoundingClientRect().height;
-      // ensure there's a spacer element present (if not, create it)
+    function updateSpacer() {
       let s = document.getElementById('header-spacer');
       if (!s) {
         s = document.createElement('div');
@@ -482,17 +481,25 @@ section { display: block; } /* <— questa è la sola aggiunta */
         s.className = 'spacer';
         header.insertAdjacentElement('afterend', s);
       }
+      // clamp reasonable height to avoid extremely large spacers on tiny screens
+      const h = Math.min(header.getBoundingClientRect().height, window.innerHeight * 0.48);
       s.style.height = h + 'px';
     }
     window.addEventListener('load', updateSpacer);
     window.addEventListener('resize', updateSpacer);
+    // call once immediately in case DOMContentLoaded already fired
+    updateSpacer();
+  })();
 
-    // Smooth scroll fix for header height and nav link handling
+  // --- smooth scroll offset aware ---
+  (function () {
+    const header = document.getElementById('site-header');
     const navLinks = document.querySelectorAll('nav a.nav-link');
     function scrollToId(id) {
       const target = document.querySelector(id);
       if (!target) return;
-      const offset = header.offsetHeight - 20;
+      // small safety: if header height is huge, reduce offset a bit
+      const offset = Math.max(header.offsetHeight - 20, 40);
       window.scrollTo({ top: target.offsetTop - offset, behavior: 'smooth' });
     }
     navLinks.forEach(link => {
@@ -505,60 +512,77 @@ section { display: block; } /* <— questa è la sola aggiunta */
         }
       });
     });
+  })();
 
-    // Highlight active nav link based on scroll position
-    const sections = Array.from(document.querySelectorAll('main section'));
-    function onScroll() {
-      const fromTop = window.scrollY + header.offsetHeight + 12;
-      sections.forEach(section => {
-        const id = '#' + section.id;
-        const link = document.querySelector(`nav a[href="${id}"]`);
-        if (!link) return;
-        if (section.offsetTop <= fromTop && (section.offsetTop + section.offsetHeight) > fromTop) {
-          link.classList.add('active');
-        } else {
-          link.classList.remove('active');
-        }
-      });
-    }
-    window.addEventListener('scroll', onScroll);
-    window.addEventListener('load', onScroll);
+  // --- Unified reveal logic for sections AND posts & images ---
+  (function () {
+    const sections = document.querySelectorAll('main section');
+    const posts = document.querySelectorAll('.post');
+    const imgs = document.querySelectorAll('img.fade-img, .post img');
 
-    // Fade-in for sections and images using IntersectionObserver
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          // reveal contained images if any
-          const imgs = entry.target.querySelectorAll && entry.target.querySelectorAll('img.fade-img, .post img');
-          imgs && imgs.forEach(img => img.classList.add('visible'));
-        }
-      });
-    }, { threshold: 0.18 });
-
-    document.querySelectorAll('section').forEach(s => observer.observe(s));
-    document.querySelectorAll('img.fade-img, .post img').forEach(img => observer.observe(img));
-  </script>
-
-  <script>
-  // Fade-in animation on scroll
-  document.addEventListener("DOMContentLoaded", function () {
-    const posts = document.querySelectorAll(".post");
-
-    function revealOnScroll() {
-      const triggerBottom = window.innerHeight * 0.9;
-      posts.forEach(post => {
-        const boxTop = post.getBoundingClientRect().top;
-        if (boxTop < triggerBottom) {
-          post.classList.add("visible");
-        }
-      });
+    // Helper to reveal a node (adds visible class)
+    function reveal(node) {
+      if (!node) return;
+      node.classList.add('visible');
     }
 
-    window.addEventListener("scroll", revealOnScroll);
-    revealOnScroll(); // initial check
-  });
+    // If IntersectionObserver supported -> observe each .post (and sections for nav highlighting)
+    if ('IntersectionObserver' in window) {
+      const postObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            reveal(entry.target);
+            // once revealed, stop observing that target to save resources
+            postObserver.unobserve(entry.target);
+          }
+        });
+      }, { root: null, rootMargin: '0px', threshold: 0.12 });
+
+      posts.forEach(p => postObserver.observe(p));
+      imgs.forEach(i => postObserver.observe(i));
+
+      // Also observe sections to set nav active state (separate observer with higher threshold)
+      const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const id = entry.target.id ? ('#' + entry.target.id) : null;
+          const link = id ? document.querySelector(`nav a[href="${id}"]`) : null;
+          if (link) {
+            if (entry.isIntersecting) link.classList.add('active');
+            else link.classList.remove('active');
+          }
+        });
+      }, { threshold: 0.45 });
+
+      sections.forEach(s => sectionObserver.observe(s));
+    } else {
+      // Fallback for older browsers: reveal everything once on load and on scroll
+      function fallbackReveal() {
+        posts.forEach(p => {
+          const rect = p.getBoundingClientRect();
+          if (rect.top < window.innerHeight * 0.92) {
+            reveal(p);
+          }
+        });
+        imgs.forEach(i => {
+          const rect = i.getBoundingClientRect();
+          if (rect.top < window.innerHeight * 0.92) reveal(i);
+        });
+      }
+      window.addEventListener('scroll', fallbackReveal);
+      window.addEventListener('load', fallbackReveal);
+      fallbackReveal();
+    }
+
+    // Ensure that if any post is still invisible after X seconds (rare race conditions on mobile),
+    // we reveal them to avoid permanent hidden content. This is a safety net.
+    setTimeout(() => {
+      posts.forEach(p => { if (!p.classList.contains('visible')) p.classList.add('visible'); });
+      imgs.forEach(i => { if (!i.classList.contains('visible')) i.classList.add('visible'); });
+    }, 2200);
+
+  })();
 </script>
+
 
 </body>
 </html>
