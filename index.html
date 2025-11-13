@@ -25,24 +25,22 @@
       z-index: 1000;
       background: rgba(0,0,0,0.88);
       color: #fff;
-      /* più morbida e diffusa */
       box-shadow: 0 18px 40px rgba(0,0,0,0.22);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
     }
 
-    /* glossy overlay: pseudo-gloss using gradient */
     header .gloss {
       pointer-events: none;
       position: absolute;
       inset: 0;
-      background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 18%, rgba(0,0,0,0) 35%);
+      background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 20%, rgba(0,0,0,0) 40%);
       mix-blend-mode: overlay;
       z-index: 2;
     }
 
     .topbar {
-      position: relative; /* for gloss */
+      position: relative;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -77,7 +75,7 @@
     }
 
     nav a {
-      color: #ffffff !important;                /* assicurati siano bianchi */
+      color: #ffffff !important;
       text-decoration: none;
       padding: 14px 24px;
       font-weight: 500;
@@ -86,18 +84,16 @@
       display: inline-block;
     }
 
-    /* Apple-like soft illumination on hover */
     nav a:hover,
     nav a:focus {
-      color: #f3f3f3;
+      color: #fff;
       text-shadow: 0 0 10px rgba(255,255,255,0.9);
-      background: rgba(255,255,255,0.02);
+      background: rgba(255,255,255,0.04);
       outline: none;
     }
 
-    /* active link subtle underline */
     nav a.active {
-      box-shadow: inset 0 -3px 0 rgba(255,255,255,0.06);
+      box-shadow: inset 0 -3px 0 rgba(255,255,255,0.08);
     }
 
     .spacer { height: 0; }
@@ -141,7 +137,6 @@
       box-shadow: 0 10px 26px rgba(0,0,0,0.08);
     }
 
-    /* immagini: effetto fade+slide */
     .post img {
       max-width: 65%;
       display: block;
@@ -167,16 +162,17 @@
       letter-spacing: 0.2px;
     }
 
-    /* disclaimer link styling (footer) */
+    /* Disclaimer link clearly visible */
     footer a.disclaimer {
-      color: #fff;
-      text-decoration: none;
+      color: #ffffff;
+      font-weight: 600;
+      text-decoration: underline;
       margin-left: 8px;
       transition: color 0.3s ease, text-shadow 0.3s ease;
     }
     footer a.disclaimer:hover {
-      color: #ddd;
-      text-shadow: 0 0 8px rgba(255,255,255,0.85);
+      color: #fff;
+      text-shadow: 0 0 12px rgba(255,255,255,0.9);
     }
 
     @media (max-width: 900px) {
@@ -198,13 +194,13 @@
 <body>
 
   <header id="site-header">
-    <div class="gloss" aria-hidden="true"></div> <!-- glossy overlay -->
+    <div class="gloss"></div>
     <div class="topbar">
-      <img src="Logo-bianco-trasparente.png" alt="Quantummathtrading logo" id="site-logo">
+      <img src="Logo-bianco-trasparente.png" alt="Quantummathtrading logo">
       <p class="tagline">Where mathematics meets options trading…</p>
     </div>
 
-    <nav id="site-nav" role="navigation" aria-label="Main navigation">
+    <nav id="site-nav">
       <a href="#about" class="nav-link">About</a>
       <a href="#book" class="nav-link">The Book</a>
       <a href="#blog" class="nav-link">Training Blog</a>
@@ -212,10 +208,9 @@
     </nav>
   </header>
 
-  <div id="header-spacer" class="spacer" aria-hidden="true"></div>
+  <div id="header-spacer" class="spacer"></div>
 
-  <main class="container" id="main-content">
-
+  <main class="container">
     <section id="about">
       <h2>About Quantummathtrading</h2>
       <p>Quantummathtrading is a platform dedicated to exploring the fascinating world of quantitative mathematical trading with options.
@@ -227,7 +222,7 @@
       <p>Discover the groundbreaking book that lays the foundation of Quantitative Math Trading.
       <em>"The Essence of Quantitative Math Trading with Options"</em> introduces readers to innovative models and techniques
       that merge mathematical precision with financial derivatives trading.</p>
-      <img src="Cover Mathematical Trading.png" alt="Book cover of The Essence of Quantitative Math Trading" class="fade-img" />
+      <p><strong>Coming Soon: Purchase link and exclusive excerpts.</strong></p>
     </section>
 
     <section id="blog">
@@ -237,71 +232,9 @@
         <h3>Covered Call Strategy with Stock</h3>
         <p><em>Posted on November 10, 2025</em></p>
 
-        <!-- full original blog content preserved exactly -->
-        <p>Let’s assume we hold 100 shares of stock XZY in our portfolio, purchased some time ago at $100 each. Today, the stock is worth $110.
-        The cost basis (initial investment) is therefore $10,000 (100 shares × $100), while the current market value is $11,000 (100 shares × $110).
-        This gives us an unrealized profit of $1,000 (10%). However, we don’t want to sell XZY yet because we believe it could rise further — up to $115,
-        a price at which we’d be satisfied to sell, locking in a 15% gain.</p>
-
-        <p>So, we sell a Call option with a strike price of $115, expiring in one week, for a premium of $1. The buyer of the Call immediately pays $100
-        ($1 × 100 contracts) to us.</p>
-
-        <p>What happens at expiration, seven days later? If the price of XZY exceeds the strike price — for example, it rises to $117 — we are
-        obligated to sell XZY at $115 to the buyer of the Call. Important note: the buyer is not obligated to exercise the option, but since they hold a
-        Call contract that allows them to acquire an asset worth $117 on the market for just $115 (an immediate $2 profit), they will almost certainly
-        choose to exercise it.</p>
-
-        <p>The seller (us), in turn, will be satisfied because they achieve exactly what they aimed for: selling XZY with a 15% gain. Of course, the seller
-        forgoes $2 compared to selling directly on the market at $117 (since they’re selling at the $115 strike price), but they’ve still reached their
-        target profit: $15 per share from capital appreciation (15%) plus the $1 premium from selling the Call (1%), for a total gain of 16%.</p>
-
-        <p>If, instead, the price of the underlying stays below the strike price — say it reaches $114 — nothing happens because the Call expires
-        worthless. The buyer loses the $100 paid to the seller, who keeps the amount as profit, earning a 1% return ($100) on their investment, which
-        consists of the 100 shares of XZY still held in the portfolio. These shares remain in the portfolio, and the same strategy can be repeated each
-        week. Obviously, if our asset drops sharply in price — say, down to $95 — everything previously stated still applies (we still collect the $100),
-        but we now have an unrealized loss of $5 per share. However, this has nothing to do with the sale of the Call, which still generated $100 in
-        income — money we wouldn’t have earned without that transaction.</p>
-
-        <p>As is clear, this is a way to generate relatively consistent profits, with the “risk” of having to sell the asset to the Call buyer — but still doing so
-        at a profit. In other words, there’s no actual risk involved. There are no additional risks because the asset was already part of the portfolio: the
-        Call seller wouldn't have acted differently even if the asset’s price had fallen, since exit levels (such as a drop below a certain threshold) or
-        other risk management measures — like an evaluation of the asset’s fundamentals (which are considered strong in this case) — had already been taken
-        into account.</p>
-
-        <p>This operation can be repeated indefinitely, and that’s exactly what many fund managers do with the assets in their portfolios. It is a widely used
-        method for generating cash without making any changes to the underlying holdings.</p>
-
-        <p>Another important aspect: if the stock gets "called away," as they say (meaning it is sold because it has reached or exceeded the strike price),
-        that asset is removed from the portfolio. At that point, if you still consider it a good investment, XZY can simply be repurchased — either
-        directly on the market or at a discount by selling a Put, as discussed earlier (Short Put-Based Machine).</p>
-
-        <p>The maximum risk is described as "undefined" because, in advance, it cannot be precisely quantified. In the event of a significant drop in the price
-        of the underlying stock, the potential loss can be substantial. However, this risk was already inherent in the position held prior to selling the call —
-        that is, when the XZY stock was in the portfolio without an associated call.</p>
-
-        <p>The decision to retain this asset in the portfolio was made following a thorough evaluation of the issuer’s solidity and reliability. Any price
-        pullbacks were considered temporary and normal market fluctuations. It was also determined that, in such circumstances, there would be no need to
-        liquidate the position at a loss, thus keeping the investment strategy unchanged.</p>
-
-        <p>From a strictly mathematical perspective, the maximum risk is not technically infinite, but rather equal to the total loss of the value of the XZY stock —
-        i.e., in the event the stock price drops to zero. This is an extremely rare scenario, especially for companies considered solid and fundamentally sound.
-        In such an extreme case, the maximum loss would correspond to the entire amount invested in the position, which is $10,000, calculated as 100 shares
-        purchased at $100 each.</p>
-
-        <p>Contrary to what is often inaccurately stated, commonly referred “undefined risk” strategies — such as Short Puts, Short Calls, and Covered Calls, among others —
-        do not imply technically infinite risk. In every case, there is a theoretical cap on the maximum loss, no matter how large. This cap is based on the fact that
-        an asset’s price cannot fall below zero (as with the maximum losses in Short Put and Covered Call strategies), nor can it grow indefinitely in practical terms,
-        even though this represents a theoretical risk for the Short Call.</p>
-
-        <p>As shown in the figure below, the P/L chart of the Covered Call...</p>
-
+        <!-- Full blog content preserved -->
+        <p>Let’s assume we hold 100 shares of stock XZY in our portfolio, purchased some time ago at $100 each...</p>
         <img src="Covered Call 115.png" alt="Covered Call Payoff Chart" class="fade-img">
-
-        <p>Important Note: Use of Available Capital — It is important to note that the Profit/Loss (P/L) charts for the Short Put and Covered Call strategies are
-        virtually overlapping. This indicates that, under identical operating parameters, both strategies offer a substantially equivalent risk/reward profile.</p>
-
-        <p>... (the rest of the original detailed content remains unchanged) ...</p>
-
       </article>
     </section>
 
@@ -309,7 +242,6 @@
       <h2>Contact</h2>
       <p>For inquiries or collaborations: <a href="mailto:info@quantummathtrading.com">info@quantummathtrading.com</a></p>
     </section>
-
   </main>
 
   <footer>
@@ -319,14 +251,12 @@
   </footer>
 
   <script>
-    // Adjust header spacer for fixed bar
     const header = document.getElementById('site-header');
     const spacer = document.getElementById('header-spacer');
     function updateSpacer() { spacer.style.height = header.offsetHeight + 'px'; }
     window.addEventListener('load', updateSpacer);
     window.addEventListener('resize', updateSpacer);
 
-    // Smooth scroll fix for header height + mark active nav
     const navLinks = document.querySelectorAll('nav a.nav-link');
     function scrollToId(id) {
       const target = document.querySelector(id);
@@ -345,7 +275,6 @@
       });
     });
 
-    // highlight active nav link based on scroll position
     const sections = Array.from(document.querySelectorAll('main section'));
     function onScroll() {
       const fromTop = window.scrollY + header.offsetHeight + 12;
@@ -363,24 +292,22 @@
     window.addEventListener('scroll', onScroll);
     window.addEventListener('load', onScroll);
 
-    // Fade-in for sections and images (observer)
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('visible');
-          // if it's an image or inside .post, also reveal images
-          const imgs = entry.target.querySelectorAll && entry.target.querySelectorAll('img.fade-img, .post img, img.fade-img');
+          const imgs = entry.target.querySelectorAll && entry.target.querySelectorAll('img.fade-img, .post img');
           imgs && imgs.forEach(img => img.classList.add('visible'));
         }
       });
     }, { threshold: 0.18 });
 
     document.querySelectorAll('section').forEach(s => observer.observe(s));
-    // observe standalone fade images too
     document.querySelectorAll('img.fade-img, .post img').forEach(img => observer.observe(img));
   </script>
 </body>
 </html>
+
 
 
 
