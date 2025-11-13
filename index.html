@@ -105,11 +105,14 @@
     }
 
     section {
-      margin-bottom: 64px;
-      opacity: 0;
-      transform: translateY(28px);
-      transition: opacity 0.9s ease, transform 0.9s ease;
-    }
+  margin-bottom: 64px;
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.9s ease, transform 0.9s ease;
+}
+
+section { display: block; } /* <— questa è la sola aggiunta */
+
 
     section.visible {
       opacity: 1;
@@ -191,11 +194,29 @@
     }
 
     @media (max-width: 600px) {
-      .topbar { flex-direction: column; gap: 8px; align-items: center; padding: 10px 16px; }
-      .topbar img { height: 84px; }
-      .container { padding-top: 28px; }
-      .post img { max-width: 100%; margin: 18px auto; }
-    }
+  .topbar {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    gap: 12px;
+  }
+
+  .topbar img {
+    height: 70px !important; /* ridotto da 84 → 70 */
+  }
+
+  .tagline {
+    font-size: 0.85rem;
+    text-align: right;
+    max-width: 70%;
+  }
+
+  nav { flex-wrap: wrap; }
+  .container { padding-top: 20px; }
+  .post img { max-width: 100%; }
+}
+
     /* === Fade-in scroll animation for blog posts === */
 .post {
   opacity: 0;
@@ -471,7 +492,7 @@
     function scrollToId(id) {
       const target = document.querySelector(id);
       if (!target) return;
-      const offset = header.offsetHeight + 8;
+      const offset = header.offsetHeight - 20;
       window.scrollTo({ top: target.offsetTop - offset, behavior: 'smooth' });
     }
     navLinks.forEach(link => {
