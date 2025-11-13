@@ -52,26 +52,31 @@
       text-align: right;
     }
 
-    nav {
+        nav {
       background: #000;
       display: flex;
       justify-content: center;
-      border-top: 1px solid #222;
+      flex-wrap: wrap;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
     }
 
     nav a {
       color: #fff;
+      padding: 15px 20px;
       text-decoration: none;
-      padding: 14px 24px;
       font-weight: 500;
-      letter-spacing: 0.3px;
-      transition: background 0.3s, color 0.3s;
+      letter-spacing: 0.5px;
+      transition: all 0.3s ease;
     }
 
     nav a:hover {
-      background: #1c1c1c;
-      color: #e6e6e6;
+      color: #ddd;
+      text-shadow: 0 0 8px rgba(255,255,255,0.8);
     }
+
 
     .spacer { height: 0; }
 
@@ -243,11 +248,18 @@
 
   </main>
 
-  <footer>
+   <footer>
     <p>&copy; 2025 Quantummathtrading. All rights reserved. 
-      <a href="disclaimer.html" style="color:#fff; text-decoration:underline; margin-left:8px;" target="_blank">Disclaimer</a>
+      <a href="disclaimer.html" 
+         style="color:#fff; text-decoration:none; margin-left:8px; transition: all 0.3s ease;" 
+         target="_blank"
+         onmouseover="this.style.color='#ddd'; this.style.textShadow='0 0 8px rgba(255,255,255,0.8)';"
+         onmouseout="this.style.color='#fff'; this.style.textShadow='none';">
+         Disclaimer
+      </a>
     </p>
   </footer>
+
 
   
 
