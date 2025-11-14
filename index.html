@@ -481,13 +481,11 @@ section { display: block; } /* <— questa è la sola aggiunta */
         s.className = 'spacer';
         header.insertAdjacentElement('afterend', s);
       }
-      // clamp reasonable height to avoid extremely large spacers on tiny screens
       const h = Math.min(header.getBoundingClientRect().height, window.innerHeight * 0.48);
       s.style.height = h + 'px';
     }
     window.addEventListener('load', updateSpacer);
     window.addEventListener('resize', updateSpacer);
-    // call once immediately in case DOMContentLoaded already fired
     updateSpacer();
   })();
 
@@ -498,7 +496,6 @@ section { display: block; } /* <— questa è la sola aggiunta */
     function scrollToId(id) {
       const target = document.querySelector(id);
       if (!target) return;
-      // small safety: if header height is huge, reduce offset a bit
       const offset = Math.max(header.offsetHeight - 20, 40);
       window.scrollTo({ top: target.offsetTop - offset, behavior: 'smooth' });
     }
@@ -514,25 +511,23 @@ section { display: block; } /* <— questa è la sola aggiunta */
     });
   })();
 
-  // --- Unified reveal logic for sections AND posts & images ---
+  // --- Unified reveal logic for sections, posts & images ---
   (function () {
     const sections = document.querySelectorAll('main section');
     const posts = document.querySelectorAll('.post');
     const imgs = document.querySelectorAll('img.fade-img, .post img');
 
-    // Helper to reveal a node (adds visible class)
     function reveal(node) {
       if (!node) return;
       node.classList.add('visible');
     }
 
-    // If IntersectionObserver supported -> observe each .post (and sections for nav highlighting)
     if ('IntersectionObserver' in window) {
+      // observe posts/images
       const postObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             reveal(entry.target);
-            // once revealed, stop observing that target to save resources
             postObserver.unobserve(entry.target);
           }
         });
@@ -541,31 +536,38 @@ section { display: block; } /* <— questa è la sola aggiunta */
       posts.forEach(p => postObserver.observe(p));
       imgs.forEach(i => postObserver.observe(i));
 
-      // Also observe sections to set nav active state (separate observer with higher threshold)
+      // observe sections: reveal section AND update nav link active state
       const sectionObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
-          const id = entry.target.id ? ('#' + entry.target.id) : null;
+          const sec = entry.target;
+          const id = sec.id ? ('#' + sec.id) : null;
           const link = id ? document.querySelector(`nav a[href="${id}"]`) : null;
-          if (link) {
-            if (entry.isIntersecting) link.classList.add('active');
-            else link.classList.remove('active');
+
+          if (entry.isIntersecting) {
+            // reveal the entire section (so its contents are visible even if posts not yet revealed)
+            reveal(sec);
+            if (link) link.classList.add('active');
+          } else {
+            if (link) link.classList.remove('active');
           }
         });
-      }, { threshold: 0.45 });
+      }, { threshold: 0.28 });
 
       sections.forEach(s => sectionObserver.observe(s));
     } else {
-      // Fallback for older browsers: reveal everything once on load and on scroll
+      // fallback: reveal sections/posts/images by viewport check
       function fallbackReveal() {
+        sections.forEach(s => {
+          const r = s.getBoundingClientRect();
+          if (r.top < window.innerHeight * 0.92) reveal(s);
+        });
         posts.forEach(p => {
-          const rect = p.getBoundingClientRect();
-          if (rect.top < window.innerHeight * 0.92) {
-            reveal(p);
-          }
+          const r = p.getBoundingClientRect();
+          if (r.top < window.innerHeight * 0.92) reveal(p);
         });
         imgs.forEach(i => {
-          const rect = i.getBoundingClientRect();
-          if (rect.top < window.innerHeight * 0.92) reveal(i);
+          const r = i.getBoundingClientRect();
+          if (r.top < window.innerHeight * 0.92) reveal(i);
         });
       }
       window.addEventListener('scroll', fallbackReveal);
@@ -573,9 +575,9 @@ section { display: block; } /* <— questa è la sola aggiunta */
       fallbackReveal();
     }
 
-    // Ensure that if any post is still invisible after X seconds (rare race conditions on mobile),
-    // we reveal them to avoid permanent hidden content. This is a safety net.
+    // Safety net: if something remains hidden after 2.2s, reveal it
     setTimeout(() => {
+      sections.forEach(s => { if (!s.classList.contains('visible')) s.classList.add('visible'); });
       posts.forEach(p => { if (!p.classList.contains('visible')) p.classList.add('visible'); });
       imgs.forEach(i => { if (!i.classList.contains('visible')) i.classList.add('visible'); });
     }, 2200);
