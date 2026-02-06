@@ -290,60 +290,73 @@ section { display: block; } /* <— questa è la sola aggiunta */
 </section>
 
     <!-- BOOK (image removed as requested) -->
-    <section id="books">
-  <h2>The Book: "The Essence of Quantitative Math Trading with Options"</h2>
+    <section id="book"> <h2>The Book: "The Essence of Quantitative Math Trading with Options"</h2>
 
-  <p>
-    Discover the groundbreaking book that lays the foundation of Quantitative Math Trading.
-    Two editions of the same quantitative framework: one in English and one in Italian,
-    both focused on rigorous mathematical approaches to options trading.
-  </p>
+      <p>
+        Discover the groundbreaking book that lays the foundation of Quantitative Math Trading.
+        Two editions of the same quantitative framework: one in English and one in Italian,
+        both focused on rigorous mathematical approaches to options trading.
+      </p>
 
-  <div style="
-    display: flex;
-    justify-content: center;
-    gap: 50px;
-    flex-wrap: wrap;
-    margin-top: 50px;
-  ">
+      <div style="text-align: center; margin-top: 40px;">
+        <img 
+          src="IMG_5485.jpeg" 
+          alt="The Essence of Quantitative Math Trading with Options" 
+          style="
+            width: 100%; 
+            max-width: 650px; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            margin-bottom: 40px;
+          "
+        >
 
-    <!-- ENGLISH BOOK -->
-    <a href="https://store.youcanprint.it/the-essence-of-quantitative-math-trading-with-options/b/4b6bfbd9-f7a8-50fc-bc3e-65151def07ee"
-       target="_blank" rel="noopener">
+        <div style="
+          display: flex;
+          justify-content: center;
+          gap: 20px;
+          flex-wrap: wrap;
+        ">
+          <a href="https://store.youcanprint.it/the-essence-of-quantitative-math-trading-with-options/b/4b6bfbd9-f7a8-50fc-bc3e-65151def07ee"
+             target="_blank" rel="noopener"
+             style="
+               background: rgba(0,0,0,0.92);
+               color: #fff;
+               text-decoration: none;
+               padding: 14px 28px;
+               border-radius: 8px;
+               font-weight: 500;
+               font-size: 0.95rem;
+               transition: all 0.3s ease;
+               border: 1px solid transparent;
+               min-width: 200px;
+             "
+             onmouseover="this.style.background='#333'; this.style.transform='translateY(-2px)'"
+             onmouseout="this.style.background='rgba(0,0,0,0.92)'; this.style.transform='translateY(0)'">
+             English Edition
+          </a>
 
-      <img
-        src="quantitative-math-trading-options.jpg"
-        alt="The Essence of Quantitative Math Trading with Options – English Edition"
-        style="
-          width:100%;
-          max-width:300px;
-          border-radius:10px;
-          box-shadow:0 14px 40px rgba(0,0,0,0.35);
-          transition: transform 0.35s ease, box-shadow 0.35s ease;
-        "
-        onmouseover="this.style.transform='scale(1.04)';this.style.boxShadow='0 20px 55px rgba(0,0,0,0.45)'"
-        onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 14px 40px rgba(0,0,0,0.35)'"
-      >
-    </a>
-
-    <!-- ITALIAN BOOK -->
-    <a href="https://store.youcanprint.it/lessenza-del-trading-matematico-quantitativo-con-le-opzioni/b/529e1253-5a73-5997-89e7-fd6457419a37"
-       target="_blank" rel="noopener">
-
-      <img
-        src="trading-matematico-quantitativo-opzioni.jpg"
-        alt="L’essenza del trading matematico quantitativo con le opzioni – Edizione Italiana"
-        style="
-          width:100%;
-          max-width:300px;
-          border-radius:10px;
-          box-shadow:0 14px 40px rgba(0,0,0,0.35);
-          transition: transform 0.35s ease, box-shadow 0.35s ease;
-        "
-        onmouseover="this.style.transform='scale(1.04)';this.style.boxShadow='0 20px 55px rgba(0,0,0,0.45)'"
-        onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 14px 40px rgba(0,0,0,0.35)'"
-      >
-    </a>
+          <a href="https://store.youcanprint.it/lessenza-del-trading-matematico-quantitativo-con-le-opzioni/b/529e1253-5a73-5997-89e7-fd6457419a37"
+             target="_blank" rel="noopener"
+             style="
+               background: #fff;
+               color: #111;
+               text-decoration: none;
+               padding: 14px 28px;
+               border-radius: 8px;
+               font-weight: 500;
+               font-size: 0.95rem;
+               transition: all 0.3s ease;
+               border: 1px solid #e0e0e0;
+               min-width: 200px;
+             "
+             onmouseover="this.style.background='#f5f5f5'; this.style.transform='translateY(-2px)'"
+             onmouseout="this.style.background='#fff'; this.style.transform='translateY(0)'">
+             Edizione Italiana
+          </a>
+        </div>
+      </div>
+    </section>
 
   </div>
 </section>
