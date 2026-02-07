@@ -291,74 +291,83 @@ section { display: block; } /* <— questa è la sola aggiunta */
 
     <!-- BOOK (image removed as requested) -->
     <section id="book">
-      <h2>The Book: "The Essence of Quantitative Math Trading with Options"</h2>
-
-      <p>
-        Discover the groundbreaking book that lays the foundation of Quantitative Math Trading.
-        Two editions of the same quantitative framework: one in English and one in Italian,
+  <h2>The Book: "The Essence of Quantitative Math Trading with Options"</h2>
+  
+  <div style="
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+    flex-wrap: wrap; /* Per la visualizzazione corretta su mobile */
+    margin-top: 30px;
+  ">
+    
+    <div style="flex: 1; min-width: 300px; text-align: left;">
+      <p style="margin-bottom: 30px;">
+        Discover the groundbreaking book that lays the foundation of Quantitative Math Trading. 
+        Two editions of the same quantitative framework: one in English and one in Italian, 
         both focused on rigorous mathematical approaches to options trading.
       </p>
 
-      <div style="text-align: center; margin-top: 30px;">
-        
-        <img 
-          src="IMG_5485.jpeg" 
-          alt="The Essence of Math Trading" 
-          style="
-            width: 100%; 
-            max-width: 250px; /* Dimensione ridotta per non essere invadente */
-            border-radius: 8px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-          "
-        >
+      <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+        <a href="https://store.youcanprint.it/the-essence-of-quantitative-math-trading-with-options/b/4b6bfbd9-f7a8-50fc-bc3e-65151def07ee"
+           target="_blank" rel="noopener"
+           style="
+             background: #fff;
+             color: #111;
+             text-decoration: none;
+             padding: 12px 24px;
+             border-radius: 8px;
+             font-weight: 500;
+             font-size: 0.9rem;
+             transition: all 0.25s ease;
+             border: 1px solid #e0e0e0;
+             min-width: 170px;
+             text-align: center;
+           "
+           onmouseover="this.style.background='#f5f5f5'; this.style.borderColor='#ccc'"
+           onmouseout="this.style.background='#fff'; this.style.borderColor='#e0e0e0'">
+           English Edition
+        </a>
 
-        <div style="
-          display: flex;
-          justify-content: center;
-          gap: 15px;
-          flex-wrap: wrap;
-        ">
-          <a href="https://store.youcanprint.it/the-essence-of-quantitative-math-trading-with-options/b/4b6bfbd9-f7a8-50fc-bc3e-65151def07ee"
-             target="_blank" rel="noopener"
-             style="
-               background: #fff;
-               color: #111;
-               text-decoration: none;
-               padding: 12px 24px;
-               border-radius: 8px;
-               font-weight: 500;
-               font-size: 0.9rem;
-               transition: all 0.25s ease;
-               border: 1px solid #e0e0e0;
-               min-width: 180px;
-             "
-             onmouseover="this.style.background='#f5f5f5'; this.style.borderColor='#ccc'"
-             onmouseout="this.style.background='#fff'; this.style.borderColor='#e0e0e0'">
-             English Edition
-          </a>
-
-          <a href="https://store.youcanprint.it/lessenza-del-trading-matematico-quantitativo-con-le-opzioni/b/529e1253-5a73-5997-89e7-fd6457419a37"
-             target="_blank" rel="noopener"
-             style="
-               background: #fff;
-               color: #111;
-               text-decoration: none;
-               padding: 12px 24px;
-               border-radius: 8px;
-               font-weight: 500;
-               font-size: 0.9rem;
-               transition: all 0.25s ease;
-               border: 1px solid #e0e0e0;
-               min-width: 180px;
-             "
-             onmouseover="this.style.background='#f5f5f5'; this.style.borderColor='#ccc'"
-             onmouseout="this.style.background='#fff'; this.style.borderColor='#e0e0e0'">
-             Edizione Italiana
-          </a>
-        </div>
+        <a href="https://store.youcanprint.it/lessenza-del-trading-matematico-quantitativo-con-le-opzioni/b/529e1253-5a73-5997-89e7-fd6457419a37"
+           target="_blank" rel="noopener"
+           style="
+             background: #fff;
+             color: #111;
+             text-decoration: none;
+             padding: 12px 24px;
+             border-radius: 8px;
+             font-weight: 500;
+             font-size: 0.9rem;
+             transition: all 0.25s ease;
+             border: 1px solid #e0e0e0;
+             min-width: 170px;
+             text-align: center;
+           "
+           onmouseover="this.style.background='#f5f5f5'; this.style.borderColor='#ccc'"
+           onmouseout="this.style.background='#fff'; this.style.borderColor='#e0e0e0'">
+           Edizione Italiana
+        </a>
       </div>
-    </section>
+    </div>
+
+    <div style="flex: 0 1 auto; text-align: center;">
+      <img 
+        src="IMG_5485.jpeg" 
+        alt="The Essence of Math Trading" 
+        style="
+          width: 100%; 
+          max-width: 220px; 
+          border-radius: 8px; 
+          box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+          display: block;
+        "
+      >
+    </div>
+
+  </div>
+</section>
     
   </div>
 </section>
