@@ -63,7 +63,7 @@
       text-align: right;
     }
 
-    /* ===== NAV ===== */
+    /* ===== NAV AGGIORNATA ===== */
     nav {
       position: relative;
       z-index: 10;
@@ -72,16 +72,18 @@
       justify-content: center;
       border-top: 1px solid rgba(255,255,255,0.05);
       border-bottom: 1px solid rgba(0,0,0,0.2);
+      flex-wrap: nowrap; /* IMPEDISCE DI ANDARE A CAPO */
     }
 
     nav a {
       color: #ffffff !important;
       text-decoration: none;
-      padding: 14px 24px;
+      padding: 14px 20px; /* Ridotto leggermente da 24 a 20 per sicurezza */
       font-weight: 500;
       letter-spacing: 0.3px;
       transition: color 0.25s ease, text-shadow 0.25s ease, background 0.25s ease;
       display: inline-block;
+      white-space: nowrap; /* Evita che il testo vada su due righe */
     }
 
     nav a:hover,
@@ -184,38 +186,48 @@ section { display: block; } /* <— questa è la sola aggiunta */
       text-shadow: 0 0 12px rgba(255,255,255,0.9);
     }
 
-    @media (max-width: 980px) {
+   @media (max-width: 980px) {
       .topbar { padding: 12px 20px; gap: 10px; }
       .topbar img { height: 120px; }
       .tagline { font-size: 1.06rem; text-align: center; }
-      nav { flex-wrap: wrap; }
+      nav { flex-wrap: nowrap; } /* Forza la riga singola */
       .post img { max-width: 85%; }
       .container { padding-top: 34px; }
     }
 
     @media (max-width: 600px) {
-  .topbar {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 16px;
-    gap: 12px;
-  }
+      .topbar {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 16px;
+        gap: 12px;
+      }
 
-  .topbar img {
-    height: 70px !important; /* ridotto da 84 → 70 */
-  }
+      .topbar img {
+        height: 60px !important; /* Ridotto un altro po' per dare respiro */
+      }
 
-  .tagline {
-    font-size: 0.85rem;
-    text-align: right;
-    max-width: 70%;
-  }
+      .tagline {
+        font-size: 0.8rem;
+        text-align: right;
+        max-width: 65%;
+      }
 
-  nav { flex-wrap: wrap; }
-  .container { padding-top: 20px; }
-  .post img { max-width: 100%; }
-}
+      /* COMPATTAZIONE MENU PER FAR STARE TUTTO */
+      nav { 
+        flex-wrap: nowrap; 
+        justify-content: space-evenly; 
+      }
+      
+      nav a {
+        padding: 12px 8px; /* Padding stretto per far stare i 4 link */
+        font-size: 0.82rem; /* Testo leggermente più piccolo */
+      }
+
+      .container { padding-top: 20px; }
+      .post img { max-width: 100%; }
+    }
 
     /* === Fade-in scroll animation for blog posts === */
 .post {
