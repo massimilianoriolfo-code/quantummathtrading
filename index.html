@@ -290,64 +290,66 @@ section { display: block; } /* <— questa è la sola aggiunta */
 </section>
 
     <!-- BOOK (image removed as requested) -->
-   <section id="book">
+  <section id="book">
   <h2>The Book</h2>
 
   <div style="
     background: #fafafa; 
     border: 1px solid #e8e8e8; 
     border-radius: 12px; 
-    padding: 35px; 
+    padding: 30px 20px; /* Ridotto leggermente per mobile */
     margin-top: 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 30px;
+    gap: 20px;
     flex-wrap: wrap;
     box-shadow: 0 4px 12px rgba(0,0,0,0.03);
   ">
     
     <div style="flex: 2; min-width: 280px;">
-      <h3 style="margin-top: 0; color: #000; font-size: 1.3rem; border: none; padding-bottom: 0;">
+      <h3 style="margin-top: 0; color: #000; font-size: 1.25rem; border: none;">
         "The Essence of Quantitative Math Trading with Options"
       </h3>
-      <p style="font-size: 1rem; color: #444; margin-bottom: 25px; text-align: justify;">
+      <p style="font-size: 0.95rem; color: #444; margin-bottom: 20px; text-align: justify;">
         Discover the groundbreaking book that lays the foundation of Quantitative Math Trading. 
-        Two editions of the same quantitative framework, both focused on rigorous mathematical approaches to options trading.
+        Two editions available, both focused on rigorous mathematical approaches.
       </p>
 
-      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+      <div style="
+        display: flex; 
+        gap: 10px; 
+        flex-wrap: nowrap; /* Impedisce di andare a capo */
+        width: 100%;
+      ">
         <a href="https://store.youcanprint.it/the-essence-of-quantitative-math-trading-with-options/b/4b6bfbd9-f7a8-50fc-bc3e-65151def07ee"
            target="_blank" rel="noopener"
-           style="background: #fff; color: #111; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 500; font-size: 0.85rem; transition: all 0.2s; border: 1px solid #d0d0d0; min-width: 160px; text-align: center;"
+           style="background: #fff; color: #111; text-decoration: none; padding: 10px 5px; border-radius: 6px; font-weight: 600; font-size: 0.8rem; transition: all 0.2s; border: 1px solid #d0d0d0; flex: 1; text-align: center; white-space: nowrap;"
            onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='#fff'">
-           English Edition
+           English Ed.
         </a>
 
         <a href="https://store.youcanprint.it/lessenza-del-trading-matematico-quantitativo-con-le-opzioni/b/529e1253-5a73-5997-89e7-fd6457419a37"
            target="_blank" rel="noopener"
-           style="background: #fff; color: #111; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 500; font-size: 0.85rem; transition: all 0.2s; border: 1px solid #d0d0d0; min-width: 160px; text-align: center;"
+           style="background: #fff; color: #111; text-decoration: none; padding: 10px 5px; border-radius: 6px; font-weight: 600; font-size: 0.8rem; transition: all 0.2s; border: 1px solid #d0d0d0; flex: 1; text-align: center; white-space: nowrap;"
            onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='#fff'">
-           Edizione Italiana
+           Ed. Italiana
         </a>
       </div>
     </div>
 
-    <div style="flex: 1; display: flex; justify-content: center; min-width: 180px;">
+    <div style="flex: 1; display: flex; justify-content: center; min-width: 150px;">
       <img 
         src="IMG_5485.jpeg" 
         alt="The Essence of Math Trading Book" 
         style="
           width: 100%; 
-          max-width: 180px; 
+          max-width: 160px; 
           border-radius: 6px; 
           box-shadow: 0 6px 15px rgba(0,0,0,0.12);
         "
       >
     </div>
-
-  
-    
   </div>
 </section>
     <!-- BLOG: FULL ORIGINAL TEXT (formatted in paragraphs, with subtitles) -->
