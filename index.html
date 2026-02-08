@@ -18,72 +18,56 @@
 
     p { text-align: justify; text-justify: inter-word; margin-bottom: 1rem; }
 
-    /* ===== Header (sticky glossy Apple-style) ===== */
+    * ===== Header Orizzontale e Compatto ===== */
     header {
       position: fixed;
       top: 0; left: 0; right: 0;
       z-index: 1000;
       background: rgba(0,0,0,0.92);
       color: #fff;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.28);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
-
-    header .gloss {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 22%, rgba(0,0,0,0) 60%);
-      pointer-events: none;
-      z-index: 2;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      /* Uniamo tutto in un unico flex container */
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 70px; /* Altezza fissa e ridotta per PC */
     }
 
     .topbar {
-      position: relative;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 14px 36px;
-      gap: 16px;
-      z-index: 10;
+      gap: 20px;
+      padding: 0; /* Rimosso padding extra */
     }
 
     .topbar img {
-      height: 150px;
+      height: 50px !important; /* Logo più piccolo e discreto */
       width: auto;
-      display: block;
     }
 
     .tagline {
-      font-size: 1.26rem;
-      color: #e6e6e6;
+      font-size: 0.95rem; /* Più piccola per stare in linea */
+      color: #aaa;
       font-style: italic;
-      letter-spacing: 0.4px;
       margin: 0;
-      text-align: right;
+      display: block;
     }
 
-    /* ===== NAV AGGIORNATA ===== */
+    /* ===== NAV In Linea ===== */
     nav {
-      position: relative;
-      z-index: 10;
-      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+      background: transparent !important;
+      border: none !important;
       display: flex;
-      justify-content: center;
-      border-top: 1px solid rgba(255,255,255,0.05);
-      border-bottom: 1px solid rgba(0,0,0,0.2);
-      flex-wrap: nowrap; /* IMPEDISCE DI ANDARE A CAPO */
+      gap: 5px;
     }
 
     nav a {
-      color: #ffffff !important;
-      text-decoration: none;
-      padding: 14px 20px; /* Ridotto leggermente da 24 a 20 per sicurezza */
-      font-weight: 500;
-      letter-spacing: 0.3px;
-      transition: color 0.25s ease, text-shadow 0.25s ease, background 0.25s ease;
-      display: inline-block;
-      white-space: nowrap; /* Evita che il testo vada su due righe */
+      color: #ccc !important;
+      padding: 8px 15px !important;
+      font-size: 0.9rem !important;
     }
 
     nav a:hover,
@@ -195,30 +179,57 @@ section { display: block; } /* <— questa è la sola aggiunta */
       .container { padding-top: 34px; }
     }
 
-    @media (max-width: 600px) {
-      .topbar {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 16px;
-        gap: 12px;
-      }
+    * ===== Header Orizzontale e Compatto ===== */
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: rgba(0,0,0,0.92);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      /* Uniamo tutto in un unico flex container */
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 70px; /* Altezza fissa e ridotta per PC */
+    }
 
-      .topbar img {
-        height: 60px !important; /* Ridotto un altro po' per dare respiro */
-      }
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 0; /* Rimosso padding extra */
+    }
 
-      .tagline {
-        font-size: 0.8rem;
-        text-align: right;
-        max-width: 65%;
-      }
+    .topbar img {
+      height: 50px !important; /* Logo più piccolo e discreto */
+      width: auto;
+    }
 
-      /* COMPATTAZIONE MENU PER FAR STARE TUTTO */
-      nav { 
-        flex-wrap: nowrap; 
-        justify-content: space-evenly; 
-      }
+    .tagline {
+      font-size: 0.95rem; /* Più piccola per stare in linea */
+      color: #aaa;
+      font-style: italic;
+      margin: 0;
+      display: block;
+    }
+
+    /* ===== NAV In Linea ===== */
+    nav {
+      background: transparent !important;
+      border: none !important;
+      display: flex;
+      gap: 5px;
+    }
+
+    nav a {
+      color: #ccc !important;
+      padding: 8px 15px !important;
+      font-size: 0.9rem !important;
+    }
       
       nav a {
         padding: 12px 8px; /* Padding stretto per far stare i 4 link */
@@ -247,6 +258,7 @@ section { display: block; } /* <— questa è la sola aggiunta */
 
   <header id="site-header" role="banner">
     <div class="gloss" aria-hidden="true"></div>
+    
     <div class="topbar">
       <img src="Logo-bianco-trasparente.png" alt="Quantummathtrading logo" id="site-logo">
       <p class="tagline">Where mathematics meets options trading…</p>
