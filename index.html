@@ -18,7 +18,7 @@
 
     p { text-align: justify; text-justify: inter-word; margin-bottom: 1rem; }
 
-    /* ===== HEADER ORIZZONTALE - LOGO GRANDE ===== */
+    /* ===== HEADER ORIZZONTALE - LOGO GRANDE (90px) ===== */
     header {
       position: fixed;
       top: 0; left: 0; right: 0;
@@ -133,6 +133,24 @@
 
     .subheading { font-weight: 700; margin-top: 14px; margin-bottom: 8px; color: #0b0b0b; }
 
+    /* Stile Tabella Originale */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 0.95rem;
+    }
+    th {
+      background: #f2f2f2;
+      text-align: left;
+      padding: 12px;
+      border: 1px solid #ddd;
+    }
+    td {
+      padding: 12px;
+      border: 1px solid #ddd;
+    }
+
     footer {
       text-align: center;
       padding: 30px;
@@ -245,27 +263,42 @@
         <img src="Covered Call 115.png" alt="Covered Call Chart">
 
         <h3 class="subheading">Characteristic Comparison</h3>
-        <p>Despite having a similar P/L profile, the Short Put and Covered Call strategies differ in their operational nature. The Covered Call is used by those who already hold the asset, while the Short Put is often preferred by those seeking premiums without necessarily allocating the full capital to buy the asset upfront.</p>
+        <p>Despite having a similar P/L profile, the Short Put and Covered Call strategies differ in their operational nature. The table below highlights the key technical differences:</p>
         
         <div style="overflow-x: auto;">
-          <table style="width:100%; border-collapse: collapse; margin-top: 20px; font-size: 0.95rem;">
+          <table>
             <thead>
-              <tr style="background: #f2f2f2; text-align: left;">
-                <th style="padding: 12px; border: 1px solid #ddd;">Characteristic</th>
-                <th style="padding: 12px; border: 1px solid #ddd;">Short Put</th>
-                <th style="padding: 12px; border: 1px solid #ddd;">Covered Call</th>
+              <tr>
+                <th>Characteristic</th>
+                <th>Short Put</th>
+                <th>Covered Call</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td style="padding: 12px; border: 1px solid #ddd;"><strong>Capital Usage</strong></td>
-                <td style="padding: 12px; border: 1px solid #ddd;">Requires margin or collateral</td>
-                <td style="padding: 12px; border: 1px solid #ddd;">Capital is tied up in the asset</td>
+                <td><strong>Capital Usage</strong></td>
+                <td>Requires margin or collateral</td>
+                <td>Capital is tied up in the asset</td>
               </tr>
               <tr>
-                <td style="padding: 12px; border: 1px solid #ddd;"><strong>Interest Income</strong></td>
-                <td style="padding: 12px; border: 1px solid #ddd;">Can earn interest on the collateral</td>
-                <td style="padding: 12px; border: 1px solid #ddd;">Interest earned only on the premium</td>
+                <td><strong>Interest Income</strong></td>
+                <td>Can earn interest on the collateral</td>
+                <td>Interest earned only on the premium</td>
+              </tr>
+              <tr>
+                <td><strong>Dividends</strong></td>
+                <td>No dividend rights</td>
+                <td>Entitled to asset dividends</td>
+              </tr>
+              <tr>
+                <td><strong>Risk Profile</strong></td>
+                <td>Synthetically equivalent to Covered Call</td>
+                <td>Synthetically equivalent to Short Put</td>
+              </tr>
+              <tr>
+                <td><strong>Management</strong></td>
+                <td>Simpler, one-leg execution</td>
+                <td>Requires holding the underlying</td>
               </tr>
             </tbody>
           </table>
