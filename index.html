@@ -6,7 +6,6 @@
   <title>Quantummathtrading</title>
   <style>
     html { scroll-behavior: smooth; }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", Arial, sans-serif;
       margin: 0;
@@ -15,10 +14,9 @@
       color: #111;
       line-height: 1.65;
     }
-
     p { text-align: justify; text-justify: inter-word; margin-bottom: 1rem; }
 
-    /* ===== HEADER ORIZZONTALE CON LOGO PIÙ GRANDE ===== */
+    /* ===== HEADER ORIZZONTALE SNELLO - LOGO GRANDE ===== */
     header {
       position: fixed;
       top: 0; left: 0; right: 0;
@@ -32,9 +30,8 @@
       align-items: center;
       justify-content: space-between;
       padding: 0 40px;
-      height: 90px; /* Altezza leggermente aumentata per ospitare il logo più grande */
+      height: 90px;
     }
-
     header .gloss {
       position: absolute;
       inset: 0;
@@ -42,92 +39,33 @@
       pointer-events: none;
       z-index: 2;
     }
-
-    .topbar {
-      display: flex;
-      align-items: center;
-      gap: 25px;
-      z-index: 10;
-    }
-
-    .topbar img {
-      height: 65px; /* Logo ingrandito (era 45px) */
-      width: auto;
-      display: block;
-    }
-
-    .tagline {
-      font-size: 1rem;
-      color: #e6e6e6;
-      font-style: italic;
-      letter-spacing: 0.4px;
-      margin: 0;
-      opacity: 0.9;
-    }
-
-    nav {
-      position: relative;
-      z-index: 10;
-      display: flex;
-      background: transparent;
-      border: none;
-    }
-
+    .topbar { display: flex; align-items: center; gap: 25px; z-index: 10; }
+    .topbar img { height: 65px; width: auto; display: block; }
+    .tagline { font-size: 1rem; color: #e6e6e6; font-style: italic; letter-spacing: 0.4px; margin: 0; }
+    nav { position: relative; z-index: 10; display: flex; }
     nav a {
       color: #ffffff !important;
       text-decoration: none;
       padding: 0 18px;
       font-weight: 500;
-      letter-spacing: 0.3px;
+      line-height: 90px;
       transition: all 0.25s ease;
-      line-height: 90px; /* Allineato alla nuova altezza */
     }
+    nav a:hover { background: rgba(255,255,255,0.05); }
+    .spacer { height: 90px; }
 
-    nav a:hover {
-      color: #fff;
-      background: rgba(255,255,255,0.05);
-    }
-
-    nav a.active { box-shadow: inset 0 -3px 0 rgba(255,255,255,0.5); }
-
-    .spacer { height: 90px; } /* Allineato all'header */
-
-    .container {
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 46px 20px;
-    }
-
-    /* Animazioni Sezioni e Post */
-    section {
-      margin-bottom: 64px;
-      opacity: 0;
-      transform: translateY(28px);
-      transition: opacity 0.9s ease, transform 0.9s ease;
-      display: block;
-    }
+    /* CONTENUTI */
+    .container { max-width: 1000px; margin: 0 auto; padding: 46px 20px; }
+    section { margin-bottom: 64px; opacity: 0; transform: translateY(28px); transition: all 0.9s ease; }
     section.visible { opacity: 1; transform: translateY(0); }
-
-    section h2 {
-      color: #000;
-      border-bottom: 1px solid #e0e0e0;
-      padding-bottom: 8px;
-      margin-bottom: 18px;
-    }
-
+    section h2 { color: #000; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px; margin-bottom: 18px; }
     .post {
       background: #fafafa;
       border: 1px solid #e8e8e8;
       padding: 28px;
       border-radius: 12px;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.05);
-      margin-bottom: 30px;
-      opacity: 0;
-      transform: translateY(30px);
-      transition: all 0.8s ease;
+      margin-bottom: 40px;
     }
-    .post.visible { opacity: 1; transform: translateY(0); }
-
     .post img {
       max-width: 68%;
       display: block;
@@ -136,38 +74,25 @@
       border-radius: 10px;
       opacity: 0;
       transform: translateY(26px);
-      transition: opacity 1s ease, transform 1s ease;
+      transition: all 1s ease;
     }
     .post img.visible { opacity: 1; transform: translateY(0); }
-
     .subheading { font-weight: 700; margin-top: 14px; margin-bottom: 8px; color: #0b0b0b; }
+    
+    footer { text-align: center; padding: 30px; background: #000; color: #fff; margin-top: 60px; }
+    footer a { color: #fff; font-weight: 600; }
 
-    footer {
-      text-align: center;
-      padding: 30px;
-      background: #000;
-      color: #fff;
-      font-size: 0.9rem;
-      margin-top: 60px;
-    }
-
-    footer a.disclaimer { color: #fff; font-weight: 600; text-decoration: underline; margin-left: 8px; }
-
-    /* MOBILE (Invariato come richiesto) */
     @media (max-width: 900px) {
       header { flex-direction: column; height: auto; padding: 0; }
       .topbar { width: 100%; justify-content: space-between; padding: 10px 20px; box-sizing: border-box; }
       .topbar img { height: 60px !important; }
-      .tagline { font-size: 0.8rem; text-align: right; max-width: 65%; }
-      nav { width: 100%; background: rgba(255,255,255,0.05); justify-content: center; border-top: 1px solid rgba(255,255,255,0.1); }
+      nav { width: 100%; background: rgba(255,255,255,0.05); justify-content: center; }
       nav a { line-height: 50px; padding: 0 10px; font-size: 0.85rem; }
       .spacer { height: 110px; }
     }
-
     .book-btn {
       background: #fff; color: #111; text-decoration: none; padding: 12px 10px;
-      border-radius: 6px; font-weight: 600; font-size: 0.9rem; border: 1px solid #d0d0d0;
-      flex: 1; text-align: center; display: inline-block; transition: background 0.2s;
+      border-radius: 6px; font-weight: 600; border: 1px solid #d0d0d0; flex: 1; text-align: center;
     }
   </style>
 </head>
@@ -176,20 +101,21 @@
   <header id="site-header">
     <div class="gloss"></div>
     <div class="topbar">
-      <img src="Logo-bianco-trasparente.png" alt="Quantummathtrading logo">
+      <img src="Logo-bianco-trasparente.png" alt="Logo">
       <p class="tagline">Where mathematics meets options trading…</p>
     </div>
-    <nav id="site-nav">
-      <a href="#about" class="nav-link">About</a>
-      <a href="#book" class="nav-link">The Book</a>
-      <a href="#blog" class="nav-link">Training Blog</a>
-      <a href="#contact" class="nav-link">Contact</a>
+    <nav>
+      <a href="#about">About</a>
+      <a href="#book">The Book</a>
+      <a href="#blog">Training Blog</a>
+      <a href="#contact">Contact</a>
     </nav>
   </header>
 
   <div class="spacer"></div>
 
   <main class="container">
+    
     <section id="about">
       <h2>Why Quantum Math Trading?</h2>
       <p>We chose the name <strong>Quantum Math Trading</strong> to express precision, rigor, and analytical clarity — the principles that define our approach to the markets. <em>Quantum</em> represents measurable units and exact evaluation, reflecting how we break down complex options markets into structured, actionable strategies.</p>
@@ -197,42 +123,87 @@
       <p>Simply put: <strong>Quantum is our mindset. Quantitative trading is our foundation.</strong></p>
       <h3 class="subheading">How We Help Traders</h3>
       <p>We design quantitative option strategies, apply rigorous risk management, transform data into clear insights, and provide professional guidance for those who want to truly understand how mathematics drives trading decisions.</p>
+      <h3 class="subheading">Who Benefits Most</h3>
+      <p>Our work is for traders, professionals, and students who value structure, measurable outcomes, and rational decision-making over speculation.</p>
     </section>
 
     <section id="book">
       <h2>The Book</h2>
-      <div style="background: #fafafa; border: 1px solid #e8e8e8; border-radius: 12px; padding: 30px 20px; display: flex; align-items: center; justify-content: space-between; gap: 25px; flex-wrap: wrap; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+      <div style="background: #fafafa; border: 1px solid #e8e8e8; border-radius: 12px; padding: 30px 20px; display: flex; align-items: center; justify-content: space-between; gap: 25px; flex-wrap: wrap;">
         <div style="flex: 2; min-width: 280px;">
-          <h3 style="margin-top: 0; color: #000; font-size: 1.25rem;">"The Essence of Quantitative Math Trading with Options"</h3>
-          <p style="font-size: 0.95rem; color: #444; margin-bottom: 20px; text-align: justify;">Discover the groundbreaking book that lays the foundation of Quantitative Math Trading. Two editions available, both focused on rigorous mathematical approaches.</p>
-          <div style="display: flex; gap: 10px; flex-wrap: nowrap; width: 100%;">
+          <h3 style="margin-top: 0;">"The Essence of Quantitative Math Trading with Options"</h3>
+          <p>Discover the groundbreaking book that lays the foundation of Quantitative Math Trading. Two editions available, both focused on rigorous mathematical approaches.</p>
+          <div style="display: flex; gap: 10px;">
             <a href="https://store.youcanprint.it/the-essence-of-quantitative-math-trading-with-options/b/4b6bfbd9-f7a8-50fc-bc3e-65151def07ee" target="_blank" class="book-btn">English</a>
             <a href="https://store.youcanprint.it/lessenza-del-trading-matematico-quantitativo-con-le-opzioni/b/529e1253-5a73-5997-89e7-fd6457419a37" target="_blank" class="book-btn">Italiano</a>
           </div>
         </div>
-        <div style="flex: 1; display: flex; justify-content: center; min-width: 150px;">
-          <img src="IMG_5485.jpeg" alt="Book" style="width: 100%; max-width: 160px; border-radius: 6px; box-shadow: 0 6px 15px rgba(0,0,0,0.12);">
+        <div style="flex: 1; display: flex; justify-content: center;">
+          <img src="IMG_5485.jpeg" alt="Book" style="max-width: 160px; border-radius: 6px; box-shadow: 0 6px 15px rgba(0,0,0,0.12);">
         </div>
       </div>
     </section>
 
     <section id="blog">
       <h2>Training Blog</h2>
-      <article class="post" id="short-put">
+
+      <article class="post">
         <h3>Short Put Strategy Example</h3>
-        <p>The Short Put strategy allows traders to generate income by selling a put option and collecting the premium, with the potential obligation to buy the underlying asset if its price drops below the strike level.</p>
-        <p>Let’s assume we are analyzing stock <strong>XZY</strong>, currently trading at <strong>$110</strong>. Instead of buying shares immediately, we sell one Put option contract (representing 100 shares) with: Strike price (K): $95, Premium: $0.50 (or $50 total), Expiration: 1 week.</p>
-        <p>By selling this option, we immediately receive a premium of <strong>$50</strong>. This amount is our maximum potential profit from the trade.</p>
+        <p>The Short Put strategy allows traders to generate income by selling a put option and collecting the premium, with the potential obligation to buy the underlying asset if its price drops below the strike level. This strategy is particularly useful when you expect the asset’s price to remain stable or rise moderately.</p>
+        <p>Let’s assume we are analyzing stock <strong>XZY</strong>, currently trading at <strong>$110</strong>. Instead of buying shares immediately, we sell one Put option contract (representing 100 shares) with:</p>
+        <ul>
+          <li><strong>Strike price (K):</strong> $95</li>
+          <li><strong>Premium:</strong> $0.50 (or $50 total)</li>
+          <li><strong>Expiration:</strong> 1 week</li>
+        </ul>
+        <p>By selling this option, we immediately receive a premium of <strong>$50</strong>. This amount is our maximum potential profit from the trade. If, at expiration, the price of XZY remains above $95, the option expires worthless — we keep the premium and are not obligated to buy the stock.</p>
+        <p>If, instead, the stock falls below the strike price of $95, we will likely be assigned and required to purchase 100 shares at $95 each. However, since we collected a $0.50 premium, our <strong>effective purchase price</strong> becomes <strong>$94.5 per share</strong>. Below this level, the position starts to incur a loss.</p>
+        <p>The profit and loss structure of the position is summarized as follows:</p>
+        <ul>
+          <li><strong>Maximum Profit:</strong> $50 (the premium collected)</li>
+          <li><strong>Break-even Price:</strong> $94.5 (strike − premium)</li>
+          <li><strong>Maximum Theoretical Loss:</strong> $9,450 (if XZY were to fall to $0)</li>
+        </ul>
         <img src="Short Put 95.png" alt="Short Put Chart">
         <p>The chart above illustrates the Short Put payoff profile: profits remain constant above the strike price, while losses increase linearly below it.</p>
       </article>
 
-      <article class="post" id="covered-call-full">
+      <article class="post">
         <h3>Covered Call Strategy with Stock</h3>
-        <p>Let’s assume we hold 100 shares of stock XZY in our portfolio, purchased at $100 each. Today, the stock is worth $110.</p>
-        <p>We sell a Call option with a strike price of $115, expiring in one week, for a premium of $1. The buyer of the Call immediately pays $100 to us.</p>
-        <p>If the price exceeds the strike, we sell at $115. We’ve reached our target: $15 per share appreciation plus $1 premium, total 16% gain.</p>
+        <p>Let’s assume we hold 100 shares of stock XZY in our portfolio, purchased some time ago at $100 each. Today, the stock is worth $110. The cost basis is $10,000, while the current market value is $11,000. This gives us an unrealized profit of $1,000 (10%).</p>
+        <p>We can use this position to generate additional income through a Covered Call. This involves selling a Call option against the shares we already own.</p>
+        <p><span class="subheading">Example — Selling the Call</span><br>
+        Suppose we sell a Call option with a strike price of $115, expiring in one week, for a premium of $1. Since each contract covers 100 shares, the buyer of the Call immediately pays $100 to us.</p>
+        <p>What happens at expiration? If the price exceeds the strike — for example, $117 — we are obligated to sell our shares at $115. Even so, we’ve reached our target: we benefit from $15 per share in capital appreciation ($115 − $100) plus the $1 premium collected, totaling a 16% gain ($1,600).</p>
+        <p>If the stock stays below $115, the Call expires worthless. We keep our 100 shares and the $100 premium. We can then repeat the strategy the following week by selling another Call.</p>
+        <p>Contrary to what is often inaccurately stated, commonly referred “undefined risk” strategies — such as Short Puts and Covered Calls — do not imply technically infinite risk. In these cases, the maximum loss corresponds to the stock price dropping to zero. This operation can be repeated indefinitely to generate cash flow, provided the underlying asset remains fundamentally sound.</p>
         <img src="Covered Call 115.png" alt="Covered Call Chart">
+
+        <h3 class="subheading">Characteristic Comparison</h3>
+        <p>Despite having a similar P/L profile, the Short Put and Covered Call strategies differ in their operational nature. The Covered Call is used by those who already hold the asset, while the Short Put is often preferred by those seeking premiums without necessarily allocating the full capital to buy the asset upfront.</p>
+        <div style="overflow-x: auto;">
+          <table style="width:100%; border-collapse: collapse; margin-top: 20px;">
+            <thead>
+              <tr style="background: #eee; text-align: left;">
+                <th style="padding: 12px; border: 1px solid #ddd;">Characteristic</th>
+                <th style="padding: 12px; border: 1px solid #ddd;">Short Put</th>
+                <th style="padding: 12px; border: 1px solid #ddd;">Covered Call</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding: 12px; border: 1px solid #ddd;"><strong>Capital Usage</strong></td>
+                <td style="padding: 12px; border: 1px solid #ddd;">Requires margin or collateral</td>
+                <td style="padding: 12px; border: 1px solid #ddd;">Capital is tied up in the asset</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px; border: 1px solid #ddd;"><strong>Interest Income</strong></td>
+                <td style="padding: 12px; border: 1px solid #ddd;">Can earn interest on the collateral</td>
+                <td style="padding: 12px; border: 1px solid #ddd;">Interest earned only on the premium</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </article>
     </section>
 
@@ -243,7 +214,7 @@
   </main>
 
   <footer>
-    <p>&copy; 2025 Quantummathtrading. All rights reserved. <a href="disclaimer.html" class="disclaimer" target="_blank">Disclaimer</a></p>
+    <p>&copy; 2025 Quantummathtrading. All rights reserved. <a href="disclaimer.html">Disclaimer</a></p>
   </footer>
 
   <script>
@@ -253,15 +224,6 @@
       }, { threshold: 0.1 });
       document.querySelectorAll('section, .post, .post img').forEach(el => observer.observe(el));
     })();
-
-    document.querySelectorAll('nav a').forEach(link => {
-      link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        const hHeight = document.getElementById('site-header').offsetHeight;
-        window.scrollTo({ top: target.offsetTop - (hHeight - 10), behavior: 'smooth' });
-      });
-    });
   </script>
 </body>
 </html>
