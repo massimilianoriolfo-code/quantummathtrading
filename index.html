@@ -247,7 +247,6 @@
           <li><strong>Maximum Profit:</strong> $50 (the premium collected)</li>
           <li><strong>Break-even Price:</strong> $94.5 (strike − premium)</li>
           <li><strong>Maximum Theoretical Loss:</strong> $9,450 (if XZY were to fall to $0)</li>
-        </ul>
         <p>This strategy is often chosen by investors who are comfortable owning the underlying asset at a discount, since assignment results in buying the stock at a lower effective price while still earning income from the premium.</p>
         </ul>  
         <img src="Short Put 95.png" alt="Short Put Chart">
@@ -371,12 +370,18 @@
   </footer>
 
   <script>
-    (function () {
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
-      }, { threshold: 0.1 });
-      document.querySelectorAll('section, .post, .post img').forEach(el => observer.observe(el));
-    })();
-  </script>
+  (function () {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => { 
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible'); 
+        }
+      });
+    }, { 
+      threshold: 0.05 // Questa è la chiave: rende il trigger più sensibile su mobile
+    });
+    document.querySelectorAll('section, .post, .post img').forEach(el => observer.observe(el));
+  })();
+</script>
 </body>
 </html>
