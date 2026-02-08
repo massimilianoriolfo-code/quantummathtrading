@@ -378,6 +378,10 @@
   </footer>
 
   <script>
+    if (history.scrollRestoration) {
+    history.scrollRestoration = 'manual';
+  }
+  window.scrollTo(0, 0);
   (function () {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => { 
