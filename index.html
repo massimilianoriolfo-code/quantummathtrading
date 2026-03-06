@@ -421,62 +421,68 @@ function calculateEV() {
     <p>&copy; 2026 Quantummathtrading. All rights reserved. <a href="disclaimer.html" class="disclaimer">Disclaimer</a></p>
   </footer>
 
-  <script>
-    if (history.scrollRestoration) {
-    history.scrollRestoration = 'manual';
-  }
-  window.scrollTo(0, 0);
-  (function () {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => { 
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible'); 
-        }
-      });
-    }, { 
-      threshold: 0.05 // Questa è la chiave: rende il trigger più sensibile su mobile
-    });
-    document.querySelectorAll('section, .post, .post img').forEach(el => observer.observe(el));
-  })();
-</script>
-  <div id="ai-chat-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; font-family: sans-serif;">
-    <button onclick="toggleChat()" style="background: #000; color: #fff; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px;">Ask CRPM Assistant</button>
+  <div id="ai-chat-container" style="position: fixed; bottom: 30px; right: 30px; z-index: 9999; font-family: sans-serif;">
+    <button onclick="toggleChat()" style="background: #000; color: #fff; border: 2px solid #fff; padding: 12px 24px; cursor: pointer; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-weight: bold;">Ask CRPM Assistant</button>
     
-    <div id="chat-box" style="display: none; width: 300px; background: #fff; border: 1px solid #ccc; margin-top: 10px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-        <div id="chat-output" style="height: 200px; overflow-y: auto; font-size: 0.9rem; margin-bottom: 10px; border-bottom: 1px solid #eee;"></div>
-        <input type="text" id="user-input" placeholder="Type your question..." style="width: 80%; border: 1px solid #ccc; padding: 5px;">
-        <button onclick="sendMessage()" style="background: #000; color: #fff; border: none; padding: 5px 10px; cursor: pointer;">Send</button>
+    <div id="chat-box" style="display: none; width: 320px; background: #fff; border: 1px solid #ddd; margin-bottom: 15px; padding: 0; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border-radius: 12px; overflow: hidden; position: absolute; bottom: 60px; right: 0;">
+        <div style="background: #000; color: #fff; padding: 15px; font-size: 0.9rem; font-weight: bold;">CRPM Intelligent Assistant</div>
+        <div id="chat-output" style="height: 250px; overflow-y: auto; font-size: 0.85rem; padding: 15px; background: #fdfdfd; line-height: 1.4;"></div>
+        <div style="padding: 10px; border-top: 1px solid #eee; display: flex; gap: 5px;">
+            <input type="text" id="user-input" placeholder="Ask about math trading..." style="flex: 1; border: 1px solid #ddd; padding: 8px; border-radius: 4px; outline: none;">
+            <button onclick="sendMessage()" style="background: #000; color: #fff; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px;">Send</button>
+        </div>
     </div>
-</div>
+  </div>
 
-<script>
-function toggleChat() {
-    const box = document.getElementById('chat-box');
-    box.style.display = box.style.display === 'none' ? 'block' : 'none';
-}
-
-async function sendMessage() {
-    const input = document.getElementById('user-input');
-    const output = document.getElementById('chat-output');
-    const question = input.value;
-    if (!question) return;
-
-    output.innerHTML += "<b>You:</b> " + question + "<br>";
-    input.value = "";
-
-    try {
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question })
+  <script>
+    // 1. GESTIONE ANIMAZIONI SITO
+    (function () {
+      if (history.scrollRestoration) { history.scrollRestoration = 'manual'; }
+      window.scrollTo(0, 0);
+      
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => { 
+          if (entry.isIntersecting) { entry.target.classList.add('visible'); }
         });
-        const data = await response.json();
-        output.innerHTML += "<b>Assistant:</b> " + data.answer + "<br><br>";
-        output.scrollTop = output.scrollHeight;
-    } catch (e) {
-        output.innerHTML += "<i>Error connecting to assistant.</i><br>";
+      }, { threshold: 0.05 });
+      
+      document.querySelectorAll('section, .post, .post img').forEach(el => observer.observe(el));
+    })();
+
+    // 2. LOGICA CHAT AI
+    function toggleChat() {
+      const box = document.getElementById('chat-box');
+      box.style.display = (box.style.display === 'none' || box.style.display === '') ? 'block' : 'none';
     }
-}
-</script>
+
+    async function sendMessage() {
+      const input = document.getElementById('user-input');
+      const output = document.getElementById('chat-output');
+      const question = input.value;
+      if (!question) return;
+
+      output.innerHTML += `<div style="margin-bottom:10px;"><b>You:</b> ${question}</div>`;
+      input.value = "";
+      output.scrollTop = output.scrollHeight;
+
+      try {
+          const response = await fetch('/api/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ question })
+          });
+          const data = await response.json();
+          output.innerHTML += `<div style="margin-bottom:10px; color:#333; background:#f0f0f0; padding:8px; border-radius:5px;"><b>Assistant:</b> ${data.answer}</div>`;
+          output.scrollTop = output.scrollHeight;
+      } catch (e) {
+          output.innerHTML += "<div style='color:red;'><i>Error connecting to assistant.</i></div>";
+      }
+    }
+    
+    // Invio con tasto Enter
+    document.getElementById('user-input').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') { sendMessage(); }
+    });
+  </script>
 </body>
 </html>
