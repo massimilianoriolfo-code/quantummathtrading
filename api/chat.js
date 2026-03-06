@@ -9,8 +9,8 @@ export default async function handler(req, res) {
   const systemInstruction = "Sei l'assistente esperto del Prof. Riolfo. Rispondi in modo tecnico e sintetico sul framework CRPM. Non dare consigli finanziari.";
 
   try {
-    // URL semplificato e modello 'gemini-1.5-flash' (senza alias latest per ora)
-    const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // Usiamo la versione stabile v1 e il percorso completo del modello
+    const apiURL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const response = await fetch(apiURL, {
       method: 'POST',
@@ -25,18 +25,17 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (data.error) {
-       // Se l'errore persiste, stampiamo esattamente cosa vuole Google
-       return res.status(200).json({ answer: "Errore API di Google: " + data.error.message });
+       return res.status(200).json({ answer: "Errore API (v1): " + data.error.message });
     }
 
     if (data.candidates && data.candidates[0].content) {
       const answer = data.candidates[0].content.parts[0].text;
       return res.status(200).json({ answer });
     } else {
-      return res.status(200).json({ answer: "Connessione riuscita, ma risposta vuota." });
+      return res.status(200).json({ answer: "Connessione riuscita, ma formato risposta non riconosciuto." });
     }
 
   } catch (error) {
-    return res.status(200).json({ answer: "Errore critico backend: " + error.message });
+    return res.status(200).json({ answer: "Errore nel backend: " + error.message });
   }
 }
