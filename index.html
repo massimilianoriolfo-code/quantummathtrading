@@ -439,5 +439,44 @@ function calculateEV() {
     document.querySelectorAll('section, .post, .post img').forEach(el => observer.observe(el));
   })();
 </script>
+  <div id="ai-chat-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; font-family: sans-serif;">
+    <button onclick="toggleChat()" style="background: #000; color: #fff; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px;">Ask CRPM Assistant</button>
+    
+    <div id="chat-box" style="display: none; width: 300px; background: #fff; border: 1px solid #ccc; margin-top: 10px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+        <div id="chat-output" style="height: 200px; overflow-y: auto; font-size: 0.9rem; margin-bottom: 10px; border-bottom: 1px solid #eee;"></div>
+        <input type="text" id="user-input" placeholder="Type your question..." style="width: 80%; border: 1px solid #ccc; padding: 5px;">
+        <button onclick="sendMessage()" style="background: #000; color: #fff; border: none; padding: 5px 10px; cursor: pointer;">Send</button>
+    </div>
+</div>
+
+<script>
+function toggleChat() {
+    const box = document.getElementById('chat-box');
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+}
+
+async function sendMessage() {
+    const input = document.getElementById('user-input');
+    const output = document.getElementById('chat-output');
+    const question = input.value;
+    if (!question) return;
+
+    output.innerHTML += "<b>You:</b> " + question + "<br>";
+    input.value = "";
+
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question })
+        });
+        const data = await response.json();
+        output.innerHTML += "<b>Assistant:</b> " + data.answer + "<br><br>";
+        output.scrollTop = output.scrollHeight;
+    } catch (e) {
+        output.innerHTML += "<i>Error connecting to assistant.</i><br>";
+    }
+}
+</script>
 </body>
 </html>
