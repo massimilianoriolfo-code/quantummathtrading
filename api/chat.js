@@ -9,8 +9,10 @@ export default async function handler(req, res) {
   const systemInstruction = "Sei l'assistente esperto del Prof. Riolfo. Rispondi in modo tecnico e sintetico sul framework CRPM. Non dare consigli finanziari.";
 
   try {
-    // Usiamo l'endpoint v1beta con l'alias del modello più recente e stabile
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    // URL semplificato e modello 'gemini-1.5-flash' (senza alias latest per ora)
+    const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    
+    const response = await fetch(apiURL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -23,18 +25,18 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (data.error) {
-       console.error("Errore Google API:", data.error);
-       return res.status(200).json({ answer: "Errore API: " + data.error.message });
+       // Se l'errore persiste, stampiamo esattamente cosa vuole Google
+       return res.status(200).json({ answer: "Errore API di Google: " + data.error.message });
     }
 
     if (data.candidates && data.candidates[0].content) {
       const answer = data.candidates[0].content.parts[0].text;
       return res.status(200).json({ answer });
     } else {
-      return res.status(200).json({ answer: "Risposta non ricevuta correttamente dall'AI. Verifica i log." });
+      return res.status(200).json({ answer: "Connessione riuscita, ma risposta vuota." });
     }
 
   } catch (error) {
-    return res.status(200).json({ answer: "Errore di connessione al backend: " + error.message });
+    return res.status(200).json({ answer: "Errore critico backend: " + error.message });
   }
 }
