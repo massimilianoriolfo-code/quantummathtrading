@@ -208,6 +208,49 @@
   <div class="spacer"></div>
 
   <main class="container">
+
+
+<div id="crpm-calculator" style="border: 1px solid #e0e0e0; padding: 30px; margin: 40px 0; font-family: sans-serif;">
+    <h3 style="font-weight: 300; margin-bottom: 20px;">CRPM Probability Estimator</h3>
+    
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; font-size: 0.8rem; color: #666;">Probability of Profit (PoP %)</label>
+        <input type="number" id="pop" value="65" style="width: 100%; border: 1px solid #ccc; padding: 8px; margin-top: 5px;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; font-size: 0.8rem; color: #666;">Potential Profit ($)</label>
+        <input type="number" id="profit" value="200" style="width: 100%; border: 1px solid #ccc; padding: 8px; margin-top: 5px;">
+    </div>
+
+    <div style="margin-bottom: 20px;">
+        <label style="display: block; font-size: 0.8rem; color: #666;">Potential Loss ($)</label>
+        <input type="number" id="loss" value="300" style="width: 100%; border: 1px solid #ccc; padding: 8px; margin-top: 5px;">
+    </div>
+
+    <button onclick="calculateEV()" style="background: #000; color: #fff; border: none; padding: 10px 20px; cursor: pointer; width: 100%;">Calculate Expected Value</button>
+
+    <div id="result" style="margin-top: 25px; padding: 15px; background: #f9f9f9; text-align: center;">
+        <span style="font-size: 0.9rem; color: #444;">Expected Value per Trade:</span>
+        <div id="ev-value" style="font-size: 1.5rem; font-weight: bold; margin-top: 5px;">$25.00</div>
+    </div>
+</div>
+
+<script>
+function calculateEV() {
+    const pop = document.getElementById('pop').value / 100;
+    const profit = document.getElementById('profit').value;
+    const loss = document.getElementById('loss').value;
+    
+    // Formula: (P(W) * Profit) - (P(L) * Loss)
+    const ev = (pop * profit) - ((1 - pop) * loss);
+    
+    const resultDiv = document.getElementById('ev-value');
+    resultDiv.innerHTML = "$" + ev.toFixed(2);
+    resultDiv.style.color = ev >= 0 ? "#27ae60" : "#c0392b";
+}
+</script>
+
     
     <section id="about">
       <h2>Why Quantum Math Trading?</h2>
@@ -378,23 +421,68 @@
     <p>&copy; 2026 Quantummathtrading. All rights reserved. <a href="disclaimer.html" class="disclaimer">Disclaimer</a></p>
   </footer>
 
+  <div id="ai-chat-container" style="position: fixed; bottom: 30px; right: 30px; z-index: 9999; font-family: sans-serif;">
+    <button onclick="toggleChat()" style="background: #000; color: #fff; border: 2px solid #fff; padding: 12px 24px; cursor: pointer; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); font-weight: bold;">Ask CRPM Assistant</button>
+    
+    <div id="chat-box" style="display: none; width: 320px; background: #fff; border: 1px solid #ddd; margin-bottom: 15px; padding: 0; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border-radius: 12px; overflow: hidden; position: absolute; bottom: 60px; right: 0;">
+        <div style="background: #000; color: #fff; padding: 15px; font-size: 0.9rem; font-weight: bold;">CRPM Intelligent Assistant</div>
+        <div id="chat-output" style="height: 250px; overflow-y: auto; font-size: 0.85rem; padding: 15px; background: #fdfdfd; line-height: 1.4;"></div>
+        <div style="padding: 10px; border-top: 1px solid #eee; display: flex; gap: 5px;">
+            <input type="text" id="user-input" placeholder="Ask about math trading..." style="flex: 1; border: 1px solid #ddd; padding: 8px; border-radius: 4px; outline: none;">
+            <button onclick="sendMessage()" style="background: #000; color: #fff; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px;">Send</button>
+        </div>
+    </div>
+  </div>
+
   <script>
-    if (history.scrollRestoration) {
-    history.scrollRestoration = 'manual';
-  }
-  window.scrollTo(0, 0);
-  (function () {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => { 
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible'); 
-        }
-      });
-    }, { 
-      threshold: 0.05 // Questa è la chiave: rende il trigger più sensibile su mobile
+    // 1. GESTIONE ANIMAZIONI SITO
+    (function () {
+      if (history.scrollRestoration) { history.scrollRestoration = 'manual'; }
+      window.scrollTo(0, 0);
+      
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => { 
+          if (entry.isIntersecting) { entry.target.classList.add('visible'); }
+        });
+      }, { threshold: 0.05 });
+      
+      document.querySelectorAll('section, .post, .post img').forEach(el => observer.observe(el));
+    })();
+
+    // 2. LOGICA CHAT AI
+    function toggleChat() {
+      const box = document.getElementById('chat-box');
+      box.style.display = (box.style.display === 'none' || box.style.display === '') ? 'block' : 'none';
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('user-input');
+      const output = document.getElementById('chat-output');
+      const question = input.value;
+      if (!question) return;
+
+      output.innerHTML += `<div style="margin-bottom:10px;"><b>You:</b> ${question}</div>`;
+      input.value = "";
+      output.scrollTop = output.scrollHeight;
+
+      try {
+          const response = await fetch('/api/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ question })
+          });
+          const data = await response.json();
+          output.innerHTML += `<div style="margin-bottom:10px; color:#333; background:#f0f0f0; padding:8px; border-radius:5px;"><b>Assistant:</b> ${data.answer}</div>`;
+          output.scrollTop = output.scrollHeight;
+      } catch (e) {
+          output.innerHTML += "<div style='color:red;'><i>Error connecting to assistant.</i></div>";
+      }
+    }
+    
+    // Invio con tasto Enter
+    document.getElementById('user-input').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') { sendMessage(); }
     });
-    document.querySelectorAll('section, .post, .post img').forEach(el => observer.observe(el));
-  })();
-</script>
+  </script>
 </body>
 </html>
