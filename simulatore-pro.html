@@ -27,15 +27,29 @@
 
     <script>
         async function calcola() {
-            const t = document.getElementById('ticker').value;
-            const response = await fetch('/api/main', {
+        const t = document.getElementById('ticker').value;
+        if(!t) return alert("Inserisci un ticker");
+        
+        try {
+            // Cambiamo l'URL chiamando direttamente il file .py
+            const response = await fetch('/api/main.py', { 
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ ticker: t, days: 30 })
+                body: JSON.stringify({ ticker: t })
             });
+
+            if (!response.ok) {
+                const errText = await response.text();
+                alert("Errore Server: " + response.status + " - " + errText);
+                return;
+            }
+
             const data = await response.json();
-            document.getElementById('res').innerText = "Range atteso a 30gg: $" + data.low + " - $" + data.high;
+            document.getElementById('res').innerText = "Prezzo: $" + data.price + " | Range atteso: $" + data.low + " - $" + data.high;
+        } catch (e) {
+            alert("Errore di connessione: " + e.message);
         }
+    }
     </script>
 </body>
 </html>
