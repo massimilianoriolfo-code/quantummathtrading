@@ -30,24 +30,30 @@
         const t = document.getElementById('ticker').value;
         if(!t) return alert("Inserisci un ticker");
         
+        const resDiv = document.getElementById('res');
+        resDiv.innerText = "Recupero dati in corso...";
+
         try {
-            // Cambiamo l'URL chiamando direttamente il file .py
-            const response = await fetch('/api/main.py', { 
+            // Proviamo il percorso standard di Vercel per le funzioni Python
+            const response = await fetch('/api/main', { 
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ ticker: t })
             });
 
             if (!response.ok) {
-                const errText = await response.text();
-                alert("Errore Server: " + response.status + " - " + errText);
-                return;
+                throw new Error("Server response: " + response.status);
             }
 
             const data = await response.json();
-            document.getElementById('res').innerText = "Prezzo: $" + data.price + " | Range atteso: $" + data.low + " - $" + data.high;
+            resDiv.innerHTML = `
+                <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; border-left: 5px solid #007bff;">
+                    <strong>Prezzo Attuale:</strong> $${data.price}<br>
+                    <strong>Range Atteso (1&sigma;):</strong> $${data.low} - $${data.high}
+                </div>`;
         } catch (e) {
-            alert("Errore di connessione: " + e.message);
+            alert("Errore: Il server non ha trovato il file dei calcoli. Stiamo verificando il percorso.");
+            resDiv.innerText = "Errore di connessione al motore Python.";
         }
     }
     </script>
