@@ -1,31 +1,25 @@
 import math
 import yfinance as yf
-from flask import Flask, request, jsonify
+import json
 
-app = Flask(__name__)
-
-@app.route('/api/main', methods=['POST'])
-def handler():
+def handler(request):
+    # Gestione semplice senza Flask per massima compatibilità
     try:
-        data = request.get_json(silent=True) or {}
-        ticker = data.get('ticker', 'SPY').upper()
-        
-        # Recupero dati reali
-        stock = yf.Ticker(ticker)
-        price = stock.history(period="1d")['Close'].iloc[-1]
-        
-        # Calcolo Expected Move (IV 20% standard per ora)
-        iv = 0.20
-        move = price * iv * math.sqrt(30 / 365)
-        
-        return jsonify({
-            "price": round(price, 2),
-            "high": round(price + move, 2),
-            "low": round(price - move, 2)
-        })
+        if request.method == 'POST':
+            request_json = request.get_json(silent=True)
+            ticker = request_json.get('ticker', 'SPY').upper()
+            
+            stock = yf.Ticker(ticker)
+            price = stock.history(period="1d")['Close'].iloc[-1]
+            iv = 0.20
+            move = price * iv * math.sqrt(30 / 365)
+            
+            return (json.dumps({
+                "price": round(price, 2),
+                "high": round(price + move, 2),
+                "low": round(price - move, 2)
+            }), 200, {'Content-Type': 'application/json'})
+        else:
+            return ("Metodo non consentito", 405)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# Questo serve a Vercel per esporre la funzione
-def main(request):
-    return handler()
+        return (json.dumps({"error": str(e)}), 500, {'Content-Type': 'application/json'})
