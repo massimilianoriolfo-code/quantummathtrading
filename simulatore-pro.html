@@ -34,8 +34,8 @@
             resDiv.innerText = "Recupero dati in corso...";
 
             try {
-                // PUNTA DIRETTAMENTE AL FILE NEL MAIN
-                const response = await fetch('/calcolo.py', { 
+                // Indirizzo universale che Vercel DEVE riconoscere
+                const response = await fetch('/api/index', { 
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ ticker: t })
