@@ -27,35 +27,35 @@
 
     <script>
         async function calcola() {
-        const t = document.getElementById('ticker').value;
-        if(!t) return alert("Inserisci un ticker");
-        
-        const resDiv = document.getElementById('res');
-        resDiv.innerText = "Recupero dati in corso...";
+            const t = document.getElementById('ticker').value;
+            if(!t) return alert("Inserisci un ticker");
+            
+            const resDiv = document.getElementById('res');
+            resDiv.innerText = "Recupero dati in corso...";
 
-        try {
-            // Proviamo il percorso standard di Vercel per le funzioni Python
-            const response = await fetch('/api/main', { 
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ ticker: t })
-            });
+            try {
+                // PUNTA DIRETTAMENTE AL FILE NEL MAIN
+                const response = await fetch('/calcolo.py', { 
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ ticker: t })
+                });
 
-            if (!response.ok) {
-                throw new Error("Server response: " + response.status);
+                if (!response.ok) {
+                    throw new Error("Errore Server: " + response.status);
+                }
+
+                const data = await response.json();
+                resDiv.innerHTML = `
+                    <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; border-left: 5px solid #007bff;">
+                        <strong>Prezzo Attuale:</strong> $${data.price}<br>
+                        <strong>Range Atteso (1&sigma;):</strong> $${data.low} - $${data.high}
+                    </div>`;
+            } catch (e) {
+                console.error(e);
+                resDiv.innerText = "Errore di connessione. Assicurati che calcolo.py sia attivo.";
             }
-
-            const data = await response.json();
-            resDiv.innerHTML = `
-                <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; border-left: 5px solid #007bff;">
-                    <strong>Prezzo Attuale:</strong> $${data.price}<br>
-                    <strong>Range Atteso (1&sigma;):</strong> $${data.low} - $${data.high}
-                </div>`;
-        } catch (e) {
-            alert("Errore: Il server non ha trovato il file dei calcoli. Stiamo verificando il percorso.");
-            resDiv.innerText = "Errore di connessione al motore Python.";
         }
-    }
     </script>
 </body>
 </html>
