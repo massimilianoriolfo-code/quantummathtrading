@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>CRPM - Simulatore Quantitativo</title>
+    <link rel="stylesheet" href="style.css"> 
+    <style>
+        .offer-box { background: #fff3cd; border: 2px dashed #856404; padding: 20px; text-align: center; margin-top: 30px; border-radius: 10px; }
+        .btn-abbonati { background: #28a745; color: white; padding: 15px 30px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block; margin-top: 10px; }
+    </style>
+</head>
+<body style="font-family: sans-serif; padding: 40px; line-height: 1.6;">
+    <h1>Calcolatore di Probabilità CRPM</h1>
+    <p>Inserisci un ticker per vedere la deviazione standard attesa basata sulla volatilità implicita.</p>
+    
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; border: 1px solid #ddd;">
+        <input type="text" id="ticker" placeholder="Es: SPY" style="padding: 10px; width: 200px;">
+        <button onclick="calcola()" style="padding: 10px 20px; background: #000; color: #fff; cursor: pointer;">Calcola Ora</button>
+        <div id="res" style="margin-top: 20px; font-weight: bold; color: #0056b3;"></div>
+    </div>
+
+    <div class="offer-box">
+        <h3>Ti piace questo calcolo?</h3>
+        <p>Abbonati al piano annuale (9,99€/mese) e riceverai <strong>GRATIS</strong> la versione cartacea del libro "The Essence of Quantitative Math Trading" a casa tua!</p>
+        <a href="#link-stripe" class="btn-abbonati">ABBONATI E RICEVI IL LIBRO IN REGALO</a>
+    </div>
+
+    <script>
+        async function calcola() {
+            const t = document.getElementById('ticker').value;
+            const response = await fetch('/api/main', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ ticker: t, days: 30 })
+            });
+            const data = await response.json();
+            document.getElementById('res').innerText = "Range atteso a 30gg: $" + data.low + " - $" + data.high;
+        }
+    </script>
+</body>
+</html>
