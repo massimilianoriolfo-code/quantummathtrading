@@ -1,5 +1,0 @@
-{
-  "rewrites": [
-    { "source": "/engine", "destination": "/api/index.py" }
-  ]
-}
