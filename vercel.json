@@ -5,6 +5,9 @@
     }
   },
   "rewrites": [
-    { "source": "/motore/(.*)", "destination": "/motore/$1" }
+    {
+      "source": "/motore/(.*)",
+      "destination": "/motore/$1"
+    }
   ]
 }
