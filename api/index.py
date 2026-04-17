@@ -19,16 +19,16 @@ def handler(request):
         # Download dati reali
         stock = yf.Ticker(ticker)
         df = stock.history(period="1d")
-        
+
         if df.empty:
             return (json.dumps({"error": "Ticker non trovato"}), 404, {'Content-Type': 'application/json'})
 
         current_price = df['Close'].iloc[-1]
-        
+
         # Matematica CRPM (IV standard 20% per il test)
         iv = 0.20
-        move = current_price * iv * math.sqrt(30 / 365)
-        
+        move = current_price * iv * (30 / 365)**0.5
+
         response_data = {
             "price": round(current_price, 2),
             "high": round(current_price + move, 2),
