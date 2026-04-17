@@ -35,7 +35,7 @@
 
             try {
                 // Indirizzo universale che Vercel DEVE riconoscere
-                const response = await fetch('/motore/calcolo.py', { 
+                const response = await fetch('/api/index', { 
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ ticker: t })
