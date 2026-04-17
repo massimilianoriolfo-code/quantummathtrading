@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "motore/*.py": {
+      "runtime": "vercel-python@0.1.1"
+    }
+  },
+  "rewrites": [
+    { "source": "/motore/(.*)", "destination": "/motore/$1" }
+  ]
+}
