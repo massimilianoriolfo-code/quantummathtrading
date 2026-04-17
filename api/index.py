@@ -35,10 +35,16 @@ def handler(request):
             "low": round(current_price - move, 2)
         }
 
+       # Questo dice al browser: "Mostra i numeri, non scaricare il file"
         return (json.dumps(response_data), 200, {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
         })
 
     except Exception as e:
-        return (json.dumps({"error": str(e)}), 500, {'Content-Type': 'application/json'})
+        return (json.dumps({"error": str(e)}), 500, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        })
