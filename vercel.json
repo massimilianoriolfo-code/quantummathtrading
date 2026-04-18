@@ -2,6 +2,6 @@
   "version": 2,
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.py" },
-    { "source": "/(.*)", "destination": "/$1" }
+    { "source": "/simulatore", "destination": "/simulatore-pro.html" }
   ]
 }
