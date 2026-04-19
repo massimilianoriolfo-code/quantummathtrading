@@ -21,40 +21,31 @@ def index():
 
     try:
         stock = yf.Ticker(ticker_symbol)
-        
-        # 1. Prezzo Last (Veloce)
         current_price = stock.fast_info['last_price']
         
-        # 2. RECUPERO IV PROFESSIONALE
-        # Prendiamo direttamente il dato del sommario che Yahoo calcola come media 30gg
-        info = stock.info
-        iv_reale = info.get('impliedVolatility')
+        # Estrazione diretta IV30 filtrata
+        iv_raw = stock.info.get('impliedVolatility')
 
-        # Se il campo sopra è vuoto (succede su alcuni ticker), 
-        # prendiamo la IV della prima opzione ATM disponibile
-        if not iv_reale or iv_reale < 0.05:
-            try:
-                # Accediamo alla catena opzioni
-                opt = stock.option_chain(stock.options[0])
-                # Media IV delle prime 5 Call ATM per stabilità
-                iv_reale = opt.calls.iloc[0:5]['impliedVolatility'].mean()
-            except:
-                # Ultimo fallback se tutto fallisce
-                iv_reale = info.get('fiftyTwoWeekVolatility', 0)
+        # Filtro di validità: se assente o fuori scala (>150%), usa la volatilità storica 30gg
+        if iv_raw is None or iv_raw > 1.5 or iv_raw < 0.05:
+            hist = stock.history(period="1mo")
+            log_returns = np.log(hist['Close'] / hist['Close'].shift(1))
+            iv_reale = log_returns.std() * np.sqrt(252)
+        else:
+            iv_reale = iv_raw
 
-        # 3. Formula Expected Move (1 Deviazione Standard - 30gg)
-        # EM = Prezzo * IV * sqrt(30 / 365)
+        # Formula Expected Move 30gg
         move = current_price * iv_reale * np.sqrt(30 / 365)
         
         return jsonify({
             "ticker": ticker_symbol,
             "price": round(current_price, 2),
-            "volatility": round(iv_reale * 100, 2), # Qui NVDA deve segnare circa 32.7%
+            "volatility": round(iv_reale * 100, 2),
             "high": round(current_price + move, 2),
             "low": round(current_price - move, 2)
         })
 
     except Exception as e:
-        return jsonify({"error": "Dati non disponibili. Riprova."}), 500
+        return jsonify({"error": "Errore tecnico dati"}), 500
 
 handler = app
