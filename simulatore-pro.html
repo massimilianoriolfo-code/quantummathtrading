@@ -1,73 +1,58 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-    <meta charset="UTF-8">
-    <title>CRPM - Simulatore Quantitativo - www.quantummathtrading.com</title>
-    <link rel="stylesheet" href="style.css"> 
-    <style>
-        .offer-box { background: #fff3cd; border: 2px dashed #856404; padding: 20px; text-align: center; margin-top: 30px; border-radius: 10px; }
-        .btn-abbonati { background: #28a745; color: white; padding: 15px 30px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block; margin-top: 10px; }
-        .result-card { background: #e7f3ff; padding: 20px; border-radius: 8px; border-left: 5px solid #007bff; margin-top: 20px; text-align: left; }
-        .result-line { margin: 8px 0; font-size: 1.2em; color: #333; }
-        hr { border: 0; border-top: 1px solid #cce5ff; margin: 15px 0; }
-    </style>
-</head>
-<body style="font-family: sans-serif; padding: 40px; line-height: 1.6; background-color: #f4f7f6;">
-    <h1>Calcolatore di Probabilità CRPM</h1>
-    <p>Inserisci un ticker per vedere la deviazione standard attesa basata sulla volatilità implicita di mercato.</p>
-    
-    <div style="background: #fff; padding: 20px; border-radius: 10px; border: 1px solid #ddd; max-width: 600px;">
-        <input type="text" id="ticker" placeholder="Es: NVDA" style="padding: 12px; width: 250px; text-transform: uppercase; font-size: 16px;">
-        <button onclick="calcola()" style="padding: 12px 25px; background: #000; color: #fff; cursor: pointer; border: none; font-size: 16px;">Calcola Ora</button>
-        <div id="res" style="margin-top: 20px; font-weight: bold;"></div>
-    </div>
+import yfinance as yf
+import numpy as np
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 
-    <div class="offer-box">
-        <h3>Ti piace questo calcolo?</h3>
-        <p>Abbonati al piano annuale (9,99€/mese) e riceverai <strong>GRATIS</strong> la versione cartacea del libro "The Essence of Quantitative Math Trading" a casa tua!</p>
-        <a href="#link-stripe" class="btn-abbonati">ABBONATI E RICEVI IL LIBRO IN REGALO</a>
-    </div>
+app = Flask(__name__)
+CORS(app)
 
-    <p style="font-size: 12px; color: #7f8c8d; text-align: center; margin-top: 30px;">Calcolo basato su dati Yahoo Finance.<br>I valori sono puramente statistici e non costituiscono sollecitazione all'investimento.</p>
+@app.route('/api/index', methods=['POST', 'GET'])
+def index():
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or {}
+        ticker_symbol = data.get('ticker')
+    else:
+        ticker_symbol = request.args.get('ticker')
 
-    <script>
-        async function calcola() {
-            const t = document.getElementById('ticker').value.toUpperCase();
-            if(!t) return alert("Inserisci un ticker");
+    if not ticker_symbol:
+        return jsonify({"error": "Ticker mancante"}), 400
+
+    ticker_symbol = ticker_symbol.upper()
+
+    try:
+        stock = yf.Ticker(ticker_symbol)
+        
+        # Prezzo Last
+        fast = stock.fast_info
+        current_price = fast['last_price']
+        
+        # Prova a prendere la IV dal sommario (la più precisa per il tuo 32.7%)
+        # Se non esiste, usiamo la volatilità storica a 52 settimane come backup
+        iv_reale = stock.info.get('impliedVolatility')
+        
+        if iv_reale is None or iv_reale == 0:
+            iv_reale = stock.info.get('fiftyTwoWeekVolatility')
             
-            const resDiv = document.getElementById('res');
-            resDiv.innerText = "Recupero dati in corso dai mercati professionali...";
+        if iv_reale is None:
+            # Ultima spiaggia: calcolo dai dati storici recenti
+            hist = stock.history(period="1mo")
+            log_returns = np.log(hist['Close'] / hist['Close'].shift(1))
+            iv_reale = log_returns.std() * np.sqrt(252)
 
-            try {
-                // Interroga il tuo motore Python su Vercel
-                const response = await fetch('/api/index', { 
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ ticker: t }) // Non inviamo più 'days' perché è fisso a 30
-                });
+        # Calcolo Expected Move a 30gg (Formula del tuo libro)
+        days = 30
+        move = current_price * iv_reale * np.sqrt(days / 365)
+        
+        return jsonify({
+            "ticker": ticker_symbol,
+            "price": round(current_price, 2),
+            "volatility": round(iv_reale * 100, 2),
+            "high": round(current_price + move, 2),
+            "low": round(current_price - move, 2),
+            "message": "Dati aggiornati in tempo reale"
+        })
 
-                if (!response.ok) {
-                    throw new Error("Errore Server: " + response.status);
-                }
+    except Exception as e:
+        return jsonify({"error": "Servizio momentaneamente occupato. Riprova."}), 500
 
-                const data = await response.json();
-                
-                // Visualizzazione dei dati estratti (IV reale ponderata a 30gg)
-                resDiv.innerHTML = `
-                    <div class="result-card">
-                        <div class="result-line"><strong>Ticker:</strong> ${data.ticker}</div>
-                        <div class="result-line"><strong>Prezzo Attuale:</strong> $${data.price}</div>
-                        <div class="result-line"><strong>Volatilità Implicita (IV 30gg):</strong> ${data.volatility}%</div>
-                        <hr>
-                        <div class="result-line" style="color: #007bff; font-weight: bold;">
-                            <strong>Range Atteso (1&sigma;, 30gg):</strong> $${data.low} - $${data.high}
-                        </div>
-                    </div>`;
-            } catch (e) {
-                console.error(e);
-                resDiv.innerText = "Errore nel recupero dati. Verifica il ticker o riprova tra poco.";
-            }
-        }
-    </script>
-</body>
-</html>
+handler = app
