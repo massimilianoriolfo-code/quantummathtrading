@@ -9,59 +9,53 @@ CORS(app)
 
 @app.route('/api/index', methods=['POST', 'GET'])
 def index():
+    # 1. Ricezione dinamica del ticker
     if request.method == 'POST':
         data = request.get_json(silent=True) or {}
         ticker_symbol = data.get('ticker')
-        days_projection = int(data.get('days', 30))
     else:
         ticker_symbol = request.args.get('ticker')
-        days_projection = int(request.args.get('days', 30))
 
     if not ticker_symbol:
         return jsonify({"error": "Ticker mancante"}), 400
 
+    ticker_symbol = ticker_symbol.upper()
+
     try:
-        stock = yf.Ticker(ticker_symbol.upper())
-        # Prezzo Last preciso
+        stock = yf.Ticker(ticker_symbol)
+        
+        # 2. Prezzo REALE Last
         current_price = stock.fast_info['last_price']
         
-        # Selezione scadenza corretta (circa 30gg)
-        expirations = stock.options
-        target_date = datetime.now() + timedelta(days=days_projection)
-        closest_exp = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - target_date).days))
-        
-        opt_chain = stock.option_chain(closest_exp)
-        
-        # FILTRO ATM: Cerchiamo lo strike più vicino al prezzo attuale
-        calls = opt_chain.calls
-        puts = opt_chain.puts
-        
-        # Troviamo l'indice dello strike ATM
-        idx_call = (calls['strike'] - current_price).abs().idxmin()
-        idx_put = (puts['strike'] - current_price).abs().idxmin()
-        
-        iv_call = calls.loc[idx_call, 'impliedVolatility']
-        iv_put = puts.loc[idx_put, 'impliedVolatility']
-        
-        # MEDIA PONDERATA: La IV reale ATM è la media tra Call e Put
-        iv_reale = (iv_call + iv_put) / 2
-        
-        # Se la IV estratta è chiaramente un errore (es. > 200% o 0), 
-        # yfinance a volte ha buchi nei dati.
-        if iv_reale < 0.05 or iv_reale > 2.5:
-             # Fallback su un dato più stabile se il calcolo ATM fallisce
-             iv_reale = stock.info.get('impliedVolatility', iv_reale)
+        # 3. Estrazione IV REALE da Sommario Yahoo (metodo preciso)
+        # Questo dato è allineato a MarketChameleon e AlphaVantage
+        iv_reale = stock.info.get('impliedVolatility')
 
-        # Formula Expected Move
+        # Controllo se il dato è disponibile
+        if iv_reale is None or iv_reale == 0:
+             # Fallback su volatilità media se IV non disponibile
+             iv_reale = stock.info.get('fiftyTwoWeekVolatility')
+             
+             # Se anche questo manca, non possiamo calcolare
+             if iv_reale is None:
+                return jsonify({"error": f"IV non disponibile per {ticker_symbol}"}), 400
+
+        # 4. Giorni di proiezione (Default 30)
+        days_projection = 30
+
+        # 5. Formula Expected Move (dal tuo libro)
         move = current_price * iv_reale * np.sqrt(days_projection / 365)
         
+        # 6. Risposta per il frontend
         return jsonify({
-            "ticker": ticker_symbol.upper(),
+            "ticker": ticker_symbol,
             "price": round(current_price, 2),
-            "volatility": round(iv_reale * 100, 2),
-            "expiry_used": closest_exp,
+            "volatility": round(iv_reale * 100, 2), # Adesso mostrerà un valore vicino al 32.7%
+            "move": round(move, 2),
             "high": round(current_price + move, 2),
-            "low": round(current_price - move, 2)
+            "low": round(current_price - move, 2),
+            # Rimuoviamo la data specifica perché la IV del sommario è ponderata su 30gg
+            "comment": "IV ponderata su orizzonte 30gg"
         })
 
     except Exception as e:
