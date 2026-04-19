@@ -8,44 +8,37 @@ CORS(app)
 
 @app.route('/api/index', methods=['POST', 'GET'])
 def index():
-    if request.method == 'POST':
-        data = request.get_json(silent=True) or {}
-        ticker_symbol = (data.get('ticker') or "").upper()
-    else:
-        ticker_symbol = (request.args.get('ticker') or "").upper()
-
-    if not ticker_symbol:
-        return jsonify({"error": "Ticker mancante"}), 400
+    ticker_symbol = (request.get_json(silent=True) or {}).get('ticker') or request.args.get('ticker')
+    if not ticker_symbol: return jsonify({"error": "Ticker mancante"}), 400
 
     try:
-        stock = yf.Ticker(ticker_symbol)
-        
-        # Prezzo Last
+        stock = yf.Ticker(ticker_symbol.upper())
         current_price = stock.fast_info['last_price']
         
-        # Recupero IV30 (Standard Professionale)
-        # Se Yahoo fornisce il dato nel sommario lo prendiamo, altrimenti calcolo rapido ATM
-        iv_reale = stock.info.get('impliedVolatility')
+        # Calcolo IV ATM reale (Media Call/Put strike più vicino)
+        options = stock.option_chain(stock.options[0])
+        calls, puts = options.calls, options.puts
+        
+        strike_call = calls.loc[(calls['strike'] - current_price).abs().idxmin()]
+        strike_put = puts.loc[(puts['strike'] - current_price).abs().idxmin()]
+        
+        # Questa è la IV reale di mercato
+        iv_reale = (strike_call['impliedVolatility'] + strike_put['impliedVolatility']) / 2
+        
+        # Limite di sicurezza
+        if iv_reale > 1.2 or iv_reale < 0.05:
+            iv_reale = stock.info.get('impliedVolatility', 0.32)
 
-        # Filtro di sicurezza per evitare errori come il 393% o lo 0%
-        if iv_reale is None or iv_reale > 1.5 or iv_reale < 0.05:
-            # Fallback su volatilità storica 30gg (più stabile e veritiera)
-            hist = stock.history(period="1mo")
-            log_returns = np.log(hist['Close'] / hist['Close'].shift(1))
-            iv_reale = log_returns.std() * np.sqrt(252)
-
-        # Formula Expected Move (1σ - 30gg)
         move = current_price * iv_reale * np.sqrt(30 / 365)
         
         return jsonify({
-            "ticker": ticker_symbol,
+            "ticker": ticker_symbol.upper(),
             "price": round(current_price, 2),
             "volatility": round(iv_reale * 100, 2),
             "high": round(current_price + move, 2),
             "low": round(current_price - move, 2)
         })
-
-    except Exception:
-        return jsonify({"error": "Errore caricamento dati"}), 500
+    except:
+        return jsonify({"error": "Dati non disponibili"}), 500
 
 handler = app
