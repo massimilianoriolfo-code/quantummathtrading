@@ -10,31 +10,31 @@ CORS(app)
 def index():
     if request.method == 'POST':
         data = request.get_json(silent=True) or {}
-        ticker_symbol = data.get('ticker')
+        ticker_symbol = (data.get('ticker') or "").upper()
     else:
-        ticker_symbol = request.args.get('ticker')
+        ticker_symbol = (request.args.get('ticker') or "").upper()
 
     if not ticker_symbol:
         return jsonify({"error": "Ticker mancante"}), 400
 
-    ticker_symbol = ticker_symbol.upper()
-
     try:
         stock = yf.Ticker(ticker_symbol)
+        
+        # Prezzo Last
         current_price = stock.fast_info['last_price']
         
-        # Estrazione diretta IV30 filtrata
-        iv_raw = stock.info.get('impliedVolatility')
+        # Recupero IV30 (Standard Professionale)
+        # Se Yahoo fornisce il dato nel sommario lo prendiamo, altrimenti calcolo rapido ATM
+        iv_reale = stock.info.get('impliedVolatility')
 
-        # Filtro di validità: se assente o fuori scala (>150%), usa la volatilità storica 30gg
-        if iv_raw is None or iv_raw > 1.5 or iv_raw < 0.05:
+        # Filtro di sicurezza per evitare errori come il 393% o lo 0%
+        if iv_reale is None or iv_reale > 1.5 or iv_reale < 0.05:
+            # Fallback su volatilità storica 30gg (più stabile e veritiera)
             hist = stock.history(period="1mo")
             log_returns = np.log(hist['Close'] / hist['Close'].shift(1))
             iv_reale = log_returns.std() * np.sqrt(252)
-        else:
-            iv_reale = iv_raw
 
-        # Formula Expected Move 30gg
+        # Formula Expected Move (1σ - 30gg)
         move = current_price * iv_reale * np.sqrt(30 / 365)
         
         return jsonify({
@@ -45,7 +45,7 @@ def index():
             "low": round(current_price - move, 2)
         })
 
-    except Exception as e:
-        return jsonify({"error": "Errore tecnico dati"}), 500
+    except Exception:
+        return jsonify({"error": "Errore caricamento dati"}), 500
 
 handler = app
