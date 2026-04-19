@@ -1,58 +1,67 @@
-import yfinance as yf
-import numpy as np
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>CRPM - Simulatore Quantitativo</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; background: #f9f9f9; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 500px; margin: auto; border: 1px solid #eee; }
+        input { padding: 12px; width: 60%; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; text-transform: uppercase; }
+        button { padding: 12px 20px; background: #000; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        #res { margin-top: 20px; }
+        .result-box { background: #e7f3ff; padding: 20px; border-radius: 8px; border-left: 5px solid #007bff; }
+        .offer { background: #fff3cd; padding: 20px; border-radius: 10px; text-align: center; margin-top: 30px; border: 1px dashed #856404; }
+    </style>
+</head>
+<body>
 
-app = Flask(__name__)
-CORS(app)
+<div class="card">
+    <h2 style="margin-top:0;">Calcolatore CRPM</h2>
+    <p style="color: #666;">Inserisci ticker (es: NVDA, AAPL)</p>
+    <input type="text" id="ticker" placeholder="AAPL">
+    <button onclick="calcola()">Calcola</button>
+    
+    <div id="res"></div>
+</div>
 
-@app.route('/api/index', methods=['POST', 'GET'])
-def index():
-    if request.method == 'POST':
-        data = request.get_json(silent=True) or {}
-        ticker_symbol = data.get('ticker')
-    else:
-        ticker_symbol = request.args.get('ticker')
+<div class="card offer" style="margin-top:20px;">
+    <strong>Offerta Speciale</strong><br>
+    Abbonati ora e ricevi il libro "The Essence of Quantitative Math Trading" gratis!
+</div>
 
-    if not ticker_symbol:
-        return jsonify({"error": "Ticker mancante"}), 400
+<script>
+    async function calcola() {
+        const t = document.getElementById('ticker').value.toUpperCase();
+        const resDiv = document.getElementById('res');
+        if(!t) return;
 
-    ticker_symbol = ticker_symbol.upper()
+        resDiv.innerHTML = "<em>Analisi dei dati in corso...</em>";
 
-    try:
-        stock = yf.Ticker(ticker_symbol)
-        
-        # Prezzo Last
-        fast = stock.fast_info
-        current_price = fast['last_price']
-        
-        # Prova a prendere la IV dal sommario (la più precisa per il tuo 32.7%)
-        # Se non esiste, usiamo la volatilità storica a 52 settimane come backup
-        iv_reale = stock.info.get('impliedVolatility')
-        
-        if iv_reale is None or iv_reale == 0:
-            iv_reale = stock.info.get('fiftyTwoWeekVolatility')
-            
-        if iv_reale is None:
-            # Ultima spiaggia: calcolo dai dati storici recenti
-            hist = stock.history(period="1mo")
-            log_returns = np.log(hist['Close'] / hist['Close'].shift(1))
-            iv_reale = log_returns.std() * np.sqrt(252)
+        try {
+            const response = await fetch('/api/index', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ ticker: t })
+            });
+            const data = await response.json();
 
-        # Calcolo Expected Move a 30gg (Formula del tuo libro)
-        days = 30
-        move = current_price * iv_reale * np.sqrt(days / 365)
-        
-        return jsonify({
-            "ticker": ticker_symbol,
-            "price": round(current_price, 2),
-            "volatility": round(iv_reale * 100, 2),
-            "high": round(current_price + move, 2),
-            "low": round(current_price - move, 2),
-            "message": "Dati aggiornati in tempo reale"
-        })
-
-    except Exception as e:
-        return jsonify({"error": "Servizio momentaneamente occupato. Riprova."}), 500
-
-handler = app
+            if(data.error) {
+                resDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+            } else {
+                resDiv.innerHTML = `
+                    <div class="result-box">
+                        <strong>Ticker:</strong> ${data.ticker}<br>
+                        <strong>Prezzo:</strong> $${data.price}<br>
+                        <strong>Volatilità (IV):</strong> ${data.volatility}%<br>
+                        <hr style="border:0; border-top:1px solid #cce5ff; margin:10px 0;">
+                        <strong>Range Atteso (1σ):</strong><br>
+                        <span style="color:#007bff; font-size:1.2em;">$${data.low} - $${data.high}</span>
+                    </div>`;
+            }
+        } catch (e) {
+            resDiv.innerHTML = "<p style='color:orange;'>Il mercato è sovraccarico. Riprova tra 5 secondi.</p>";
+        }
+    }
+</script>
+</body>
+</html>
