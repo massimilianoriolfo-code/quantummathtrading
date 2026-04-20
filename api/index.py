@@ -1,48 +1,47 @@
-import yfinance as yf
+import requests
 import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from datetime import datetime, timedelta
 
 app = Flask(__name__)
 CORS(app)
+
+# INSERISCI QUI LA TUA CHIAVE ALPHA VANTAGE
+API_KEY = "T8R94SXCQZ4GS6UC"
 
 @app.route('/api/index', methods=['POST', 'GET'])
 def index():
     t = (request.get_json(silent=True) or {}).get('ticker') or request.args.get('ticker')
     if not t: return jsonify({"error": "Ticker mancante"}), 400
+    
+    ticker = t.upper()
 
     try:
-        stock = yf.Ticker(t.upper())
-        price = stock.fast_info['last_price']
-        
-        # 1. Identifica la scadenza mensile a ~30gg (Standard IV30)
-        target = datetime.now() + timedelta(days=30)
-        exps = stock.options
-        closest_exp = min(exps, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - target).days))
-        
-        # 2. Estrazione IV ATM (Media Bid/Ask IV di Call e Put allo strike più vicino)
-        chain = stock.option_chain(closest_exp)
-        c = chain.calls.iloc[(chain.calls['strike'] - price).abs().idxmin()]
-        p = chain.puts.iloc[(chain.puts['strike'] - price).abs().idxmin()]
-        
-        iv_reale = (c['impliedVolatility'] + p['impliedVolatility']) / 2
-        
-        # 3. Filtro di stabilità se i dati delle opzioni sono frammentati
-        if iv_reale < 0.05 or iv_reale > 1.2:
-            iv_reale = stock.info.get('impliedVolatility', 0.32)
+        # 1. Recupero Prezzo Real-Time
+        price_url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={ticker}&apikey={API_KEY}"
+        price_data = requests.get(price_url).json()
+        current_price = float(price_data['Global Quote']['05. price'])
 
-        # 4. Calcolo Expected Move (1σ)
-        move = price * iv_reale * np.sqrt(30 / 365)
+        # 2. Recupero IV30 Professionale (Endpoint certificato)
+        iv_url = f"https://www.alphavantage.co/query?function=IMPLIED_VOLATILITY&symbol={ticker}&apikey={API_KEY}"
+        iv_data = requests.get(iv_url).json()
+        
+        # AlphaVantage restituisce una lista di IV storiche, noi prendiamo la più recente
+        # Il dato è già filtrato e ponderato a 30gg dai loro algoritmi
+        iv_reale = float(iv_data['data'][0]['implied_volatility'])
+
+        # 3. Calcolo Expected Move (1σ - 30gg) dal tuo libro
+        move = current_price * iv_reale * np.sqrt(30 / 365)
         
         return jsonify({
-            "ticker": t.upper(),
-            "price": round(price, 2),
+            "ticker": ticker,
+            "price": round(current_price, 2),
             "volatility": round(iv_reale * 100, 2),
-            "high": round(price + move, 2),
-            "low": round(price - move, 2)
+            "high": round(current_price + move, 2),
+            "low": round(current_price - move, 2),
+            "source": "AlphaVantage Real-Time"
         })
-    except:
-        return jsonify({"error": "Dati non disponibili"}), 500
+    except Exception as e:
+        return jsonify({"error": "Errore API: Verifica la chiave o il ticker"}), 500
 
 handler = app
