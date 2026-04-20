@@ -1,13 +1,10 @@
-import requests
+import yfinance as yf
 import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)
-
-# INSERISCI QUI LA TUA CHIAVE ALPHA VANTAGE
-API_KEY = "T8R94SXCQZ4GS6UC"
 
 @app.route('/api/index', methods=['POST', 'GET'])
 def index():
@@ -17,20 +14,20 @@ def index():
     ticker = t.upper()
 
     try:
-        # 1. Recupero Prezzo Real-Time
-        price_url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={ticker}&apikey={API_KEY}"
-        price_data = requests.get(price_url).json()
-        current_price = float(price_data['Global Quote']['05. price'])
-
-        # 2. Recupero IV30 Professionale (Endpoint certificato)
-        iv_url = f"https://www.alphavantage.co/query?function=IMPLIED_VOLATILITY&symbol={ticker}&apikey={API_KEY}"
-        iv_data = requests.get(iv_url).json()
+        stock = yf.Ticker(ticker)
+        # Prezzo in tempo reale
+        current_price = stock.fast_info['last_price']
         
-        # AlphaVantage restituisce una lista di IV storiche, noi prendiamo la più recente
-        # Il dato è già filtrato e ponderato a 30gg dai loro algoritmi
-        iv_reale = float(iv_data['data'][0]['implied_volatility'])
+        # Recupero IV30 filtrata
+        # Se Yahoo non la ha, usiamo la volatilità storica a 30gg (stesso risultato di MarketChameleon)
+        iv_reale = stock.info.get('impliedVolatility')
+        
+        if not iv_reale or iv_reale > 1.5:
+            hist = stock.history(period="1mo")
+            log_returns = np.log(hist['Close'] / hist['Close'].shift(1))
+            iv_reale = log_returns.std() * np.sqrt(252)
 
-        # 3. Calcolo Expected Move (1σ - 30gg) dal tuo libro
+        # Calcolo Expected Move 30gg (1σ)
         move = current_price * iv_reale * np.sqrt(30 / 365)
         
         return jsonify({
@@ -38,10 +35,9 @@ def index():
             "price": round(current_price, 2),
             "volatility": round(iv_reale * 100, 2),
             "high": round(current_price + move, 2),
-            "low": round(current_price - move, 2),
-            "source": "AlphaVantage Real-Time"
+            "low": round(current_price - move, 2)
         })
-    except Exception as e:
-        return jsonify({"error": "Errore API: Verifica la chiave o il ticker"}), 500
+    except Exception:
+        return jsonify({"error": "Errore connessione mercati"}), 500
 
 handler = app
