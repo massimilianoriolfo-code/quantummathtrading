@@ -2,6 +2,7 @@ import yfinance as yf
 import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 CORS(app)
@@ -14,43 +15,43 @@ def index():
 
     try:
         stock = yf.Ticker(ticker)
-        # Prezzo Last
+        # 1. Prezzo attuale
         price = stock.fast_info['last_price']
         
-        # 1. CALCOLO VOLATILITÀ REALE (Infallibile)
-        # Invece di fidarci di IV esterne che danno 0.39%, calcoliamo la volatilità 
-        # reale dei prezzi dell'ultimo mese. È un dato solido e professionale.
-        hist = stock.history(period="1mo")
-        if len(hist) < 10:
-             return jsonify({"error": "Dati storici insufficienti"}), 400
-             
-        log_returns = np.log(hist['Close'] / hist['Close'].shift(1))
-        vol_annua = log_returns.std() * np.sqrt(252)
+        # 2. Trova la scadenza più vicina ai 30 giorni
+        target_date = datetime.now() + timedelta(days=30)
+        expirations = stock.options
+        # Seleziona la data che minimizza la distanza dai 30gg
+        closest_exp = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - target_date).days))
+        
+        # 3. Scarica la catena delle opzioni per quella data
+        opt_chain = stock.option_chain(closest_exp)
+        calls = opt_chain.calls
+        puts = opt_chain.puts
+        
+        # 4. Trova l'opzione ATM (At-The-Money)
+        # Cerchiamo lo strike più vicino al prezzo attuale
+        idx_c = (calls['strike'] - price).abs().idxmin()
+        idx_p = (puts['strike'] - price).abs().idxmin()
+        
+        iv_call = calls.loc[idx_c, 'impliedVolatility']
+        iv_put = puts.loc[idx_p, 'impliedVolatility']
+        
+        # La IV finale è la media delle due ATM (Standard professionale)
+        iv_reale = (iv_call + iv_put) / 2
 
-        # 2. SE DISPONIBILE, USA LA IV DELLE OPZIONI COME FILTRO
-        try:
-            chain = stock.option_chain(stock.options[0])
-            idx = (chain.calls['strike'] - price).abs().idxmin()
-            iv_market = chain.calls.loc[idx, 'impliedVolatility']
-            # Se la IV delle opzioni è sensata, facciamo una media, altrimenti usiamo la storica
-            if 0.10 < iv_market < 1.20:
-                vol_finale = (vol_annua + iv_market) / 2
-            else:
-                vol_finale = vol_annua
-        except:
-            vol_finale = vol_annua
-
-        # 3. CALCOLO RANGE ATTESO (1 Sigma - 30gg)
-        move = price * vol_finale * np.sqrt(30 / 365)
+        # 5. Calcolo Expected Move 30gg (1σ)
+        move = price * iv_reale * np.sqrt(30 / 365)
         
         return jsonify({
             "ticker": ticker,
             "price": round(price, 2),
-            "volatility": round(vol_finale * 100, 2),
+            "volatility": round(iv_reale * 100, 2),
             "high": round(price + move, 2),
-            "low": round(price - move, 2)
+            "low": round(price - move, 2),
+            "expiration_used": closest_exp
         })
-    except Exception:
-        return jsonify({"error": "Errore nel calcolo dei dati"}), 500
+    except Exception as e:
+        return jsonify({"error": "Dati opzioni non disponibili per questo ticker"}), 500
 
 handler = app
