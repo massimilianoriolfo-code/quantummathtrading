@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #f4f7f9; color: #333; }
-        .card { background: white; padding: 30px; border-radius: 16px; max-width: 950px; margin: auto; border: 1px solid #e1e8ed; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .card { background: white; padding: 30px; border-radius: 16px; max-width: 1000px; margin: auto; border: 1px solid #e1e8ed; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         .header-info { text-align: center; margin-bottom: 25px; }
         .current-date { font-size: 0.9rem; color: #888; margin-top: 5px; font-weight: 500; }
         .input-group { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
@@ -17,7 +17,7 @@
         button:hover { background: #333; }
         #res { background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #e1e8ed; margin-bottom: 20px; display: none; }
         .range-highlight { color: #007bff; font-size: 1.3em; font-weight: bold; }
-        #chartContainer { width: 100%; height: 500px; background: #fff; border-radius: 12px; padding: 10px; position: relative; }
+        #chartContainer { width: 100%; height: 550px; background: #fff; border-radius: 12px; padding: 10px; position: relative; }
         .footer-note { background: #fff9e6; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px; font-size: 0.9rem; border: 1px dashed #d4a017; }
     </style>
 </head>
@@ -31,7 +31,7 @@
     
     <div class="input-group">
         <input type="text" id="ticker" placeholder="Enter Ticker (e.g. SPY)" maxlength="5">
-        <button onclick="calcola()">Run Analysis</button>
+        <button onclick="calcola()">Generate Cone</button>
     </div>
     
     <div id="res"></div>
@@ -54,7 +54,7 @@
         if(!t) return;
 
         resDiv.style.display = 'block';
-        resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogating market nodes for accurate IV data...</em></p>";
+        resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogating market nodes for IV data...</em></p>";
 
         try {
             const response = await fetch('/api/index', {
@@ -69,17 +69,17 @@
             } else {
                 resDiv.innerHTML = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <div style="text-align:right;"><strong>Asset:</strong> ${data.ticker} | <strong>Spot Price:</strong> $${data.price}</div>
-                        <div style="text-align:left;"><strong>30-Day ATM IV:</strong> ${data.volatility}%</div>
+                        <div style="text-align:right;"><strong>Asset:</strong> ${data.ticker} | <strong>Spot:</strong> $${data.price}</div>
+                        <div style="text-align:left;"><strong>30d ATM IV:</strong> ${data.volatility}%</div>
                     </div>
                     <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px; text-align:center;">
-                        Expected Range at Expiration (1σ): <span class="range-highlight">$${data.low} - $${data.high}</span>
+                        Expected 1σ Range at Expiration: <span class="range-highlight">$${data.low} - $${data.high}</span>
                     </div>`;
                 
                 drawProbabilityCone(data.price, data.volatility / 100);
             }
         } catch (e) {
-            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Network timeout. Please retry in 5 seconds.</p>";
+            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Market node busy. Retrying...</p>";
         }
     }
 
@@ -92,22 +92,24 @@
         
         const today = new Date("2026-04-27");
 
-        // Increase resolution: calculate 90 steps (3 per day) for maximum smoothness
-        const totalSteps = 90; 
-        for (let i = 0; i <= totalSteps; i++) {
-            const daysFloat = i / (totalSteps / 30); // 0 to 30 as a float
+        // Use 150 points for hyper-smooth interpolation, skewed toward the beginning
+        const totalPoints = 150; 
+        for (let i = 0; i <= totalPoints; i++) {
+            // Power function (i/totalPoints)^0.7 to sample more points near time zero
+            const progress = Math.pow(i / totalPoints, 0.7);
+            const daysFloat = progress * 30;
             
-            const pointDate = new Date(today);
-            pointDate.setHours(today.getHours() + (i * 8)); // Every 8 hours
+            const pointDate = new Date(today.getTime() + daysFloat * 24 * 60 * 60 * 1000);
             
-            // Only show the label if it's the start of a new day, otherwise keep it empty for interpolation
-            if (i % 3 === 0) {
+            // Logic for clean X-axis: Only show label for the very first point and midnight of each day
+            if (i === 0) {
+                labels.push(pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
+            } else if (i > 0 && pointDate.getDate() !== new Date(today.getTime() + Math.pow((i-1)/totalPoints, 0.7) * 30 * 24 * 60 * 60 * 1000).getDate()) {
                 labels.push(pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
             } else {
                 labels.push('');
             }
 
-            // CRPM Math: Price * IV * Sqrt(Time/365)
             const move = currentPrice * iv * Math.sqrt(daysFloat / 365);
             upperBand.push(currentPrice + move);
             lowerBand.push(currentPrice - move);
@@ -125,27 +127,27 @@
                         label: 'Upper Boundary +1σ',
                         data: upperBand,
                         borderColor: '#2ecc71',
-                        borderWidth: 2.5,
+                        borderWidth: 2,
                         pointRadius: 0,
                         fill: false,
-                        tension: 0.4 // Cubic interpolation for smooth curves
+                        tension: 0.4
                     },
                     {
                         label: 'Lower Boundary -1σ',
                         data: lowerBand,
                         borderColor: '#e74c3c',
-                        borderWidth: 2.5,
+                        borderWidth: 2,
                         pointRadius: 0,
                         fill: '-1', 
-                        backgroundColor: 'rgba(46, 204, 113, 0.08)',
-                        tension: 0.4 // Cubic interpolation for smooth curves
+                        backgroundColor: 'rgba(46, 204, 113, 0.06)',
+                        tension: 0.4
                     },
                     {
                         label: 'Spot Price',
                         data: centerLine,
                         borderColor: '#bdc3c7',
-                        borderDash: [6, 4],
-                        borderWidth: 1.5,
+                        borderDash: [5, 5],
+                        borderWidth: 1,
                         pointRadius: 0,
                         fill: false
                     }
@@ -156,17 +158,30 @@
                 maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
-                    legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 6 } },
-                    tooltip: { enabled: true }
+                    legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 5 } },
+                    tooltip: { 
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                            }
+                        }
+                    }
                 },
                 scales: {
                     y: { 
                         grid: { color: '#f0f0f0' },
-                        ticks: { color: '#7f8c8d', font: { size: 11 }, callback: value => '$' + value.toFixed(2) }
+                        ticks: { font: { size: 11 }, callback: value => '$' + value.toLocaleString() }
                     },
                     x: { 
                         grid: { display: false },
-                        ticks: { color: '#7f8c8d', font: { size: 10 }, maxRotation: 0, autoSkip: false }
+                        ticks: { 
+                            font: { size: 10 }, 
+                            maxRotation: 0, 
+                            autoSkip: false,
+                            callback: function(val, index) {
+                                return this.getLabelForValue(val);
+                            }
+                        }
                     }
                 }
             }
