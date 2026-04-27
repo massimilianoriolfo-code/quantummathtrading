@@ -2,40 +2,71 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>CRPM - Simulatore Quantitativo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRPM - Simulatore Quantitativo Professionale</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; background: #f9f9f9; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 500px; margin: auto; border: 1px solid #eee; }
-        input { padding: 12px; width: 60%; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; text-transform: uppercase; }
-        button { padding: 12px 20px; background: #000; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        #res { margin-top: 20px; }
-        .result-box { background: #e7f3ff; padding: 20px; border-radius: 8px; border-left: 5px solid #007bff; }
-        .offer { background: #fff3cd; padding: 20px; border-radius: 10px; text-align: center; margin-top: 30px; border: 1px dashed #856404; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #f4f7f9; color: #333; }
+        .card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); max-width: 600px; margin: auto; border: 1px solid #e1e8ed; }
+        h2 { margin-top: 0; color: #1a1a1a; font-size: 24px; text-align: center; }
+        .input-group { display: flex; gap: 10px; margin-top: 20px; }
+        input { padding: 14px; flex: 1; border: 2px solid #dfe3e8; border-radius: 8px; font-size: 16px; text-transform: uppercase; outline: none; transition: border-color 0.2s; }
+        input:focus { border-color: #007bff; }
+        button { padding: 14px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: background 0.2s; }
+        button:hover { background: #333; }
+        
+        #res { margin-top: 25px; min-height: 50px; }
+        .result-box { background: #f0f7ff; padding: 20px; border-radius: 12px; border: 1px solid #cce5ff; animation: fadeIn 0.5s ease-in-out; }
+        .result-box strong { color: #0056b3; }
+        .range-value { color: #007bff; font-size: 1.4em; font-weight: bold; display: block; margin-top: 5px; }
+        
+        #chartContainer { background: white; padding: 15px; border-radius: 12px; margin-top: 20px; border: 1px solid #e1e8ed; display: none; }
+        
+        .offer { background: #fff9e6; padding: 20px; border-radius: 12px; text-align: center; margin-top: 30px; border: 1px dashed #d4a017; font-size: 14px; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 480px) { .input-group { flex-direction: column; } button { width: 100%; } }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2 style="margin-top:0;">Calcolatore CRPM</h2>
-    <p style="color: #666;">Inserisci ticker (es: NVDA, AAPL)</p>
-    <input type="text" id="ticker" placeholder="AAPL">
-    <button onclick="calcola()">Calcola</button>
+    <h2>Calcolatore CRPM</h2>
+    <p style="text-align: center; color: #666; margin-bottom: 20px;">Basato sulla Volatilità Implicita reale (1σ - 30gg)</p>
+    
+    <div class="input-group">
+        <input type="text" id="ticker" placeholder="Es: NVDA" maxlength="5">
+        <button onclick="calcola()">Analizza</button>
+    </div>
     
     <div id="res"></div>
+
+    <div id="chartContainer">
+        <canvas id="probabilityChart"></canvas>
+    </div>
 </div>
 
-<div class="card offer" style="margin-top:20px;">
-    <strong>Offerta Speciale</strong><br>
-    Abbonati ora e ricevi il libro "The Essence of Quantitative Math Trading" gratis!
+<div class="card offer">
+    <strong>Area Riservata Premium</strong><br>
+    Iscriviti per accedere alle analisi storiche e ricevere la copia digitale di <br>
+    <em>"The Essence of Quantitative Math Trading"</em>.
 </div>
 
 <script>
+    let myChart = null;
+
     async function calcola() {
         const t = document.getElementById('ticker').value.toUpperCase();
         const resDiv = document.getElementById('res');
-        if(!t) return;
+        const chartContainer = document.getElementById('chartContainer');
+        
+        if(!t) {
+            alert("Inserisci un ticker valido");
+            return;
+        }
 
-        resDiv.innerHTML = "<em>Analisi dei dati in corso...</em>";
+        resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogazione nodi di mercato...</em></p>";
+        chartContainer.style.display = 'none';
 
         try {
             const response = await fetch('/api/index', {
@@ -46,22 +77,68 @@
             const data = await response.json();
 
             if(data.error) {
-                resDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+                resDiv.innerHTML = `<p style="color:#d9534f; font-weight:bold; text-align:center;">${data.error}</p>`;
             } else {
                 resDiv.innerHTML = `
                     <div class="result-box">
-                        <strong>Ticker:</strong> ${data.ticker}<br>
-                        <strong>Prezzo:</strong> $${data.price}<br>
-                        <strong>Volatilità (IV):</strong> ${data.volatility}%<br>
-                        <hr style="border:0; border-top:1px solid #cce5ff; margin:10px 0;">
-                        <strong>Range Atteso (1σ):</strong><br>
-                        <span style="color:#007bff; font-size:1.2em;">$${data.low} - $${data.high}</span>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div><strong>Ticker:</strong> ${data.ticker}</div>
+                            <div><strong>Prezzo:</strong> $${data.price}</div>
+                            <div><strong>Volatilità (IV):</strong> ${data.volatility}%</div>
+                        </div>
+                        <hr style="border:0; border-top:1px solid #cce5ff; margin:15px 0;">
+                        <div style="text-align:center;">
+                            <strong>Range Probabile (1σ - 68%):</strong>
+                            <span class="range-value">$${data.low} — $${data.high}</span>
+                        </div>
                     </div>`;
+                
+                chartContainer.style.display = 'block';
+                disegnaGrafico(data.price, data.low, data.high);
             }
         } catch (e) {
-            resDiv.innerHTML = "<p style='color:orange;'>Il mercato è sovraccarico. Riprova tra 5 secondi.</p>";
+            resDiv.innerHTML = "<p style='color:#f0ad4e; font-weight:bold; text-align:center;'>Servizio occupato. Riprova tra pochi istanti.</p>";
         }
     }
+
+    function disegnaGrafico(price, low, high) {
+        const ctx = document.getElementById('probabilityChart').getContext('2d');
+        if (myChart) { myChart.destroy(); }
+
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Target Low', 'Prezzo Attuale', 'Target High'],
+                datasets: [{
+                    label: 'Cono di Probabilità',
+                    data: [low, price, high],
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.15)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 8,
+                    pointBackgroundColor: ['#d9534f', '#000', '#2ecc71'],
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: { enabled: true }
+                },
+                scales: { 
+                    y: { 
+                        beginAtZero: false,
+                        grid: { color: '#f0f2f5' },
+                        ticks: { callback: value => '$' + value }
+                    },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
 </script>
+
 </body>
 </html>
