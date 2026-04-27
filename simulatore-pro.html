@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRPM - Quantitative Probability Cone</title>
+    <title>CRPM - The Options Probability Cone</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #f4f7f9; color: #333; }
-        .card { background: white; padding: 30px; border-radius: 16px; max-width: 900px; margin: auto; border: 1px solid #e1e8ed; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .card { background: white; padding: 30px; border-radius: 16px; max-width: 950px; margin: auto; border: 1px solid #e1e8ed; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         .header-info { text-align: center; margin-bottom: 25px; }
-        .current-date { font-size: 0.9rem; color: #888; margin-top: 5px; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { padding: 12px; flex: 1; border: 2px solid #dfe3e8; border-radius: 8px; font-size: 16px; text-transform: uppercase; outline: none; }
+        .current-date { font-size: 0.9rem; color: #888; margin-top: 5px; font-weight: 500; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+        input { padding: 12px; width: 250px; border: 2px solid #dfe3e8; border-radius: 8px; font-size: 16px; text-transform: uppercase; outline: none; }
         input:focus { border-color: #007bff; }
         button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
         button:hover { background: #333; }
         #res { background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #e1e8ed; margin-bottom: 20px; display: none; }
-        .range-highlight { color: #007bff; font-size: 1.2em; font-weight: bold; }
-        #chartContainer { width: 100%; height: 450px; background: #fff; border-radius: 12px; padding: 10px; }
+        .range-highlight { color: #007bff; font-size: 1.3em; font-weight: bold; }
+        #chartContainer { width: 100%; height: 500px; background: #fff; border-radius: 12px; padding: 10px; position: relative; }
         .footer-note { background: #fff9e6; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px; font-size: 0.9rem; border: 1px dashed #d4a017; }
     </style>
 </head>
@@ -25,7 +25,7 @@
 
 <div class="card">
     <div class="header-info">
-        <h2 style="margin:0;">Probable Price Cone (30 Days Forecast)</h2>
+        <h2 style="margin:0; letter-spacing: -0.5px;">The Options Probability Cone</h2>
         <div class="current-date">Analysis Date: April 27, 2026</div>
     </div>
     
@@ -41,7 +41,7 @@
     </div>
 
     <div class="footer-note">
-        <strong>CRPM Model:</strong> Calculated Risk/Profit Machine based on 1st Standard Deviation (68% probability).
+        <strong>CRPM Quantitative Model:</strong> 30-Day Forecast based on Implied Volatility and the Square Root of Time (1σ - 68.2% Confidence).
     </div>
 </div>
 
@@ -54,7 +54,7 @@
         if(!t) return;
 
         resDiv.style.display = 'block';
-        resDiv.innerHTML = "<p style='text-align:center;'><em>Processing CRPM mathematical models...</em></p>";
+        resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogating market nodes for accurate IV data...</em></p>";
 
         try {
             const response = await fetch('/api/index', {
@@ -69,17 +69,17 @@
             } else {
                 resDiv.innerHTML = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <div><strong>Asset:</strong> ${data.ticker} | <strong>Price:</strong> $${data.price}</div>
-                        <div><strong>ATM IV (30d):</strong> ${data.volatility}%</div>
+                        <div style="text-align:right;"><strong>Asset:</strong> ${data.ticker} | <strong>Spot Price:</strong> $${data.price}</div>
+                        <div style="text-align:left;"><strong>30-Day ATM IV:</strong> ${data.volatility}%</div>
                     </div>
                     <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px; text-align:center;">
-                        Expected 30-Day Target (1σ): <span class="range-highlight">$${data.low} - $${data.high}</span>
+                        Expected Range at Expiration (1σ): <span class="range-highlight">$${data.low} - $${data.high}</span>
                     </div>`;
                 
                 drawProbabilityCone(data.price, data.volatility / 100);
             }
         } catch (e) {
-            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Market data node busy. Please try again.</p>";
+            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Network timeout. Please retry in 5 seconds.</p>";
         }
     }
 
@@ -90,16 +90,25 @@
         const lowerBand = [];
         const centerLine = [];
         
-        const today = new Date("2026-04-27"); // Using the fixed current date for accuracy
+        const today = new Date("2026-04-27");
 
-        for (let d = 0; d <= 30; d++) {
+        // Increase resolution: calculate 90 steps (3 per day) for maximum smoothness
+        const totalSteps = 90; 
+        for (let i = 0; i <= totalSteps; i++) {
+            const daysFloat = i / (totalSteps / 30); // 0 to 30 as a float
+            
             const pointDate = new Date(today);
-            pointDate.setDate(today.getDate() + d);
-            const formattedDate = pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
-            labels.push(formattedDate);
+            pointDate.setHours(today.getHours() + (i * 8)); // Every 8 hours
+            
+            // Only show the label if it's the start of a new day, otherwise keep it empty for interpolation
+            if (i % 3 === 0) {
+                labels.push(pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
+            } else {
+                labels.push('');
+            }
 
-            // Square Root of Time Formula
-            const move = currentPrice * iv * Math.sqrt(d / 365);
+            // CRPM Math: Price * IV * Sqrt(Time/365)
+            const move = currentPrice * iv * Math.sqrt(daysFloat / 365);
             upperBand.push(currentPrice + move);
             lowerBand.push(currentPrice - move);
             centerLine.push(currentPrice);
@@ -113,30 +122,30 @@
                 labels: labels,
                 datasets: [
                     {
-                        label: 'Upper Bound +1σ',
+                        label: 'Upper Boundary +1σ',
                         data: upperBand,
                         borderColor: '#2ecc71',
-                        borderWidth: 2,
+                        borderWidth: 2.5,
                         pointRadius: 0,
                         fill: false,
-                        tension: 0.2
+                        tension: 0.4 // Cubic interpolation for smooth curves
                     },
                     {
-                        label: 'Lower Bound -1σ',
+                        label: 'Lower Boundary -1σ',
                         data: lowerBand,
                         borderColor: '#e74c3c',
-                        borderWidth: 2,
+                        borderWidth: 2.5,
                         pointRadius: 0,
                         fill: '-1', 
-                        backgroundColor: 'rgba(46, 204, 113, 0.05)',
-                        tension: 0.2
+                        backgroundColor: 'rgba(46, 204, 113, 0.08)',
+                        tension: 0.4 // Cubic interpolation for smooth curves
                     },
                     {
-                        label: 'Current Price',
+                        label: 'Spot Price',
                         data: centerLine,
-                        borderColor: '#95a5a6',
-                        borderDash: [5, 5],
-                        borderWidth: 1,
+                        borderColor: '#bdc3c7',
+                        borderDash: [6, 4],
+                        borderWidth: 1.5,
                         pointRadius: 0,
                         fill: false
                     }
@@ -145,18 +154,19 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
                 plugins: {
-                    legend: { display: true, position: 'top' },
-                    tooltip: { mode: 'index', intersect: false }
+                    legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 6 } },
+                    tooltip: { enabled: true }
                 },
                 scales: {
                     y: { 
                         grid: { color: '#f0f0f0' },
-                        ticks: { color: '#7f8c8d', callback: value => '$' + value }
+                        ticks: { color: '#7f8c8d', font: { size: 11 }, callback: value => '$' + value.toFixed(2) }
                     },
                     x: { 
                         grid: { display: false },
-                        ticks: { color: '#7f8c8d', maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }
+                        ticks: { color: '#7f8c8d', font: { size: 10 }, maxRotation: 0, autoSkip: false }
                     }
                 }
             }
