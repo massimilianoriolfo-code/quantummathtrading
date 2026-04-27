@@ -3,107 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRPM - Strategic Trade Sheet</title>
+    <title>The Options Probability Cone & CRPM Machines</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: #f1f5f9; margin: 0; padding: 20px; color: #1e293b; }
         .dashboard { max-width: 1200px; margin: auto; }
-        .card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; margin-bottom: 20px; }
-        .top-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .top-row { display: grid; grid-template-columns: 1.8fr 1fr; gap: 20px; margin-bottom: 20px; }
         .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
         input { padding: 12px; border: 2px solid #cbd5e1; border-radius: 8px; flex: 1; text-transform: uppercase; font-weight: bold; font-size: 16px; }
         button { padding: 12px 24px; background: #0f172a; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
         
         /* Machines Sheet */
-        .machines-container { display: flex; flex-direction: column; gap: 15px; }
-        .machine-row { display: grid; grid-template-columns: 300px 1fr 200px; gap: 20px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; align-items: center; }
-        .machine-info h4 { margin: 0 0 10px 0; color: #2563eb; font-size: 1.1rem; }
-        .trade-specs { font-size: 0.85rem; color: #475569; line-height: 1.6; }
-        .trade-specs b { color: #0f172a; }
-        .pl-mini { height: 120px !important; width: 100% !important; }
-        .badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; margin-top: 5px; }
-        .badge-green { background: #dcfce7; color: #166534; }
+        .machine-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 15px; display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 20px; align-items: center; }
+        .machine-info h3 { margin: 0 0 10px 0; color: #2563eb; font-size: 1.1rem; }
+        .trade-data { font-size: 0.85rem; line-height: 1.6; }
+        .trade-data b { color: #0f172a; }
+        .pl-mini { height: 140px !important; width: 100% !important; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-size: 0.7rem; background: #dcfce7; color: #166534; margin-top: 5px; }
         
-        #coneCanvas { height: 400px !important; width: 100% !important; }
-        @media (max-width: 900px) { .top-grid, .machine-row { grid-template-columns: 1fr; } }
+        #coneCanvas { height: 450px !important; width: 100% !important; }
+        @media (max-width: 900px) { .top-row, .machine-card { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
 <div class="dashboard">
     <div class="card">
-        <h2 style="margin-top:0;">The Options Probability Cone & CRPM Machines</h2>
+        <h2 style="margin-top:0;">The Options Probability Cone</h2>
         <div class="input-group">
             <input type="text" id="ticker" placeholder="ENTER TICKER (E.G. SPY)">
-            <button onclick="calculateCRPM()">EXECUTE ANALYSIS</button>
+            <button onclick="executeCRPM()">EXECUTE ANALYSIS</button>
         </div>
 
-        <div class="top-grid">
+        <div class="top-row">
             <div id="coneBox">
                 <canvas id="coneCanvas"></canvas>
             </div>
-            <div id="marketSummary" style="display:none; background:#f1f5f9; padding:20px; border-radius:12px;">
-                <h3 id="displayTicker">---</h3>
-                <div class="trade-specs">
-                    Current Price: <b id="mPrice">--</b><br>
-                    Implied Volatility: <b id="mIV">--</b><br>
-                    30-Day Move (1σ): <b id="mMove">--</b><br>
-                    Probability of Profit (POP): <b>68.2% (1σ Range)</b>
-                </div>
-                <div style="margin-top:20px; font-size:0.8rem; font-style:italic; color:#64748b;">
-                    *Trade sheet calculated for 30 DTE standard monthly contracts.
+            <div id="marketSummary" style="display:none; background:#f8fafc; padding:25px; border-radius:12px; border: 1px solid #e2e8f0;">
+                <h2 id="dispTicker" style="margin-top:0;">---</h2>
+                <div class="trade-data" style="font-size: 1rem;">
+                    Current Price: <b id="dispPrice">--</b><br>
+                    Implied Volatility: <b id="dispIV">--</b><br>
+                    30-Day Expected Move: <b id="dispMove" style="color:#2563eb;">--</b><br><br>
+                    Analysis Date: <b>April 27, 2026</b><br>
+                    Model: <b>CRPM 1σ (68.2% POP)</b>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="machines-container" id="machinesList" style="display:none;">
-        <div class="machine-row">
+    <div id="machinesList" style="display:none;">
+        <div class="machine-card">
             <div class="machine-info">
-                <h4>1. CRPM Short Put</h4>
-                <div class="trade-specs" id="specs-sp"></div>
-                <span class="badge badge-green">HIGH PROBABILITY</span>
+                <h3>1. CRPM Income Machine (Short Put)</h3>
+                <div class="trade-data" id="data-sp"></div>
+                <span class="badge">Probability of Profit: ~84%</span>
             </div>
             <canvas id="pl-sp" class="pl-mini"></canvas>
-            <div class="trade-specs"><b>Strategy:</b> Income Generation<br><b>Management:</b> Close at 50% profit.</div>
+            <div class="trade-data">
+                <b>Management:</b><br>
+                • Close at 50% max profit<br>
+                • Stop Loss: 2.5x credit<br>
+                • Optimal DTE: 30-45
+            </div>
         </div>
 
-        <div class="machine-row">
+        <div class="machine-card">
             <div class="machine-info">
-                <h4>2. CRPM Covered Call</h4>
-                <div class="trade-specs" id="specs-cc"></div>
-                <span class="badge badge-green">YIELD ENHANCEMENT</span>
+                <h3>2. CRPM Yield Machine (Covered Call)</h3>
+                <div class="trade-data" id="data-cc"></div>
+                <span class="badge">Bullish Equity Hedge</span>
             </div>
             <canvas id="pl-cc" class="pl-mini"></canvas>
-            <div class="trade-specs"><b>Strategy:</b> Asset Monetization<br><b>Management:</b> Roll at 21 DTE.</div>
-        </div>
-
-        <div class="machine-row">
-            <div class="machine-info">
-                <h4>3. CRPM Bull Put Spread</h4>
-                <div class="trade-specs" id="specs-bps"></div>
-                <span class="badge badge-green">DEFINED RISK</span>
+            <div class="trade-data">
+                <b>Management:</b><br>
+                • Sell at +1σ High<br>
+                • Target: 1.5% monthly yield<br>
+                • Roll up/out if price hits strike
             </div>
-            <canvas id="pl-bps" class="pl-mini"></canvas>
-            <div class="trade-specs"><b>Strategy:</b> Capital Efficient<br><b>Management:</b> Stop at 2x premium.</div>
         </div>
 
-        <div class="machine-row">
+        <div class="machine-card">
             <div class="machine-info">
-                <h4>4. CRPM Iron Condor</h4>
-                <div class="trade-specs" id="specs-ic"></div>
-                <span class="badge badge-green">NEUTRAL MACHINE</span>
+                <h3>3. CRPM Neutral Machine (Iron Condor)</h3>
+                <div class="trade-data" id="data-ic"></div>
+                <span class="badge">Market Neutral Range</span>
             </div>
             <canvas id="pl-ic" class="pl-mini"></canvas>
-            <div class="trade-specs"><b>Strategy:</b> Volatility Seller<br><b>Management:</b> 1σ Wings adjustment.</div>
+            <div class="trade-data">
+                <b>Management:</b><br>
+                • Collect 1/3 of width<br>
+                • Close at 25% profit<br>
+                • Delta Neutral balancing
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    let activeCharts = {};
+    let charts = {};
+    const analysisDate = new Date("2026-04-27");
 
-    async function calculateCRPM() {
+    async function executeCRPM() {
         const t = document.getElementById('ticker').value.toUpperCase();
         if(!t) return;
         try {
@@ -114,92 +116,86 @@
             });
             const data = await res.json();
             
-            displayMarketData(data);
-            drawMainCone(data.price, data.volatility / 100);
-            renderTradeSheets(data);
-        } catch (e) { alert("API Error. Check connection."); }
+            document.getElementById('marketSummary').style.display = 'block';
+            document.getElementById('machinesList').style.display = 'block';
+            document.getElementById('dispTicker').innerText = data.ticker;
+            document.getElementById('dispPrice').innerText = "$" + data.price;
+            document.getElementById('dispIV').innerText = data.volatility + "%";
+            document.getElementById('dispMove').innerText = "±$" + (data.price - data.low).toFixed(2);
+
+            drawCone(data.price, data.volatility / 100);
+            updateTrades(data);
+        } catch (e) { alert("API Error. Trying to reconnect..."); }
     }
 
-    function displayMarketData(data) {
-        document.getElementById('marketSummary').style.display = 'block';
-        document.getElementById('machinesList').style.display = 'flex';
-        document.getElementById('displayTicker').innerText = data.ticker + " Analysis";
-        document.getElementById('mPrice').innerText = "$" + data.price;
-        document.getElementById('mIV').innerText = data.volatility + "%";
-        document.getElementById('mMove').innerText = "±$" + (data.price - data.low).toFixed(2);
-    }
-
-    function renderTradeSheets(data) {
-        const p = data.price; const lo = data.low; const hi = data.high;
-        const iv = data.volatility / 100;
-
-        // 1. Short Put Trade
-        document.getElementById('specs-sp').innerHTML = `
-            <b>SELL:</b> 1x ${data.ticker} 30DTE P <br>
-            <b>STRIKE:</b> $${lo} (Delta: 18Δ) <br>
-            <b>CREDIT:</b> Estimated $${(p * iv * 0.1).toFixed(2)} <br>
-            <b>B.E.:</b> $${(lo - (p * iv * 0.1)).toFixed(2)}
-        `;
-        drawPL('pl-sp', (x) => x < lo ? (x - lo) : 5, p);
-
-        // 2. Covered Call Trade
-        document.getElementById('specs-cc').innerHTML = `
-            <b>BUY:</b> 100x ${data.ticker} <br>
-            <b>SELL:</b> 1x 30DTE C @ $${hi} <br>
-            <b>MAX PROFIT:</b> $${(hi - p + (p * iv * 0.1)).toFixed(2)} <br>
-            <b>YIELD:</b> ~${((hi/p - 1)*100).toFixed(1)}% Capital Gain
-        `;
-        drawPL('pl-cc', (x) => x > hi ? 10 : (x - p), p);
-
-        // 3. Bull Put Spread
-        const loLong = (lo * 0.97).toFixed(0);
-        document.getElementById('specs-bps').innerHTML = `
-            <b>SELL:</b> $${lo} P / <b>BUY:</b> $${loLong} P <br>
-            <b>WIDTH:</b> $${(lo - loLong).toFixed(0)} Points <br>
-            <b>PROBABILITY:</b> 82% POP <br>
-            <b>MAX RISK:</b> Defined $${((lo - loLong)*100).toFixed(0)}
-        `;
-        drawPL('pl-bps', (x) => x < loLong ? -10 : (x < lo ? x - lo : 5), p);
-
-        // 4. Iron Condor
-        document.getElementById('specs-ic').innerHTML = `
-            <b>RANGE:</b> $${lo} P / $${hi} C <br>
-            <b>PROFIT ZONE:</b> Center 1σ <br>
-            <b>THETA:</b> Positive Decay <br>
-            <b>DELTA:</b> Neutral (0.05 Net)
-        `;
-        drawPL('pl-ic', (x) => (x < lo || x > hi) ? -10 : 10, p);
-    }
-
-    function drawMainCone(price, iv) {
+    function drawCone(price, iv) {
         const ctx = document.getElementById('coneCanvas').getContext('2d');
-        const labels = []; const u = []; const l = []; const s = [];
-        for (let d = 0; d <= 30; d++) {
-            labels.push("D"+d);
-            const move = price * iv * Math.sqrt(d/365);
-            u.push(price + move); l.push(price - move); s.push(price);
+        const labels = []; const up = []; const dn = []; const mid = [];
+        const totalPoints = 100;
+        for (let i = 0; i <= totalPoints; i++) {
+            const days = (i / totalPoints) * 30;
+            const move = price * iv * Math.sqrt(days/365);
+            up.push(price + move); dn.push(price - move); mid.push(price);
+            
+            const d = new Date(analysisDate);
+            d.setDate(analysisDate.getDate() + Math.floor(days));
+            if (i % 15 === 0 || i === totalPoints) {
+                labels.push(d.toLocaleDateString('en-US', {month:'short', day:'2-digit'}));
+            } else { labels.push(''); }
         }
-        if(activeCharts['cone']) activeCharts['cone'].destroy();
-        activeCharts['cone'] = new Chart(ctx, {
+        if(charts['cone']) charts['cone'].destroy();
+        charts['cone'] = new Chart(ctx, {
             type: 'line',
             data: { labels, datasets: [
-                { label: 'Upper σ', data: u, borderColor: '#2ecc71', pointRadius:0, fill:false, tension:0.4 },
-                { label: 'Lower σ', data: l, borderColor: '#e74c3c', pointRadius:0, fill:'-1', backgroundColor:'rgba(46,204,113,0.05)', tension:0.4 },
-                { label: 'Spot', data: s, borderColor: '#cbd5e1', borderDash:[5,5], pointRadius:0, fill:false }
+                { label: '+1σ', data: up, borderColor: '#10b981', pointRadius:0, fill:false, tension:0.4 },
+                { label: '-1σ', data: dn, borderColor: '#ef4444', pointRadius:0, fill:'-1', backgroundColor:'rgba(16,185,129,0.05)', tension:0.4 },
+                { label: 'Spot', data: mid, borderColor: '#cbd5e1', borderDash:[5,5], pointRadius:0, fill:false }
             ]},
-            options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+            options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}, ticks:{maxRotation:0, autoSkip:false}}} }
         });
+    }
+
+    function updateTrades(data) {
+        const p = data.price; const lo = data.low; const hi = data.high;
+        const estPrem = (p * (data.volatility/100) * 0.1).toFixed(2);
+
+        // Machine 1: Short Put
+        document.getElementById('data-sp').innerHTML = `
+            <b>Action:</b> SELL 1x 30DTE Put <br>
+            <b>Strike:</b> $${lo.toFixed(0)} <br>
+            <b>Delta:</b> 20Δ | <b>Credit:</b> ~$${estPrem} <br>
+            <b>Break-Even:</b> $${(lo - estPrem).toFixed(2)}
+        `;
+        drawPL('pl-sp', x => (x < lo ? x - lo + parseFloat(estPrem) : parseFloat(estPrem)), p);
+
+        // Machine 2: Covered Call
+        document.getElementById('data-cc').innerHTML = `
+            <b>Action:</b> LONG 100 Shares + SELL 1x Call <br>
+            <b>Strike:</b> $${hi.toFixed(0)} <br>
+            <b>Credit:</b> ~$${estPrem} <br>
+            <b>Max Profit:</b> $${(hi - p + parseFloat(estPrem)).toFixed(2)}
+        `;
+        drawPL('pl-cc', x => (x > hi ? hi - p + parseFloat(estPrem) : x - p + parseFloat(estPrem)), p);
+
+        // Machine 3: Iron Condor
+        document.getElementById('data-ic').innerHTML = `
+            <b>Action:</b> Sell Put Spread @$${lo} / Call Spread @$${hi} <br>
+            <b>Total Credit:</b> ~$${(estPrem * 1.5).toFixed(2)} <br>
+            <b>Profit Zone:</b> Between $${lo} and $${hi}
+        `;
+        drawPL('pl-ic', x => (x < lo || x > hi ? -15 : 10), p);
     }
 
     function drawPL(id, fn, p) {
         const ctx = document.getElementById(id).getContext('2d');
-        const labels = []; const data = [];
-        for(let x = p*0.85; x <= p*1.15; x += p*0.01) { labels.push(""); data.push(fn(x)); }
-        if(activeCharts[id]) activeCharts[id].destroy();
-        activeCharts[id] = new Chart(ctx, {
+        const labels = []; const pts = [];
+        for(let x = p*0.8; x <= p*1.2; x += p*0.01) { labels.push(""); pts.push(fn(x)); }
+        if(charts[id]) charts[id].destroy();
+        charts[id] = new Chart(ctx, {
             type: 'line',
-            data: { labels, datasets: [{ data, borderColor: '#0f172a', borderWidth: 2, fill: true, backgroundColor: (ctx) => ctx.parsed.y >= 0 ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', pointRadius:0, tension:0.1 }]},
-            options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{display:false}} }
+            data: { labels, datasets: [{ data: pts, borderColor: '#0f172a', borderWidth: 2, fill: true, 
+                backgroundColor: c => c.parsed.y >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', pointRadius:0, tension:0.1 }]},
+            options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{grid:{display:false}, ticks:{display:false}, border:{display:false}}} }
         });
     }
 </script>
