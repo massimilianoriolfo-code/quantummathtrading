@@ -3,177 +3,168 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRPM Strategic Command</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <title>CRPM - The Options Probability Cone</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }
-        .container { max-width: 1100px; margin: auto; }
-        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; margin-bottom: 25px; }
-        .search-area { display: flex; gap: 12px; margin-bottom: 25px; }
-        input { padding: 15px; border: 2px solid #cbd5e1; border-radius: 12px; flex: 1; text-transform: uppercase; font-weight: bold; font-size: 18px; outline: none; transition: 0.2s; }
-        input:focus { border-color: #2563eb; background: #fff; }
-        button { padding: 15px 35px; background: #0f172a; color: #fff; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 16px; }
-        button:disabled { background: #64748b; cursor: not-allowed; }
-        
-        .main-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; margin-bottom: 25px; min-height: 450px; }
-        #coneWrapper { background: #fff; border-radius: 15px; position: relative; height: 100%; }
-        .info-panel { background: #f1f5f9; padding: 25px; border-radius: 15px; border: 1px solid #e2e8f0; }
-        
-        .strategy-grid { display: none; flex-direction: column; gap: 20px; }
-        .strategy-card { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 25px; background: white; border: 1px solid #e2e8f0; border-radius: 15px; padding: 25px; align-items: center; }
-        .strategy-card h3 { margin: 0 0 10px 0; color: #2563eb; font-size: 1.2rem; }
-        .specs { font-size: 0.9rem; line-height: 1.7; color: #475569; }
-        .specs b { color: #0f172a; }
-        .mini-chart { height: 140px; width: 100%; }
-        
-        #errorMsg { color: #e11d48; background: #fff1f2; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: none; text-align: center; font-weight: 600; }
-        
-        @media (max-width: 900px) { .main-layout, .strategy-card { grid-template-columns: 1fr; } }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #f4f7f9; color: #333; }
+        .card { background: white; padding: 30px; border-radius: 16px; max-width: 950px; margin: auto; border: 1px solid #e1e8ed; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .header-info { text-align: center; margin-bottom: 25px; }
+        .current-date { font-size: 0.9rem; color: #888; margin-top: 5px; font-weight: 500; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+        input { padding: 12px; width: 250px; border: 2px solid #dfe3e8; border-radius: 8px; font-size: 16px; text-transform: uppercase; outline: none; }
+        input:focus { border-color: #007bff; }
+        button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+        button:hover { background: #333; }
+        #res { background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #e1e8ed; margin-bottom: 20px; display: none; }
+        .range-highlight { color: #007bff; font-size: 1.3em; font-weight: bold; }
+        #chartContainer { width: 100%; height: 500px; background: #fff; border-radius: 12px; padding: 10px; position: relative; }
+        .footer-note { background: #fff9e6; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px; font-size: 0.9rem; border: 1px dashed #d4a017; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="card">
-        <h1 style="margin-top:0; font-size: 28px; letter-spacing: -1px;">The Options Probability Cone</h1>
-        <div id="errorMsg"></div>
-        <div class="search-area">
-            <input type="text" id="ticker" placeholder="ENTER TICKER (E.G. SPY)">
-            <button id="btn" onclick="startAnalysis()">EXECUTE ANALYSIS</button>
-        </div>
+<div class="card">
+    <div class="header-info">
+        <h2 style="margin:0; letter-spacing: -0.5px;">The Options Probability Cone</h2>
+        <div class="current-date">Analysis Date: April 28, 2026</div>
+    </div>
+    
+    <div class="input-group">
+        <input type="text" id="ticker" placeholder="Enter Ticker (e.g. SPY)" maxlength="5">
+        <button onclick="calcola()">Run Analysis</button>
+    </div>
+    
+    <div id="res"></div>
 
-        <div class="main-layout">
-            <div id="coneWrapper">
-                <canvas id="mainChart"></canvas>
-            </div>
-            <div id="summary" style="display:none;" class="info-panel">
-                <h2 id="sTicker" style="margin-top:0; color:#0f172a; font-size: 24px;">---</h2>
-                <div class="specs" style="font-size: 1.1rem;">
-                    Price: <b id="sPrice">--</b><br>
-                    Implied Volatility: <b id="sIV">--</b><br>
-                    Expected Move: <b id="sMove" style="color:#2563eb;">--</b><br><br>
-                    Analysis Date: <b>April 28, 2026</b><br>
-                    Core: <b>CRPM Quantitative</b>
-                </div>
-            </div>
-        </div>
+    <div id="chartContainer">
+        <canvas id="probabilityChart"></canvas>
     </div>
 
-    <div id="strategies" class="strategy-grid">
-        <div class="strategy-card">
-            <div>
-                <h3>1. CRPM Short Put</h3>
-                <div class="specs" id="specs-sp"></div>
-                <div style="margin-top:12px; font-weight:bold; color:#166534; font-size:0.8rem;">POP: ~84% | INCOME MACHINE</div>
-            </div>
-            <div class="mini-chart"><canvas id="chart-sp"></canvas></div>
-            <div class="specs"><b>Management:</b><br>• Goal: 50% Max Profit<br>• Risk: Capped by Strike<br>• Optimal: 30 DTE</div>
-        </div>
-
-        <div class="strategy-card">
-            <div>
-                <h3>2. CRPM Covered Call</h3>
-                <div class="specs" id="specs-cc"></div>
-                <div style="margin-top:12px; font-weight:bold; color:#166534; font-size:0.8rem;">EQUITY HEDGE | YIELD MACHINE</div>
-            </div>
-            <div class="mini-chart"><canvas id="chart-cc"></canvas></div>
-            <div class="specs"><b>Management:</b><br>• Target: +1σ High<br>• Strike: 20 Delta<br>• Management: Roll @ 21 DTE</div>
-        </div>
+    <div class="footer-note">
+        <strong>CRPM Quantitative Model:</strong> 30-Day Forecast based on Implied Volatility and the Square Root of Time (1σ - 68.2% Confidence).
     </div>
 </div>
 
 <script>
-    let activeCharts = {};
-    const today = new Date("2026-04-28");
+    let myChart = null;
+    const analysisDate = new Date("2026-04-28");
 
-    async function startAnalysis() {
-        const ticker = document.getElementById('ticker').value.trim().toUpperCase();
-        if(!ticker) return;
+    async function calcola() {
+        const t = document.getElementById('ticker').value.toUpperCase();
+        const resDiv = document.getElementById('res');
+        if(!t) return;
 
-        const btn = document.getElementById('btn');
-        const err = document.getElementById('errorMsg');
-        
-        btn.disabled = true;
-        btn.innerText = "Analyzing Market Data...";
-        err.style.display = 'none';
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogating market nodes for accurate IV data...</em></p>";
 
         try {
-            const res = await fetch('/api/index', {
+            const response = await fetch('/api/index', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ ticker: ticker })
+                body: JSON.stringify({ ticker: t })
             });
-            
-            if (!res.ok) throw new Error("Server Busy");
-            const data = await res.json();
-            if (data.error) throw new Error(data.error);
+            const data = await response.json();
 
-            // Update UI
-            document.getElementById('summary').style.display = 'block';
-            document.getElementById('strategies').style.display = 'flex';
-            document.getElementById('sTicker').innerText = data.ticker;
-            document.getElementById('sPrice').innerText = "$" + data.price.toFixed(2);
-            document.getElementById('sIV').innerText = data.volatility.toFixed(2) + "%";
-            document.getElementById('sMove').innerText = "±$" + (data.price - data.low).toFixed(2);
-
-            renderCone(data.price, data.volatility / 100);
-            renderStrategies(data);
-
+            if(data.error) {
+                resDiv.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
+            } else {
+                resDiv.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div style="text-align:right;"><strong>Asset:</strong> ${data.ticker} | <strong>Spot Price:</strong> $${data.price}</div>
+                        <div style="text-align:left;"><strong>30-Day ATM IV:</strong> ${data.volatility}%</div>
+                    </div>
+                    <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px; text-align:center;">
+                        Expected Range at Expiration (1σ): <span class="range-highlight">$${data.low} - $${data.high}</span>
+                    </div>`;
+                
+                drawProbabilityCone(data.price, data.volatility / 100);
+            }
         } catch (e) {
-            err.innerText = "Connection Busy. The system is retrying to fetch institutional data... Please wait 5 seconds.";
-            err.style.display = 'block';
-            setTimeout(startAnalysis, 5000); // Auto-retry logic
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "EXECUTE ANALYSIS";
+            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Network node busy. Please try again in 5 seconds.</p>";
         }
     }
 
-    function renderCone(price, iv) {
-        const ctx = document.getElementById('mainChart').getContext('2d');
-        const labels = []; const u = []; const d = []; const s = [];
-        
-        for (let i = 0; i <= 30; i++) {
-            const dt = new Date(today); dt.setDate(today.getDate() + i);
-            labels.push(i % 5 === 0 ? dt.toLocaleDateString('en-US', {month:'short', day:'2-digit'}) : '');
-            const move = price * iv * Math.sqrt(i/365);
-            u.push(price + move); d.push(price - move); s.push(price);
+    function drawProbabilityCone(currentPrice, iv) {
+        const ctx = document.getElementById('probabilityChart').getContext('2d');
+        const labels = [];
+        const upperBand = [];
+        const lowerBand = [];
+        const centerLine = [];
+
+        // 30 Discrete daily points for perfect X-axis alignment
+        for (let d = 0; d <= 30; d++) {
+            const pointDate = new Date(analysisDate);
+            pointDate.setDate(analysisDate.getDate() + d);
+            
+            // Labels only every 5 days to avoid clutter
+            if (d % 5 === 0) {
+                labels.push(pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
+            } else {
+                labels.push('');
+            }
+
+            // CRPM Math: Price * IV * Sqrt(Time/365)
+            const move = currentPrice * iv * Math.sqrt(d / 365);
+            upperBand.push(currentPrice + move);
+            lowerBand.push(currentPrice - move);
+            centerLine.push(currentPrice);
         }
 
-        if(activeCharts['main']) activeCharts['main'].destroy();
-        activeCharts['main'] = new Chart(ctx, {
+        if (myChart) { myChart.destroy(); }
+
+        myChart = new Chart(ctx, {
             type: 'line',
-            data: { labels, datasets: [
-                { label: '+1σ', data: u, borderColor: '#10b981', borderWidth: 2.5, pointRadius: 0, fill: false, tension: 0.4 },
-                { label: '-1σ', data: d, borderColor: '#ef4444', borderWidth: 2.5, pointRadius: 0, fill: '-1', backgroundColor: 'rgba(16,185,129,0.05)', tension: 0.4 },
-                { label: 'Spot', data: s, borderColor: '#94a3b8', borderDash: [5,5], borderWidth: 1, pointRadius: 0, fill: false }
-            ]},
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { color: '#f1f5f9' } } } }
-        });
-    }
-
-    function renderStrategies(data) {
-        const p = data.price; const lo = data.low; const hi = data.high;
-        const estCredit = (p * (data.volatility/100) * 0.12).toFixed(2);
-
-        // Short Put Machine
-        document.getElementById('specs-sp').innerHTML = `<b>ACTION:</b> Sell 30DTE Put<br><b>STRIKE:</b> $${lo.toFixed(0)}<br><b>CREDIT:</b> ~$${estCredit}<br><b>B.E.:</b> $${(lo - estCredit).toFixed(2)}`;
-        drawPL('chart-sp', x => (x < lo ? (x - lo) + parseFloat(estCredit) : parseFloat(estCredit)), p);
-
-        // Covered Call Machine
-        document.getElementById('specs-cc').innerHTML = `<b>ACTION:</b> Long Stock + Short Call<br><b>STRIKE:</b> $${hi.toFixed(0)}<br><b>CREDIT:</b> ~$${estCredit}<br><b>MAX P:</b> $${(hi - p + parseFloat(estCredit)).toFixed(2)}`;
-        drawPL('chart-cc', x => (x > hi ? (hi - p + parseFloat(estCredit)) : (x - p + parseFloat(estCredit))), p);
-    }
-
-    function drawPL(id, fn, p) {
-        const ctx = document.getElementById(id).getContext('2d');
-        const pts = []; const lbls = [];
-        for(let x = p*0.85; x <= p*1.15; x += p*0.01) { lbls.push(""); pts.push(fn(x)); }
-        if(activeCharts[id]) activeCharts[id].destroy();
-        activeCharts[id] = new Chart(ctx, {
-            type: 'line',
-            data: { labels: lbls, datasets: [{ data: pts, borderColor: '#0f172a', borderWidth: 2, fill: true, backgroundColor: c => c.parsed.y >= 0 ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', pointRadius: 0, tension: 0.1 }]},
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Upper Boundary +1σ',
+                        data: upperBand,
+                        borderColor: '#2ecc71',
+                        borderWidth: 2.5,
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0.4 
+                    },
+                    {
+                        label: 'Lower Boundary -1σ',
+                        data: lowerBand,
+                        borderColor: '#e74c3c',
+                        borderWidth: 2.5,
+                        pointRadius: 0,
+                        fill: '-1', 
+                        backgroundColor: 'rgba(46, 204, 113, 0.08)',
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Spot Price',
+                        data: centerLine,
+                        borderColor: '#bdc3c7',
+                        borderDash: [6, 4],
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 6 } }
+                },
+                scales: {
+                    y: { 
+                        grid: { color: '#f0f0f0' },
+                        ticks: { color: '#7f8c8d', callback: value => '$' + value.toFixed(2) }
+                    },
+                    x: { 
+                        grid: { display: false },
+                        ticks: { color: '#7f8c8d', maxRotation: 0, autoSkip: false }
+                    }
+                }
+            }
         });
     }
 </script>
