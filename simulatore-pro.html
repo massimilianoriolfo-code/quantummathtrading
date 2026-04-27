@@ -17,7 +17,7 @@
         button:hover { background: #333; }
         #res { background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #e1e8ed; margin-bottom: 20px; display: none; }
         .range-highlight { color: #007bff; font-size: 1.3em; font-weight: bold; }
-        #chartContainer { width: 100%; height: 550px; background: #fff; border-radius: 12px; padding: 10px; position: relative; }
+        #chartContainer { width: 100%; height: 500px; background: #fff; border-radius: 12px; padding: 10px; position: relative; }
         .footer-note { background: #fff9e6; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px; font-size: 0.9rem; border: 1px dashed #d4a017; }
     </style>
 </head>
@@ -73,13 +73,13 @@
                         <div style="text-align:left;"><strong>30d ATM IV:</strong> ${data.volatility}%</div>
                     </div>
                     <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px; text-align:center;">
-                        Expected 1σ Range at Expiration: <span class="range-highlight">$${data.low} - $${data.high}</span>
+                        Expected Range at Expiration (1σ): <span class="range-highlight">$${data.low} - $${data.high}</span>
                     </div>`;
                 
                 drawProbabilityCone(data.price, data.volatility / 100);
             }
         } catch (e) {
-            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Market node busy. Retrying...</p>";
+            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Network node busy. Please try again.</p>";
         }
     }
 
@@ -92,25 +92,16 @@
         
         const today = new Date("2026-04-27");
 
-        // Use 150 points for hyper-smooth interpolation, skewed toward the beginning
-        const totalPoints = 150; 
-        for (let i = 0; i <= totalPoints; i++) {
-            // Power function (i/totalPoints)^0.7 to sample more points near time zero
-            const progress = Math.pow(i / totalPoints, 0.7);
-            const daysFloat = progress * 30;
+        // Fixed 30 points (one per day) for perfect X-axis alignment
+        for (let d = 0; d <= 30; d++) {
+            const pointDate = new Date(today);
+            pointDate.setDate(today.getDate() + d);
             
-            const pointDate = new Date(today.getTime() + daysFloat * 24 * 60 * 60 * 1000);
-            
-            // Logic for clean X-axis: Only show label for the very first point and midnight of each day
-            if (i === 0) {
-                labels.push(pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
-            } else if (i > 0 && pointDate.getDate() !== new Date(today.getTime() + Math.pow((i-1)/totalPoints, 0.7) * 30 * 24 * 60 * 60 * 1000).getDate()) {
-                labels.push(pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
-            } else {
-                labels.push('');
-            }
+            // Format labels like "Apr 27"
+            labels.push(pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
 
-            const move = currentPrice * iv * Math.sqrt(daysFloat / 365);
+            // Standard Square Root of Time Formula
+            const move = currentPrice * iv * Math.sqrt(d / 365);
             upperBand.push(currentPrice + move);
             lowerBand.push(currentPrice - move);
             centerLine.push(currentPrice);
@@ -127,27 +118,27 @@
                         label: 'Upper Boundary +1σ',
                         data: upperBand,
                         borderColor: '#2ecc71',
-                        borderWidth: 2,
+                        borderWidth: 2.5,
                         pointRadius: 0,
                         fill: false,
-                        tension: 0.4
+                        tension: 0.45 // High tension creates a smooth rounded start automatically
                     },
                     {
                         label: 'Lower Boundary -1σ',
                         data: lowerBand,
                         borderColor: '#e74c3c',
-                        borderWidth: 2,
+                        borderWidth: 2.5,
                         pointRadius: 0,
                         fill: '-1', 
-                        backgroundColor: 'rgba(46, 204, 113, 0.06)',
-                        tension: 0.4
+                        backgroundColor: 'rgba(46, 204, 113, 0.08)',
+                        tension: 0.45
                     },
                     {
                         label: 'Spot Price',
                         data: centerLine,
                         borderColor: '#bdc3c7',
                         borderDash: [5, 5],
-                        borderWidth: 1,
+                        borderWidth: 1.5,
                         pointRadius: 0,
                         fill: false
                     }
@@ -158,14 +149,8 @@
                 maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
-                    legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 5 } },
-                    tooltip: { 
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
-                            }
-                        }
-                    }
+                    legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 6 } },
+                    tooltip: { enabled: true }
                 },
                 scales: {
                     y: { 
@@ -176,11 +161,9 @@
                         grid: { display: false },
                         ticks: { 
                             font: { size: 10 }, 
-                            maxRotation: 0, 
-                            autoSkip: false,
-                            callback: function(val, index) {
-                                return this.getLabelForValue(val);
-                            }
+                            maxRotation: 0,
+                            autoSkip: true, // Automatically prevents dates from crashing into each other
+                            maxTicksLimit: 10 // Only shows ~10 clean labels across the 30 days
                         }
                     }
                 }
