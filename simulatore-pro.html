@@ -54,7 +54,7 @@
         if(!t) return;
 
         resDiv.style.display = 'block';
-        resDiv.innerHTML = "<p style='text-align:center;'><em>Fetching Market Data...</em></p>";
+        resDiv.innerHTML = "<p style='text-align:center;'><em>Fetching Quantitative Data...</em></p>";
 
         try {
             const response = await fetch('/api/index', {
@@ -67,9 +67,15 @@
             if(data.error) {
                 resDiv.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
             } else {
-                // Logica Fallback: Se IV è assente o piatta (<0.5%) a mercati chiusi, 
-                // cerchiamo il dato di chiusura dal server.
-                let ivToUse = (data.volatility > 0.5) ? data.volatility : (data.last_close_iv || 0.01);
+                // LOGICA RIGOROSA: 
+                // 1. Prova IV in tempo reale. 
+                // 2. Se è 0 o nullo (mercato chiuso), usa l'IV di chiusura.
+                // 3. Se manca anche quella, usa la volatilità storica (che non è mai 0).
+                let ivToUse = data.volatility;
+                
+                if (!ivToUse || ivToUse < 0.5) {
+                    ivToUse = data.last_close_iv || data.historical_volatility || 15.0;
+                }
                 
                 resDiv.innerHTML = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
