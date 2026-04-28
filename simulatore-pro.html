@@ -1,180 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CRPM - The Options Probability Cone</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #f4f7f9; color: #333; }
-    .card { background: white; padding: 30px; border-radius: 16px; max-width: 1000px; margin: auto; border: 1px solid #e1e8ed; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-    .header-info { text-align: center; margin-bottom: 25px; }
-    .current-date { font-size: 0.9rem; color: #888; margin-top: 5px; font-weight: 500; }
-    .input-group { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
-    input { padding: 12px; width: 250px; border: 2px solid #dfe3e8; border-radius: 8px; font-size: 16px; text-transform: uppercase; outline: none; }
-    input:focus { border-color: #007bff; }
-    button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
-    button:hover { background: #333; }
-    #res { background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #e1e8ed; margin-bottom: 20px; display: none; }
-    .range-highlight { color: #007bff; font-size: 1.3em; font-weight: bold; }
-    #chartContainer { width: 100%; height: 500px; background: #fff; border-radius: 12px; padding: 10px; position: relative; }
-    .footer-note { background: #fff9e6; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px; font-size: 0.9rem; border: 1px dashed #d4a017; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRPM - The Options Probability Cone</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #f4f7f9; color: #333; }
+        .card { background: white; padding: 30px; border-radius: 16px; max-width: 1000px; margin: auto; border: 1px solid #e1e8ed; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .header-info { text-align: center; margin-bottom: 25px; }
+        .current-date { font-size: 0.9rem; color: #888; margin-top: 5px; font-weight: 500; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+        input { padding: 12px; width: 250px; border: 2px solid #dfe3e8; border-radius: 8px; font-size: 16px; text-transform: uppercase; outline: none; }
+        input:focus { border-color: #007bff; }
+        button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+        button:hover { background: #333; }
+        #res { background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #e1e8ed; margin-bottom: 20px; display: none; }
+        .range-highlight { color: #007bff; font-size: 1.3em; font-weight: bold; }
+        #chartContainer { width: 100%; height: 500px; background: #fff; border-radius: 12px; padding: 10px; position: relative; }
+        .footer-note { background: #fff9e6; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px; font-size: 0.9rem; border: 1px dashed #d4a017; }
+    </style>
 </head>
 <body>
 
 <div class="card">
-  <div class="header-info">
-    <h2 style="margin:0; letter-spacing: -0.5px;">The Options Probability Cone</h2>
-    <div class="current-date">Analysis Date: April 28, 2026</div>
-  </div>
-  
-  <div class="input-group">
-    <input type="text" id="ticker" placeholder="Enter Ticker (e.g. SPY)" maxlength="5">
-    <button onclick="calcola()">Generate Cone</button>
-  </div>
-  
-  <div id="res"></div>
+    <div class="header-info">
+        <h2 style="margin:0; letter-spacing: -0.5px;">The Options Probability Cone</h2>
+        <div class="current-date">Analysis Date: April 28, 2026</div>
+    </div>
+    
+    <div class="input-group">
+        <input type="text" id="ticker" placeholder="Enter Ticker (e.g. SPY)" maxlength="5">
+        <button onclick="calcola()">Generate Cone</button>
+    </div>
+    
+    <div id="res"></div>
 
-  <div id="chartContainer">
-    <canvas id="probabilityChart"></canvas>
-  </div>
+    <div id="chartContainer">
+        <canvas id="probabilityChart"></canvas>
+    </div>
 
-  <div class="footer-note">
-    <strong>CRPM Quantitative Model:</strong> 30-Day Forecast based on Implied Volatility and the Square Root of Time (1σ - 68.2% Confidence).
-  </div>
+    <div class="footer-note">
+        <strong>CRPM Quantitative Model:</strong> 30-Day Forecast based on Implied Volatility and the Square Root of Time (1σ - 68.2% Confidence).
+    </div>
 </div>
 
 <script>
-  let myChart = null;
+    let myChart = null;
 
-  async function calcola() {
-    const t = document.getElementById('ticker').value.toUpperCase();
-    const resDiv = document.getElementById('res');
-    if(!t) return;
+    async function calcola() {
+        const t = document.getElementById('ticker').value.toUpperCase();
+        const resDiv = document.getElementById('res');
+        if(!t) return;
 
-    resDiv.style.display = 'block';
-    resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogating market nodes for IV data...</em></p>";
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogating market nodes for IV data...</em></p>";
 
-    try {
-      const response = await fetch('/api/index', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ ticker: t })
-      });
-      const data = await response.json();
+        try {
+            const response = await fetch('/api/index', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ ticker: t })
+            });
+            const data = await response.json();
 
-      if(data.error) {
-        resDiv.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
-      } else {
-        // --- LOGICA DI CONTROLLO IV ---
-        // Se IV è nullo o vicino a zero (mercato chiuso), usiamo una IV di riferimento (18%)
-        let iv_da_usare = data.volatility;
-        if (!iv_da_usare || iv_da_usare < 0.1) {
-            iv_da_usare = 18.0; 
-            console.log("Markets closed: using baseline IV (18%) for visualization.");
-        }
-        // ------------------------------
+            if(data.error) {
+                resDiv.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
+            } else {
+                // LOGICA PRECISA: Se l'IV real-time è corrotta (<1%), usa l'IV di chiusura precedente fornita dal backend
+                let finalIV = data.volatility;
+                let ivSource = "Real-time ATM IV";
 
-        resDiv.innerHTML = `
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div style="text-align:right;"><strong>Asset:</strong> ${data.ticker} | <strong>Spot:</strong> $${data.price}</div>
-            <div style="text-align:left;"><strong>30d ATM IV:</strong> ${iv_da_usare}%</div>
-          </div>
-          <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px; text-align:center;">
-            Expected Range at Expiration (1σ): <span class="range-highlight">$${data.low} - $${data.high}</span>
-          </div>`;
-        
-        drawProbabilityCone(data.price, iv_da_usare / 100);
-      }
-    } catch (e) {
-      resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Network node busy. Please try again.</p>";
-    }
-  }
+                if (!finalIV || finalIV < 1.0) {
+                    // Usiamo il dato storico di chiusura (last_close_iv) inviato dal server
+                    finalIV = data.last_close_iv || 20.0; // Fallback estremo solo se manca anche il dato storico
+                    ivSource = "Previous Close IV";
+                }
 
-  function drawProbabilityCone(currentPrice, iv) {
-    const ctx = document.getElementById('probabilityChart').getContext('2d');
-    const labels = [];
-    const upperBand = [];
-    const lowerBand = [];
-    const centerLine = [];
-    
-    const today = new Date("2026-04-28");
-
-    for (let d = 0; d <= 30; d++) {
-      const pointDate = new Date(today);
-      pointDate.setDate(today.getDate() + d);
-      labels.push(pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
-
-      const move = currentPrice * iv * Math.sqrt(d / 365);
-      upperBand.push(currentPrice + move);
-      lowerBand.push(currentPrice - move);
-      centerLine.push(currentPrice);
-    }
-
-    if (myChart) { myChart.destroy(); }
-
-    myChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: 'Upper Boundary +1σ',
-            data: upperBand,
-            borderColor: '#2ecc71',
-            borderWidth: 2.5,
-            pointRadius: 0,
-            fill: false,
-            tension: 0.45 
-          },
-          {
-            label: 'Lower Boundary -1σ',
-            data: lowerBand,
-            borderColor: '#e74c3c',
-            borderWidth: 2.5,
-            pointRadius: 0,
-            fill: '-1', 
-            backgroundColor: 'rgba(46, 204, 113, 0.08)',
-            tension: 0.45
-          },
-          {
-            label: 'Spot Price',
-            data: centerLine,
-            borderColor: '#bdc3c7',
-            borderDash: [5, 5],
-            borderWidth: 1.5,
-            pointRadius: 0,
-            fill: false
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 6 } },
-          tooltip: { enabled: true }
-        },
-        scales: {
-          y: { 
-            grid: { color: '#f0f0f0' },
-            ticks: { font: { size: 11 }, callback: value => '$' + value.toLocaleString() }
-          },
-          x: { 
-            grid: { display: false },
-            ticks: { 
-              font: { size: 10 }, 
-              maxRotation: 0,
-              autoSkip: true,
-              maxTicksLimit: 10 
+                resDiv.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div style="text-align:right;"><strong>Asset:</strong> ${data.ticker} | <strong>Spot:</strong> $${data.price}</div>
+                        <div style="text-align:left;"><strong>30d ATM IV:</strong> ${finalIV}% (${ivSource})</div>
+                    </div>
+                    <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px; text-align:center;">
+                        Expected Range at Expiration (1σ): <span class="range-highlight">$${data.low} - $${data.high}</span>
+                    </div>`;
+                
+                drawProbabilityCone(data.price, finalIV / 100);
             }
-          }
+        } catch (e) {
+            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Network node busy. Please try again.</p>";
         }
-      }
-    });
-  }
+    }
+
+    function drawProbabilityCone(currentPrice, iv) {
+        const ctx = document.getElementById('probabilityChart').getContext('2d');
+        const labels = [];
+        const upperBand = [];
+        const lowerBand = [];
+        const centerLine = [];
+        
+        const today = new Date("2026-04-28");
+
+        for (let d = 0; d <= 30; d++) {
+            const pointDate = new Date(today);
+            pointDate.setDate(today.getDate() + d);
+            labels.push(pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
+
+            const move = currentPrice * iv * Math.sqrt(d / 365);
+            upperBand.push(currentPrice + move);
+            lowerBand.push(currentPrice - move);
+            centerLine.push(currentPrice);
+        }
+
+        if (myChart) { myChart.destroy(); }
+
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Upper Boundary +1σ', data: upperBand, borderColor: '#2ecc71', borderWidth: 2.5, pointRadius: 0, fill: false, tension: 0.45 },
+                    { label: 'Lower Boundary -1σ', data: lowerBand, borderColor: '#e74c3c', borderWidth: 2.5, pointRadius: 0, fill: '-1', backgroundColor: 'rgba(46, 204, 113, 0.08)', tension: 0.45 },
+                    { label: 'Spot Price', data: centerLine, borderColor: '#bdc3c7', borderDash: [5, 5], borderWidth: 1.5, pointRadius: 0, fill: false }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 6 } },
+                    tooltip: { enabled: true }
+                },
+                scales: {
+                    y: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 }, callback: value => '$' + value.toLocaleString() } },
+                    x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } }
+                }
+            }
+        });
+    }
 </script>
 </body>
 </html>
