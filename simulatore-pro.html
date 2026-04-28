@@ -54,7 +54,7 @@
         if(!t) return;
 
         resDiv.style.display = 'block';
-        resDiv.innerHTML = "<p style='text-align:center;'><em>Fetching data...</em></p>";
+        resDiv.innerHTML = "<p style='text-align:center;'><em>Fetching Market Data...</em></p>";
 
         try {
             const response = await fetch('/api/index', {
@@ -67,15 +67,14 @@
             if(data.error) {
                 resDiv.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
             } else {
-                // CORREZIONE LOGICA: Gestione dell'undefined
-                let ivToUse = data.volatility;
-                let sourceLabel = "Real-time ATM IV";
+                // LOGICA RIGOROSA: Usa IV real-time, se assente usa last_close_iv del backend.
+                // Rimosso ogni valore numerico arbitrario (niente più 25.0)
+                let ivToUse = (data.volatility && data.volatility > 1.0) ? data.volatility : data.last_close_iv;
+                let sourceLabel = (data.volatility && data.volatility > 1.0) ? "Real-time ATM IV" : "Last Valid Close IV";
 
-                // Se l'IV è troppo bassa o non definita (mercato chiuso)
-                if (!ivToUse || ivToUse < 1.0) {
-                    // Controlla se il server ha mandato 'last_close_iv', altrimenti usa un fallback basato sulla volatilità storica
-                    ivToUse = data.last_close_iv || data.historical_volatility || 25.0; 
-                    sourceLabel = "Historical/Close IV (Market Closed)";
+                if (!ivToUse) {
+                    resDiv.innerHTML = `<p style="color:red; text-align:center;">Error: No valid Volatility data received from server.</p>`;
+                    return;
                 }
 
                 resDiv.innerHTML = `
@@ -91,7 +90,7 @@
                 drawProbabilityCone(data.price, ivToUse / 100);
             }
         } catch (e) {
-            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Service busy. Retry in 5s.</p>";
+            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Service unreachable. Check backend.</p>";
         }
     }
 
