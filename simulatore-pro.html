@@ -67,16 +67,10 @@
             if(data.error) {
                 resDiv.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
             } else {
-                // LOGICA RIGOROSA: Usa IV real-time, se assente usa last_close_iv del backend.
-                // Rimosso ogni valore numerico arbitrario (niente più 25.0)
-                let ivToUse = (data.volatility && data.volatility > 1.0) ? data.volatility : data.last_close_iv;
-                let sourceLabel = (data.volatility && data.volatility > 1.0) ? "Real-time ATM IV" : "Last Valid Close IV";
-
-                if (!ivToUse) {
-                    resDiv.innerHTML = `<p style="color:red; text-align:center;">Error: No valid Volatility data received from server.</p>`;
-                    return;
-                }
-
+                // Logica Fallback: Se IV è assente o piatta (<0.5%) a mercati chiusi, 
+                // cerchiamo il dato di chiusura dal server.
+                let ivToUse = (data.volatility > 0.5) ? data.volatility : (data.last_close_iv || 0.01);
+                
                 resDiv.innerHTML = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                         <div style="text-align:right;"><strong>Asset:</strong> ${data.ticker} | <strong>Spot:</strong> $${data.price}</div>
@@ -84,13 +78,12 @@
                     </div>
                     <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px; text-align:center;">
                         Expected Range at Expiration (1σ): <span class="range-highlight">$${data.low} - $${data.high}</span>
-                        <br><small style="color: #888;">Source: ${sourceLabel}</small>
                     </div>`;
                 
                 drawProbabilityCone(data.price, ivToUse / 100);
             }
         } catch (e) {
-            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Service unreachable. Check backend.</p>";
+            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Connection Error. Please retry.</p>";
         }
     }
 
