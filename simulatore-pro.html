@@ -54,7 +54,7 @@
         if(!t) return;
 
         resDiv.style.display = 'block';
-        resDiv.innerHTML = "<p style='text-align:center;'><em>Fetching Quantitative Data...</em></p>";
+        resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogating Option Chains for 30d ATM IV...</em></p>";
 
         try {
             const response = await fetch('/api/index', {
@@ -67,20 +67,14 @@
             if(data.error) {
                 resDiv.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
             } else {
-                // LOGICA RIGOROSA: 
-                // 1. Prova IV in tempo reale. 
-                // 2. Se è 0 o nullo (mercato chiuso), usa l'IV di chiusura.
-                // 3. Se manca anche quella, usa la volatilità storica (che non è mai 0).
+                // IL DATO PURO: Prendiamo la volatilità che arriva dal server.
+                // Deve essere quella della scadenza a 30gg.
                 let ivToUse = data.volatility;
-                
-                if (!ivToUse || ivToUse < 0.5) {
-                    ivToUse = data.last_close_iv || data.historical_volatility || 15.0;
-                }
-                
+
                 resDiv.innerHTML = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                         <div style="text-align:right;"><strong>Asset:</strong> ${data.ticker} | <strong>Spot:</strong> $${data.price}</div>
-                        <div style="text-align:left;"><strong>30d ATM IV:</strong> ${ivToUse.toFixed(2)}%</div>
+                        <div style="text-align:left;"><strong>30d Implied Volatility:</strong> ${ivToUse.toFixed(2)}%</div>
                     </div>
                     <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px; text-align:center;">
                         Expected Range at Expiration (1σ): <span class="range-highlight">$${data.low} - $${data.high}</span>
@@ -89,7 +83,7 @@
                 drawProbabilityCone(data.price, ivToUse / 100);
             }
         } catch (e) {
-            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Connection Error. Please retry.</p>";
+            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Connection Timeout. Please check data source.</p>";
         }
     }
 
@@ -102,6 +96,8 @@
             const pointDate = new Date(today);
             pointDate.setDate(today.getDate() + d);
             labels.push(pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
+            
+            // Formula CRPM: Deviazione = Prezzo * IV * sqrt(giorni/365)
             const move = currentPrice * iv * Math.sqrt(d / 365);
             upperBand.push(currentPrice + move);
             lowerBand.push(currentPrice - move);
