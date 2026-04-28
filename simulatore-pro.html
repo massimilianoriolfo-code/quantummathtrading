@@ -3,168 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRPM - The Options Probability Cone</title>
+    <title>CRPM Strategic Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #f4f7f9; color: #333; }
-        .card { background: white; padding: 30px; border-radius: 16px; max-width: 950px; margin: auto; border: 1px solid #e1e8ed; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        .header-info { text-align: center; margin-bottom: 25px; }
-        .current-date { font-size: 0.9rem; color: #888; margin-top: 5px; font-weight: 500; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
-        input { padding: 12px; width: 250px; border: 2px solid #dfe3e8; border-radius: 8px; font-size: 16px; text-transform: uppercase; outline: none; }
-        input:focus { border-color: #007bff; }
-        button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
-        button:hover { background: #333; }
-        #res { background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #e1e8ed; margin-bottom: 20px; display: none; }
-        .range-highlight { color: #007bff; font-size: 1.3em; font-weight: bold; }
-        #chartContainer { width: 100%; height: 500px; background: #fff; border-radius: 12px; padding: 10px; position: relative; }
-        .footer-note { background: #fff9e6; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px; font-size: 0.9rem; border: 1px dashed #d4a017; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f9; margin: 0; padding: 20px; }
+        .container { max-width: 1100px; margin: auto; }
+        .card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-weight: bold; text-transform: uppercase; }
+        button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        
+        .main-chart { height: 400px; margin-bottom: 30px; }
+        
+        .machines-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
+        .machine { background: white; border: 1px solid #eee; border-radius: 12px; padding: 15px; text-align: center; }
+        .machine h4 { margin: 0 0 10px 0; font-size: 0.85rem; color: #2563eb; }
+        .pl-canvas { height: 100px !important; width: 100% !important; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <div class="header-info">
-        <h2 style="margin:0; letter-spacing: -0.5px;">The Options Probability Cone</h2>
-        <div class="current-date">Analysis Date: April 28, 2026</div>
-    </div>
-    
-    <div class="input-group">
-        <input type="text" id="ticker" placeholder="Enter Ticker (e.g. SPY)" maxlength="5">
-        <button onclick="calcola()">Run Analysis</button>
-    </div>
-    
-    <div id="res"></div>
+<div class="container">
+    <div class="card">
+        <div class="search-box">
+            <input type="text" id="ticker" placeholder="ENTER TICKER (E.G. SPY)">
+            <button onclick="runCRPM()">GENERATE STRATEGY</button>
+        </div>
+        
+        <div class="main-chart">
+            <canvas id="coneCanvas"></canvas>
+        </div>
 
-    <div id="chartContainer">
-        <canvas id="probabilityChart"></canvas>
-    </div>
-
-    <div class="footer-note">
-        <strong>CRPM Quantitative Model:</strong> 30-Day Forecast based on Implied Volatility and the Square Root of Time (1σ - 68.2% Confidence).
+        <div class="machines-grid" id="machines" style="display:none;">
+            <div class="machine"><h4>Short Put</h4><canvas id="pl-sp" class="pl-canvas"></canvas></div>
+            <div class="machine"><h4>Covered Call</h4><canvas id="pl-cc" class="pl-canvas"></canvas></div>
+            <div class="machine"><h4>Bull Put Spread</h4><canvas id="pl-bps" class="pl-canvas"></canvas></div>
+            <div class="machine"><h4>Iron Condor</h4><canvas id="pl-ic" class="pl-canvas"></canvas></div>
+            <div class="machine"><h4>Bear Call Spread</h4><canvas id="pl-bcs" class="pl-canvas"></canvas></div>
+        </div>
     </div>
 </div>
 
 <script>
-    let myChart = null;
-    const analysisDate = new Date("2026-04-28");
+    let charts = {};
+    const today = new Date("2026-04-28");
 
-    async function calcola() {
+    async function runCRPM() {
         const t = document.getElementById('ticker').value.toUpperCase();
-        const resDiv = document.getElementById('res');
         if(!t) return;
-
-        resDiv.style.display = 'block';
-        resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogating market nodes for accurate IV data...</em></p>";
-
         try {
-            const response = await fetch('/api/index', {
+            const res = await fetch('/api/index', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ ticker: t })
             });
-            const data = await response.json();
-
-            if(data.error) {
-                resDiv.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
-            } else {
-                resDiv.innerHTML = `
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <div style="text-align:right;"><strong>Asset:</strong> ${data.ticker} | <strong>Spot Price:</strong> $${data.price}</div>
-                        <div style="text-align:left;"><strong>30-Day ATM IV:</strong> ${data.volatility}%</div>
-                    </div>
-                    <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px; text-align:center;">
-                        Expected Range at Expiration (1σ): <span class="range-highlight">$${data.low} - $${data.high}</span>
-                    </div>`;
-                
-                drawProbabilityCone(data.price, data.volatility / 100);
-            }
-        } catch (e) {
-            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Network node busy. Please try again in 5 seconds.</p>";
-        }
+            const data = await res.json();
+            document.getElementById('machines').style.display = 'grid';
+            drawCone(data.price, data.volatility / 100);
+            drawMachines(data.price, data.low, data.high);
+        } catch (e) { alert("Server Busy. Retry."); }
     }
 
-    function drawProbabilityCone(currentPrice, iv) {
-        const ctx = document.getElementById('probabilityChart').getContext('2d');
-        const labels = [];
-        const upperBand = [];
-        const lowerBand = [];
-        const centerLine = [];
-
-        // 30 Discrete daily points for perfect X-axis alignment
-        for (let d = 0; d <= 30; d++) {
-            const pointDate = new Date(analysisDate);
-            pointDate.setDate(analysisDate.getDate() + d);
-            
-            // Labels only every 5 days to avoid clutter
-            if (d % 5 === 0) {
-                labels.push(pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
-            } else {
-                labels.push('');
-            }
-
-            // CRPM Math: Price * IV * Sqrt(Time/365)
-            const move = currentPrice * iv * Math.sqrt(d / 365);
-            upperBand.push(currentPrice + move);
-            lowerBand.push(currentPrice - move);
-            centerLine.push(currentPrice);
+    function drawCone(price, iv) {
+        const ctx = document.getElementById('coneCanvas').getContext('2d');
+        const labels = []; const u = []; const d = []; const s = [];
+        for (let i = 0; i <= 30; i++) {
+            const dt = new Date(today); dt.setDate(today.getDate() + i);
+            labels.push(i % 5 === 0 ? dt.toLocaleDateString('en-US', {day:'2-digit', month:'short'}) : '');
+            const move = price * iv * Math.sqrt(i/365);
+            u.push(price + move); d.push(price - move); s.push(price);
         }
-
-        if (myChart) { myChart.destroy(); }
-
-        myChart = new Chart(ctx, {
+        if(charts['cone']) charts['cone'].destroy();
+        charts['cone'] = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Upper Boundary +1σ',
-                        data: upperBand,
-                        borderColor: '#2ecc71',
-                        borderWidth: 2.5,
-                        pointRadius: 0,
-                        fill: false,
-                        tension: 0.4 
-                    },
-                    {
-                        label: 'Lower Boundary -1σ',
-                        data: lowerBand,
-                        borderColor: '#e74c3c',
-                        borderWidth: 2.5,
-                        pointRadius: 0,
-                        fill: '-1', 
-                        backgroundColor: 'rgba(46, 204, 113, 0.08)',
-                        tension: 0.4
-                    },
-                    {
-                        label: 'Spot Price',
-                        data: centerLine,
-                        borderColor: '#bdc3c7',
-                        borderDash: [6, 4],
-                        borderWidth: 1.5,
-                        pointRadius: 0,
-                        fill: false
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 6 } }
-                },
-                scales: {
-                    y: { 
-                        grid: { color: '#f0f0f0' },
-                        ticks: { color: '#7f8c8d', callback: value => '$' + value.toFixed(2) }
-                    },
-                    x: { 
-                        grid: { display: false },
-                        ticks: { color: '#7f8c8d', maxRotation: 0, autoSkip: false }
-                    }
-                }
-            }
+            data: { labels, datasets: [
+                { label: '+1σ', data: u, borderColor: '#2ecc71', pointRadius: 0, fill: false, tension: 0.4 },
+                { label: '-1σ', data: d, borderColor: '#e74c3c', pointRadius: 0, fill: '-1', backgroundColor: 'rgba(46,204,113,0.05)', tension: 0.4 },
+                { label: 'Spot', data: s, borderColor: '#ccc', borderDash: [5,5], pointRadius: 0, fill: false }
+            ]},
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+    }
+
+    function drawMachines(price, low, high) {
+        const configs = [
+            { id: 'pl-sp', fn: x => x < low ? x - low + 5 : 5 }, // Short Put
+            { id: 'pl-cc', fn: x => x > high ? high - price + 5 : x - price + 5 }, // Covered Call
+            { id: 'pl-bps', fn: x => x < low - 10 ? -10 : (x < low ? (x - low) * 2 : 5) }, // Bull Put
+            { id: 'pl-ic', fn: x => (x < low || x > high) ? -10 : 10 }, // Iron Condor
+            { id: 'pl-bcs', fn: x => x > high + 10 ? -10 : (x > high ? (high - x) * 2 : 5) } // Bear Call
+        ];
+
+        configs.forEach(c => {
+            const ctx = document.getElementById(c.id).getContext('2d');
+            const data = []; const labels = [];
+            for(let x = price*0.85; x <= price*1.15; x += price*0.01) { labels.push(""); data.push(c.fn(x)); }
+            if(charts[c.id]) charts[c.id].destroy();
+            charts[c.id] = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets: [{ data, borderColor: '#000', borderWidth: 2, fill: true, backgroundColor: ctx => ctx.parsed.y >= 0 ? 'rgba(46,204,113,0.2)' : 'rgba(231,76,60,0.2)', pointRadius: 0, tension: 0.1 }]},
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+            });
         });
     }
 </script>
