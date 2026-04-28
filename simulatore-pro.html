@@ -1,239 +1,180 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRPM - The Options Probability Cone</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #f4f7f9; color: #333; }
-        .card { background: white; padding: 30px; border-radius: 16px; max-width: 1000px; margin: auto; border: 1px solid #e1e8ed; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        .header-info { text-align: center; margin-bottom: 25px; }
-        .current-date { font-size: 0.9rem; color: #888; margin-top: 5px; font-weight: 500; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
-        input { padding: 12px; width: 250px; border: 2px solid #dfe3e8; border-radius: 8px; font-size: 16px; text-transform: uppercase; outline: none; }
-        input:focus { border-color: #007bff; }
-        button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
-        button:hover { background: #333; }
-        #res { background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #e1e8ed; margin-bottom: 20px; display: none; }
-        .range-highlight { color: #007bff; font-size: 1.3em; font-weight: bold; }
-        #chartContainer { width: 100%; height: 500px; background: #fff; border-radius: 12px; padding: 10px; position: relative; }
-        .footer-note { background: #fff9e6; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px; font-size: 0.9rem; border: 1px dashed #d4a017; }
-        
-        /* Machines Section Styles */
-        .machines-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 30px; display: none; }
-        .machine-card { background: white; border: 1px solid #eee; border-radius: 12px; padding: 15px; text-align: center; }
-        .machine-card h4 { margin: 0 0 10px 0; font-size: 0.85rem; color: #2563eb; }
-        .pl-mini { height: 100px !important; width: 100% !important; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRPM - The Options Probability Cone</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #f4f7f9; color: #333; }
+    .card { background: white; padding: 30px; border-radius: 16px; max-width: 1000px; margin: auto; border: 1px solid #e1e8ed; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+    .header-info { text-align: center; margin-bottom: 25px; }
+    .current-date { font-size: 0.9rem; color: #888; margin-top: 5px; font-weight: 500; }
+    .input-group { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+    input { padding: 12px; width: 250px; border: 2px solid #dfe3e8; border-radius: 8px; font-size: 16px; text-transform: uppercase; outline: none; }
+    input:focus { border-color: #007bff; }
+    button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+    button:hover { background: #333; }
+    #res { background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #e1e8ed; margin-bottom: 20px; display: none; }
+    .range-highlight { color: #007bff; font-size: 1.3em; font-weight: bold; }
+    #chartContainer { width: 100%; height: 500px; background: #fff; border-radius: 12px; padding: 10px; position: relative; }
+    .footer-note { background: #fff9e6; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px; font-size: 0.9rem; border: 1px dashed #d4a017; }
+  </style>
 </head>
 <body>
 
 <div class="card">
-    <div class="header-info">
-        <h2 style="margin:0; letter-spacing: -0.5px;">The Options Probability Cone</h2>
-        <div class="current-date">Analysis Date: April 28, 2026</div>
-    </div>
-    
-    <div class="input-group">
-        <input type="text" id="ticker" placeholder="Enter Ticker (e.g. SPY)" maxlength="5">
-        <button onclick="calcola()">Generate Cone</button>
-    </div>
-    
-    <div id="res"></div>
+  <div class="header-info">
+    <h2 style="margin:0; letter-spacing: -0.5px;">The Options Probability Cone</h2>
+    <div class="current-date">Analysis Date: April 28, 2026</div>
+  </div>
+  
+  <div class="input-group">
+    <input type="text" id="ticker" placeholder="Enter Ticker (e.g. SPY)" maxlength="5">
+    <button onclick="calcola()">Generate Cone</button>
+  </div>
+  
+  <div id="res"></div>
 
-    <div id="chartContainer">
-        <canvas id="probabilityChart"></canvas>
-    </div>
+  <div id="chartContainer">
+    <canvas id="probabilityChart"></canvas>
+  </div>
 
-    <div class="machines-grid" id="machinesSection">
-        <div class="machine-card"><h4>Short Put</h4><canvas id="pl-sp" class="pl-mini"></canvas></div>
-        <div class="machine-card"><h4>Covered Call</h4><canvas id="pl-cc" class="pl-mini"></canvas></div>
-        <div class="machine-card"><h4>Bull Put Spread</h4><canvas id="pl-bps" class="pl-mini"></canvas></div>
-        <div class="machine-card"><h4>Iron Condor</h4><canvas id="pl-ic" class="pl-mini"></canvas></div>
-        <div class="machine-card"><h4>Bear Call Spread</h4><canvas id="pl-bcs" class="pl-mini"></canvas></div>
-    </div>
-
-    <div class="footer-note">
-        <strong>CRPM Quantitative Model:</strong> 30-Day Forecast based on Implied Volatility and the Square Root of Time (1σ - 68.2% Confidence).
-    </div>
+  <div class="footer-note">
+    <strong>CRPM Quantitative Model:</strong> 30-Day Forecast based on Implied Volatility and the Square Root of Time (1σ - 68.2% Confidence).
+  </div>
 </div>
 
 <script>
-    let myChart = null;
-    let mCharts = {}; // Store references for the small charts
+  let myChart = null;
 
-    async function calcola() {
-        const t = document.getElementById('ticker').value.toUpperCase();
-        const resDiv = document.getElementById('res');
-        if(!t) return;
+  async function calcola() {
+    const t = document.getElementById('ticker').value.toUpperCase();
+    const resDiv = document.getElementById('res');
+    if(!t) return;
 
-        resDiv.style.display = 'block';
-        resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogating market nodes for IV data...</em></p>";
+    resDiv.style.display = 'block';
+    resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogating market nodes for IV data...</em></p>";
 
-        try {
-            const response = await fetch('/api/index', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ ticker: t })
-            });
-            const data = await response.json();
+    try {
+      const response = await fetch('/api/index', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ ticker: t })
+      });
+      const data = await response.json();
 
-            if(data.error) {
-                resDiv.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
-            } else {
-                // IV Fallback: If IV is 0 or very low (markets closed), use a baseline IV of 15% 
-                // so the cone remains correctly curved for projection.
-                let iv = data.volatility;
-                if (!iv || iv < 0.1) {
-                    iv = 15.0; 
-                    console.log("Market Closed: Using baseline IV of 15.0 for projection.");
-                }
-
-                resDiv.innerHTML = `
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <div style="text-align:right;"><strong>Asset:</strong> ${data.ticker} | <strong>Spot:</strong> $${data.price}</div>
-                        <div style="text-align:left;"><strong>30d ATM IV:</strong> ${iv}%</div>
-                    </div>
-                    <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px; text-align:center;">
-                        Expected Range at Expiration (1σ): <span class="range-highlight">$${data.low} - $${data.high}</span>
-                    </div>`;
-                
-                drawProbabilityCone(data.price, iv / 100);
-
-                // Addition: Display Machines and draw P/L profiles
-                document.getElementById('machinesSection').style.display = 'grid';
-                drawFiveMachines(data.price, data.low, data.high);
-            }
-        } catch (e) {
-            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Network node busy. Please try again.</p>";
+      if(data.error) {
+        resDiv.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
+      } else {
+        // --- LOGICA DI CONTROLLO IV ---
+        // Se IV è nullo o vicino a zero (mercato chiuso), usiamo una IV di riferimento (18%)
+        let iv_da_usare = data.volatility;
+        if (!iv_da_usare || iv_da_usare < 0.1) {
+            iv_da_usare = 18.0; 
+            console.log("Markets closed: using baseline IV (18%) for visualization.");
         }
-    }
+        // ------------------------------
 
-    // Your approved Probability Cone function
-    function drawProbabilityCone(currentPrice, iv) {
-        const ctx = document.getElementById('probabilityChart').getContext('2d');
-        const labels = [];
-        const upperBand = [];
-        const lowerBand = [];
-        const centerLine = [];
+        resDiv.innerHTML = `
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div style="text-align:right;"><strong>Asset:</strong> ${data.ticker} | <strong>Spot:</strong> $${data.price}</div>
+            <div style="text-align:left;"><strong>30d ATM IV:</strong> ${iv_da_usare}%</div>
+          </div>
+          <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px; text-align:center;">
+            Expected Range at Expiration (1σ): <span class="range-highlight">$${data.low} - $${data.high}</span>
+          </div>`;
         
-        const today = new Date("2026-04-28");
+        drawProbabilityCone(data.price, iv_da_usare / 100);
+      }
+    } catch (e) {
+      resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Network node busy. Please try again.</p>";
+    }
+  }
 
-        for (let d = 0; d <= 30; d++) {
-            const pointDate = new Date(today);
-            pointDate.setDate(today.getDate() + d);
-            labels.push(pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
-            const move = currentPrice * iv * Math.sqrt(d / 365);
-            upperBand.push(currentPrice + move);
-            lowerBand.push(currentPrice - move);
-            centerLine.push(currentPrice);
-        }
+  function drawProbabilityCone(currentPrice, iv) {
+    const ctx = document.getElementById('probabilityChart').getContext('2d');
+    const labels = [];
+    const upperBand = [];
+    const lowerBand = [];
+    const centerLine = [];
+    
+    const today = new Date("2026-04-28");
 
-        if (myChart) { myChart.destroy(); }
+    for (let d = 0; d <= 30; d++) {
+      const pointDate = new Date(today);
+      pointDate.setDate(today.getDate() + d);
+      labels.push(pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
 
-        myChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Upper Boundary +1σ',
-                        data: upperBand,
-                        borderColor: '#2ecc71',
-                        borderWidth: 2.5,
-                        pointRadius: 0,
-                        fill: false,
-                        tension: 0.45 
-                    },
-                    {
-                        label: 'Lower Boundary -1σ',
-                        data: lowerBand,
-                        borderColor: '#e74c3c',
-                        borderWidth: 2.5,
-                        pointRadius: 0,
-                        fill: '-1', 
-                        backgroundColor: 'rgba(46, 204, 113, 0.08)',
-                        tension: 0.45
-                    },
-                    {
-                        label: 'Spot Price',
-                        data: centerLine,
-                        borderColor: '#bdc3c7',
-                        borderDash: [5, 5],
-                        borderWidth: 1.5,
-                        pointRadius: 0,
-                        fill: false
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 6 } },
-                    tooltip: { enabled: true }
-                },
-                scales: {
-                    y: { 
-                        grid: { color: '#f0f0f0' },
-                        ticks: { font: { size: 11 }, callback: value => '$' + value.toLocaleString() }
-                    },
-                    x: { 
-                        grid: { display: false },
-                        ticks: { 
-                            font: { size: 10 }, 
-                            maxRotation: 0,
-                            autoSkip: true,
-                            maxTicksLimit: 10
-                        }
-                    }
-                }
+      const move = currentPrice * iv * Math.sqrt(d / 365);
+      upperBand.push(currentPrice + move);
+      lowerBand.push(currentPrice - move);
+      centerLine.push(currentPrice);
+    }
+
+    if (myChart) { myChart.destroy(); }
+
+    myChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Upper Boundary +1σ',
+            data: upperBand,
+            borderColor: '#2ecc71',
+            borderWidth: 2.5,
+            pointRadius: 0,
+            fill: false,
+            tension: 0.45 
+          },
+          {
+            label: 'Lower Boundary -1σ',
+            data: lowerBand,
+            borderColor: '#e74c3c',
+            borderWidth: 2.5,
+            pointRadius: 0,
+            fill: '-1', 
+            backgroundColor: 'rgba(46, 204, 113, 0.08)',
+            tension: 0.45
+          },
+          {
+            label: 'Spot Price',
+            data: centerLine,
+            borderColor: '#bdc3c7',
+            borderDash: [5, 5],
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 6 } },
+          tooltip: { enabled: true }
+        },
+        scales: {
+          y: { 
+            grid: { color: '#f0f0f0' },
+            ticks: { font: { size: 11 }, callback: value => '$' + value.toLocaleString() }
+          },
+          x: { 
+            grid: { display: false },
+            ticks: { 
+              font: { size: 10 }, 
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 10 
             }
-        });
-    }
-
-    // Addition: Drawing the five P/L Machine profiles
-    function drawFiveMachines(price, low, high) {
-        const configs = [
-            { id: 'pl-sp', fn: x => x < low ? x - low + 5 : 5 }, // Short Put
-            { id: 'pl-cc', fn: x => x > high ? high - price + 5 : x - price + 5 }, // Covered Call
-            { id: 'pl-bps', fn: x => x < low - 10 ? -10 : (x < low ? (x - low) * 2 : 5) }, // Bull Put
-            { id: 'pl-ic', fn: x => (x < low || x > high) ? -10 : 10 }, // Iron Condor
-            { id: 'pl-bcs', fn: x => x > high + 10 ? -10 : (x > high ? (high - x) * 2 : 5) } // Bear Call
-        ];
-
-        configs.forEach(c => {
-            const ctx = document.getElementById(c.id).getContext('2d');
-            const dataPts = []; const lbls = [];
-            // Generate range around spot price for mini-charts
-            for(let x = price*0.85; x <= price*1.15; x += price*0.01) { lbls.push(""); dataPts.push(c.fn(x)); }
-            
-            if(mCharts[c.id]) mCharts[c.id].destroy();
-            mCharts[c.id] = new Chart(ctx, {
-                type: 'line',
-                data: { 
-                    labels: lbls, 
-                    datasets: [{ 
-                        data: dataPts, 
-                        borderColor: '#000', 
-                        borderWidth: 1.5, 
-                        fill: true, 
-                        backgroundColor: ctx => ctx.parsed.y >= 0 ? 'rgba(46,204,113,0.15)' : 'rgba(231,76,60,0.15)', 
-                        pointRadius: 0, 
-                        tension: 0.1 
-                    }]
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins:{legend:{display:false}}, 
-                    scales:{x:{display:false}, y:{display:false}} 
-                }
-            });
-        });
-    }
+          }
+        }
+      }
+    });
+  }
 </script>
 </body>
 </html>
