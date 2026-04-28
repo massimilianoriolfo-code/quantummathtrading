@@ -67,22 +67,25 @@
             if(data.error) {
                 resDiv.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
             } else {
-                // LOGICA RIGOROSA: Se IV è inconsistente (mercato chiuso), usa l'ultimo dato di chiusura valido
+                // CORREZIONE LOGICA: Gestione dell'undefined
                 let ivToUse = data.volatility;
                 let sourceLabel = "Real-time ATM IV";
 
+                // Se l'IV è troppo bassa o non definita (mercato chiuso)
                 if (!ivToUse || ivToUse < 1.0) {
-                    ivToUse = data.last_close_iv; 
-                    sourceLabel = "Last Valid Close IV";
+                    // Controlla se il server ha mandato 'last_close_iv', altrimenti usa un fallback basato sulla volatilità storica
+                    ivToUse = data.last_close_iv || data.historical_volatility || 25.0; 
+                    sourceLabel = "Historical/Close IV (Market Closed)";
                 }
 
                 resDiv.innerHTML = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                         <div style="text-align:right;"><strong>Asset:</strong> ${data.ticker} | <strong>Spot:</strong> $${data.price}</div>
-                        <div style="text-align:left;"><strong>30d ATM IV:</strong> ${ivToUse}% (${sourceLabel})</div>
+                        <div style="text-align:left;"><strong>30d ATM IV:</strong> ${ivToUse.toFixed(2)}%</div>
                     </div>
                     <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px; text-align:center;">
                         Expected Range at Expiration (1σ): <span class="range-highlight">$${data.low} - $${data.high}</span>
+                        <br><small style="color: #888;">Source: ${sourceLabel}</small>
                     </div>`;
                 
                 drawProbabilityCone(data.price, ivToUse / 100);
