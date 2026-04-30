@@ -26,7 +26,7 @@ def index():
         stock = yf.Ticker(ticker)
         price = stock.fast_info['last_price']
         
-        # --- 1. LIVELLO: CALCOLO MATEMATICO RIGIDO (Dati yfinance) ---
+        # --- QUANTITATIVE ENGINE ---
         expirations = stock.options
         target_date = datetime.now() + timedelta(days=30)
         closest_exp = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - target_date).days))
@@ -39,11 +39,11 @@ def index():
         high, low = round(price + move, 2), round(price - move, 2)
         iv_pct = round(iv_val * 100, 2)
 
-        # --- 2. LIVELLO: ANCORAGGIO AL TESTO (Retrieval Pinecone) ---
+        # --- KNOWLEDGE RETRIEVAL ---
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        search_query = "Detailed technical explanation of CRPM Machines 8.1 to 8.6: Long Call, Short Put, Married Put, Covered Call, Assigned Short Put + Covered Call"
+        search_query = "Detailed strategies for Long Call Based, Short Put Based, Married Put Based, Covered Call Based, Assigned Short Put + Covered Call"
         
         emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}"
         res_emb = requests.post(emb_url, json={
@@ -56,32 +56,26 @@ def index():
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # --- 3. LIVELLO: FILTRO INGEGNERISTICO (Prompt Blindato) ---
+        # --- PROFESSIONAL OPERATIONAL PROMPT ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
         prompt = f"""
-        STRICT INSTRUCTION: Respond EXCLUSIVELY in English. Use a dry, technical, engineering-style tone. 
-        You are the CRPM Execution Engine for Massimiliano Riolfo. 
+        STRICT INSTRUCTION: Respond EXCLUSIVELY in English. 
+        Use a high-level professional financial reporting style. 
+        No asterisks. No conversational filler. No financial advice.
         
-        TARGET ANALYSIS: {ticker} @ {price} | 30d 1-Sigma Cone: [{low} - {high}] | IV: {iv_pct}%
+        INPUT: {ticker} @ {price} | 1-Sigma Range: {low} - {high} | IV: {iv_pct}%
 
-        CORE RULES FOR ALL STRATEGIES:
-        - NEVER deviate from the mathematical logic of the book. 
-        - Refer specifically to Paragraphs 8.1, 8.2, 8.3, 8.4, and 8.6 for strategy definitions.
-        - SHORT OPTIONS (Machine 2, 4, 5): Premiums are ALWAYS positive cash inflows (credits) that reduce risk or cost basis.
-        - MACHINE 5 (Para 8.6): You MUST mathematically ADD the premium from the Short Put and the Covered Call to reduce the cost basis. 
-        - MACHINE 3 (Para 8.3): Premium is a DEBIT (Cost of Insurance) that establishes a hard price floor.
+        FORMATTING RULES:
+        1. Use '###' for Machine Titles.
+        2. Use Bold for sub-headers: **Application:**, **Technical Details:**, **Rationale:**.
+        3. Use clean dashes (-) for lists.
 
-        TASK: Describe the operational setup for {ticker} using the 5 CRPM Machines:
-        1. Machine 1: Long Call Based (Para 8.1)
-        2. Machine 2: Short Put Based (Para 8.2)
-        3. Machine 3: Married Put Based (Para 8.3)
-        4. Machine 4: Covered Call Based (Para 8.4)
-        5. Machine 5: Assigned Short Put + Covered Call (Para 8.6)
+        TASK: Provide a concrete operational analysis for the 5 CRPM Machines.
+        Ensure Machine 5 (Assigned Short Put + Covered Call) mathematically ADDS both premiums to reduce the cost basis.
+        Every strategy must reflect the disciplined, mathematical approach of the book.
 
-        NO conversational filler. NO financial advice. ONLY technical execution logic based on the provided context.
-
-        CONTEXT FROM THE BOOK:
+        CONTEXT:
         {context}
         """
         
