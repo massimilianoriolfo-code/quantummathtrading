@@ -38,12 +38,13 @@ def index():
         move = price * iv_val * np.sqrt(30 / 365)
         high, low = round(price + move, 2), round(price - move, 2)
         iv_pct = round(iv_val * 100, 2)
+        current_price = round(price, 2)
 
         # --- KNOWLEDGE RETRIEVAL ---
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        search_query = "Detailed technical setup for Machine 1, Machine 2, Machine 3, Machine 4, and Machine 5"
+        search_query = "Detailed strategies for Machine 1: Long Call Based, Machine 2: Short Put Based, Machine 3: Married Put Based, Machine 4: Covered Call Based, Machine 5: Assigned Short Put + Covered Call"
         
         emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}"
         res_emb = requests.post(emb_url, json={
@@ -56,44 +57,22 @@ def index():
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # --- FIXED ALGORITHMIC PROMPT ---
+        # --- RESTORED PROFESSIONAL PROMPT ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
         prompt = f"""
         STRICT INSTRUCTION: Respond EXCLUSIVELY in English. 
-        Tone: Neutral, Clinical, Quantitative.
-        NO author names. Refer only to "the quantitative model".
-        NO asterisks (*).
+        Tone: Neutral, Clinical, Quantitative. No author names. 
+        NO asterisks (*). Use only professional formatting.
 
-        DATA: {ticker} @ {price} | 30-day 1-Sigma: {low} - {high} | IV: {iv_pct}%
+        DATA: {ticker} @ {current_price} | 30-day 1-Sigma: {low} - {high} | IV: {iv_pct}%
 
-        MANDATORY OUTPUT STRUCTURE:
-        You MUST generate 5 distinct sections, one for each machine, using the following exact format:
-
-        ### Machine 1: Long Call Based
-        **Application:** (Specific application for {ticker})
-        **Technical Details:** (Strike selection based on {high})
-        **Rationale:** (Mathematical logic)
-
-        ### Machine 2: Short Put Based
-        **Application:** (Specific application for {ticker})
-        **Technical Details:** (Strike selection based on {low})
-        **Rationale:** (Mathematical logic)
-
-        ### Machine 3: Married Put Based
-        **Application:** (Specific application for {ticker})
-        **Technical Details:** (Protection setup)
-        **Rationale:** (Mathematical logic)
-
-        ### Machine 4: Covered Call Based
-        **Application:** (Specific application for {ticker})
-        **Technical Details:** (Income setup based on {high})
-        **Rationale:** (Mathematical logic)
-
-        ### Machine 5: Assigned Short Put + Covered Call
-        **Application:** (Combined strategy setup)
-        **Technical Details:** (MANDATORY: Explain that Put premium + Call premium are ADDED to reduce cost basis)
-        **Rationale:** (Mathematical logic)
+        MANDATORY STRUCTURE:
+        1. Volatility Analysis: Start with a technical comment on the {iv_pct}% IV and market context.
+        2. Generate 5 distinct sections using '###' for each Machine.
+        3. For each Machine, include: **Application:**, **Technical Details:**, and **Rationale:**.
+        4. Strike prices in Technical Details MUST be rounded to 2 decimal places (e.g., use {low} or {high}).
+        5. Machine 5 RULE: Premiums from Short Put and Covered Call are ADDED together to reduce cost basis.
 
         CONTEXT:
         {context}
@@ -104,7 +83,7 @@ def index():
 
         return jsonify({
             "ticker": ticker,
-            "price": round(price, 2),
+            "price": current_price,
             "volatility": iv_pct,
             "high": high,
             "low": low,
