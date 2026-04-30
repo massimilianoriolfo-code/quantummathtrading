@@ -10,7 +10,7 @@ from pinecone import Pinecone
 app = Flask(__name__)
 CORS(app)
 
-# --- CONFIGURAZIONE SICURA ---
+# --- CONFIGURATION ---
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_HOST = os.getenv("INDEX_HOST")
@@ -19,31 +19,32 @@ INDEX_HOST = os.getenv("INDEX_HOST")
 def index():
     data = request.get_json(silent=True) or {}
     t = data.get('ticker') or request.args.get('ticker')
-    if not t: return jsonify({"error": "Ticker mancante"}), 400
+    if not t: return jsonify({"error": "Ticker missing"}), 400
     ticker = t.upper()
 
     try:
         stock = yf.Ticker(ticker)
         price = stock.fast_info['last_price']
         
-        # --- MOTORE QUANTITATIVO ---
+        # --- QUANTITATIVE ENGINE ---
         expirations = stock.options
         target_date = datetime.now() + timedelta(days=30)
         closest_exp = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - target_date).days))
         opt_chain = stock.option_chain(closest_exp)
         
-        iv_reale = (opt_chain.calls.iloc[(opt_chain.calls['strike'] - price).abs().idxmin()]['impliedVolatility'] + 
-                    opt_chain.puts.iloc[(opt_chain.puts['strike'] - price).abs().idxmin()]['impliedVolatility']) / 2
+        iv_val = (opt_chain.calls.iloc[(opt_chain.calls['strike'] - price).abs().idxmin()]['impliedVolatility'] + 
+                  opt_chain.puts.iloc[(opt_chain.puts['strike'] - price).abs().idxmin()]['impliedVolatility']) / 2
         
-        move = price * iv_reale * np.sqrt(30 / 365)
+        move = price * iv_val * np.sqrt(30 / 365)
         high, low = round(price + move, 2), round(price - move, 2)
+        iv_pct = round(iv_val * 100, 2)
 
-        # --- LOGICA AI PROFESSIONALE (Knowledge Base) ---
+        # --- RAG LOGIC (Strict Knowledge Base) ---
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # Query specifica per trovare i capitoli delle macchine
-        search_query = f"Quali sono le definizioni operative delle cinque macchine CRPM descritte nel libro di Massimiliano Riolfo?"
+        # Specific query to pull the 5 Machines from your book
+        search_query = "Detailed definition of the five CRPM machines: Machine 1, Machine 2, Machine 3, Machine 4, and Machine 5"
         
         emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}"
         res_emb = requests.post(emb_url, json={
@@ -53,42 +54,42 @@ def index():
         }).json()
         
         query_v = res_emb['embedding']['values']
-        search = index_pc.query(vector=query_v, top_k=10, include_metadata=True)
+        search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # --- PROMPT RIGOROSO ---
+        # --- STRICT ENGLISH PROMPT ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
         prompt = f"""
-        Sei l'analista IA ufficiale di Massimiliano Riolfo. Analizza il sottostante {ticker} (Prezzo: {price}) 
-        utilizzando i parametri quantitativi calcolati: Range 1-Sigma a 30gg tra {low} e {high}.
+        STRICT INSTRUCTION: Respond EXCLUSIVELY in English.
+        You are the CRPM Quantitative Analyst. Analyze {ticker} (Price: {price}) using the 30-day 1-Sigma Range: {low} - {high}.
+        Current Implied Volatility (IV): {iv_pct}%.
 
-        COMPITI TASSATIVI:
-        1. Identifica nel CONTESTO fornito le definizioni esatte delle CINQUE MACCHINE CRPM.
-        2. Per ogni Macchina (dalla n. 1 alla n. 5), spiega come operare con le OPZIONI su {ticker} basandoti sulla logica del libro.
-        3. Sii sintetico, tecnico e rigoroso.
+        MANDATORY TASKS:
+        1. Look into the provided CONTEXT from Massimiliano Riolfo's book. 
+        2. Identify the EXACT names and definitions for the FIVE CRPM MACHINES. 
+        3. For each real Machine found in the book, explain the technical OPTIONS STRATEGY for {ticker} based on the current {iv_pct}% IV.
+        4. Be technical, precise, and use an engineering-style tone. 
         
-        CONTESTO DAL LIBRO:
+        CONTEXT FROM THE BOOK:
         {context}
 
-        STRUTTURA OUTPUT:
-        - Analisi Volatilità: Commento tecnico su IV e perimetro operativo.
-        - Le 5 Macchine CRPM su {ticker}: (Elenco puntato con applicazione pratica).
-        - Nota Disciplinare: Breve sintesi del rischio calcolato.
+        OUTPUT STRUCTURE:
+        - Volatility Analysis: Discuss the {iv_pct}% IV and the probability boundaries.
+        - The 5 CRPM Machines for {ticker}: (Technical bullet points for each specific machine from the book).
+        - Discipline Note: A single sentence on calculated risk.
         """
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}).json()
-        
-        # Salviamo la risposta nella variabile corretta che useremo nel return
         ai_analysis_result = res_gen['candidates'][0]['content']['parts'][0]['text']
 
         return jsonify({
             "ticker": ticker,
             "price": round(price, 2),
-            "volatility": round(iv_reale * 100, 2),
+            "volatility": iv_pct,
             "high": high,
             "low": low,
-            "ai_analysis": ai_analysis_result, # <--- VARIABILE CORRETTA
+            "ai_analysis": ai_analysis_result,
             "date": "2026-05-01"
         })
     except Exception as e:
