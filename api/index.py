@@ -43,7 +43,8 @@ def index():
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        search_query = "Detailed strategies for Long Call Based, Short Put Based, Married Put Based, Covered Call Based, Assigned Short Put + Covered Call"
+        # Query mirata sulle 5 macchine del Capitolo 8
+        search_query = "Machine 1: Long Call Based, Machine 2: Short Put Based, Machine 3: Married Put Based, Machine 4: Covered Call Based, Machine 5: Assigned Short Put + Covered Call"
         
         emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}"
         res_emb = requests.post(emb_url, json={
@@ -56,26 +57,33 @@ def index():
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # --- PROFESSIONAL OPERATIONAL PROMPT ---
+        # --- RIGID PROFESSIONAL PROMPT ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
         prompt = f"""
         STRICT INSTRUCTION: Respond EXCLUSIVELY in English. 
-        Use a high-level professional financial reporting style. 
-        No asterisks. No conversational filler. No financial advice.
+        Use a professional, clean, financial reporting style. 
+        NO asterisks (*). NO mention of paragraph numbers in the final text.
         
-        INPUT: {ticker} @ {price} | 1-Sigma Range: {low} - {high} | IV: {iv_pct}%
+        DATA: {ticker} @ {price} | 30-day 1-Sigma: {low} - {high} | IV: {iv_pct}%
 
-        FORMATTING RULES:
-        1. Use '###' for Machine Titles.
-        2. Use Bold for sub-headers: **Application:**, **Technical Details:**, **Rationale:**.
-        3. Use clean dashes (-) for lists.
+        FORMATTING:
+        - Use '###' for each Machine Title.
+        - Use Bold for: **Application:**, **Technical Details:**, **Rationale:**.
+        - Use simple dashes (-) for lists.
 
-        TASK: Provide a concrete operational analysis for the 5 CRPM Machines.
-        Ensure Machine 5 (Assigned Short Put + Covered Call) mathematically ADDS both premiums to reduce the cost basis.
-        Every strategy must reflect the disciplined, mathematical approach of the book.
+        TASK: Analyze {ticker} using exactly these 5 Machines from the book:
+        1. Machine 1: Long Call Based
+        2. Machine 2: Short Put Based
+        3. Machine 3: Married Put Based
+        4. Machine 4: Covered Call Based
+        5. Machine 5: Assigned Short Put + Covered Call
 
-        CONTEXT:
+        MATHEMATICAL MANDATE:
+        - For Machine 5, you MUST explain that the premium from the Short Put and the Covered Call are ADDED together to reduce the total cost basis.
+        - Base strike price examples on the calculated boundaries: {low} and {high}.
+
+        CONTEXT FROM THE BOOK:
         {context}
         """
         
