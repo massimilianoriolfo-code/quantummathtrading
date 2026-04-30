@@ -1,5 +1,6 @@
+yfinance
+numpy
 flask
 flask-cors
 requests
-numpy
-yfinance
+pinecone-client
