@@ -43,8 +43,8 @@ def index():
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # Specific query to pull the 5 Machines from your book
-        search_query = "Detailed definition of the five CRPM machines: Machine 1, Machine 2, Machine 3, Machine 4, and Machine 5"
+        # Specific query using exact names from your Table of Contents
+        search_query = "Long Call Based, Short Put Based, Married Put Based, Covered Call Based, Assigned Short Put + Covered Call"
         
         emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}"
         res_emb = requests.post(emb_url, json={
@@ -57,27 +57,32 @@ def index():
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # --- STRICT ENGLISH PROMPT ---
+        # --- STRICT PROMPT WITH TARGET NAMES ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
         prompt = f"""
         STRICT INSTRUCTION: Respond EXCLUSIVELY in English.
         You are the CRPM Quantitative Analyst. Analyze {ticker} (Price: {price}) using the 30-day 1-Sigma Range: {low} - {high}.
-        Current Implied Volatility (IV): {iv_pct}%.
+        Current IV: {iv_pct}%.
 
-        MANDATORY TASKS:
-        1. Look into the provided CONTEXT from Massimiliano Riolfo's book. 
-        2. Identify the EXACT names and definitions for the FIVE CRPM MACHINES. 
-        3. For each real Machine found in the book, explain the technical OPTIONS STRATEGY for {ticker} based on the current {iv_pct}% IV.
-        4. Be technical, precise, and use an engineering-style tone. 
-        
-        CONTEXT FROM THE BOOK:
+        MANDATORY TASK: 
+        Apply the following 5 CRPM Machines from Massimiliano Riolfo's book to the current {ticker} data:
+        1. Machine 1: Long Call Based
+        2. Machine 2: Short Put Based
+        3. Machine 3: Married Put Based
+        4. Machine 4: Covered Call Based
+        5. Machine 5: Assigned Short Put + Covered Call
+
+        For each machine, explain the technical application for {ticker} given the current price and the probability range {low}-{high}.
+        Use the provided CONTEXT to ensure the logic matches the book's methodology.
+
+        CONTEXT:
         {context}
 
         OUTPUT STRUCTURE:
-        - Volatility Analysis: Discuss the {iv_pct}% IV and the probability boundaries.
-        - The 5 CRPM Machines for {ticker}: (Technical bullet points for each specific machine from the book).
-        - Discipline Note: A single sentence on calculated risk.
+        - Volatility Analysis: Technical comment on {iv_pct}% IV.
+        - The 5 CRPM Machines for {ticker}: (Detailed technical bullet points for each).
+        - Risk Summary: One sentence on discipline.
         """
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}).json()
