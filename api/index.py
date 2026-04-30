@@ -44,7 +44,8 @@ def index():
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        search_query = "Detailed strategies for Machine 1: Long Call Based, Machine 2: Short Put Based, Machine 3: Married Put Based, Machine 4: Covered Call Based, Machine 5: Assigned Short Put + Covered Call"
+        # Query specifica per forzare il recupero delle 5 macchine CRPM
+        search_query = "Machine 1: Long Call Based, Machine 2: Short Put Based, Machine 3: Married Put Based, Machine 4: Covered Call Based, Machine 5: Assigned Short Put + Covered Call"
         
         emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}"
         res_emb = requests.post(emb_url, json={
@@ -57,24 +58,49 @@ def index():
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # --- RESTORED PROFESSIONAL PROMPT ---
+        # --- RIGID CRPM PROMPT ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
         prompt = f"""
         STRICT INSTRUCTION: Respond EXCLUSIVELY in English. 
-        Tone: Neutral, Clinical, Quantitative. No author names. 
-        NO asterisks (*). Use only professional formatting.
+        Tone: Neutral, Clinical, Quantitative. NO author names. 
+        NO asterisks (*). Use professional headings.
 
         DATA: {ticker} @ {current_price} | 30-day 1-Sigma: {low} - {high} | IV: {iv_pct}%
 
         MANDATORY STRUCTURE:
-        1. Volatility Analysis: Start with a technical comment on the {iv_pct}% IV and market context.
-        2. Generate 5 distinct sections using '###' for each Machine.
-        3. For each Machine, include: **Application:**, **Technical Details:**, and **Rationale:**.
-        4. Strike prices in Technical Details MUST be rounded to 2 decimal places (e.g., use {low} or {high}).
-        5. Machine 5 RULE: Premiums from Short Put and Covered Call are ADDED together to reduce cost basis.
+        1. Volatility Analysis: Technical comment on {iv_pct}% IV and market context for {ticker}.
+        
+        2. You MUST analyze EXACTLY these 5 Machines from the CRPM methodology:
+        
+        ### Machine 1: Long Call Based
+        **Application:** (Setup for {ticker})
+        **Technical Details:** (Strike selection near {high}. Round strikes to 2 decimals)
+        **Rationale:** (Quantitative logic)
 
-        CONTEXT:
+        ### Machine 2: Short Put Based
+        **Application:** (Setup for {ticker})
+        **Technical Details:** (Strike selection near {low}. Round strikes to 2 decimals)
+        **Rationale:** (Quantitative logic)
+
+        ### Machine 3: Married Put Based
+        **Application:** (Protection setup for {ticker})
+        **Technical Details:** (Floor placement based on {low})
+        **Rationale:** (Quantitative logic)
+
+        ### Machine 4: Covered Call Based
+        **Application:** (Income setup for {ticker})
+        **Technical Details:** (Strike selection near {high})
+        **Rationale:** (Quantitative logic)
+
+        ### Machine 5: Assigned Short Put + Covered Call
+        **Application:** (Wheel transition setup)
+        **Technical Details:** (MANDATORY: Explain that Put premium + Call premium are ADDED together to reduce net cost basis)
+        **Rationale:** (Quantitative logic)
+
+        Risk Summary: One sentence on discipline and calculated risk.
+
+        CONTEXT FROM THE BOOK:
         {context}
         """
         
