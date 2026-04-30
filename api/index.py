@@ -10,7 +10,7 @@ from pinecone import Pinecone
 app = Flask(__name__)
 CORS(app)
 
-# --- CONFIGURATION ---
+# --- CONFIGURAZIONE SICURA ---
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_HOST = os.getenv("INDEX_HOST")
@@ -26,7 +26,7 @@ def index():
         stock = yf.Ticker(ticker)
         price = stock.fast_info['last_price']
         
-        # --- QUANTITATIVE ENGINE ---
+        # --- MOTORE QUANTITATIVO ---
         expirations = stock.options
         target_date = datetime.now() + timedelta(days=30)
         closest_exp = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - target_date).days))
@@ -39,11 +39,12 @@ def index():
         high, low = round(price + move, 2), round(price - move, 2)
         iv_pct = round(iv_val * 100, 2)
 
-        # --- RAG LOGIC ---
+        # --- RAG LOGIC (Knowledge Base) ---
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        search_query = "Long Call Based, Short Put Based, Married Put Based, Covered Call Based, Assigned Short Put + Covered Call"
+        # Query basata sui capitoli reali identificati nell'indice
+        search_query = "Machine 1: Long Call Based, Machine 2: Short Put Based, Machine 3: Married Put Based, Machine 4: Covered Call Based, Machine 5: Assigned Short Put + Covered Call"
         
         emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}"
         res_emb = requests.post(emb_url, json={
@@ -54,40 +55,35 @@ def index():
         
         query_v = res_emb['embedding']['values']
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
-        context_text = "\n".join([m.metadata["text"] for m in search.matches])
+        context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # --- PROMPT QUANTITATIVO AVANZATO (Corretto) ---
+        # --- PROMPT RIPRISTINATO ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
-        # Usiamo variabili pulite senza parentesi graffe extra che mandano in crash Python
         prompt = f"""
-STRICT INSTRUCTION: Respond EXCLUSIVELY in English. Use a technical, engineering-style tone.
-Act as the CRPM Execution Engine for Massimiliano Riolfo. 
+        STRICT INSTRUCTION: Respond EXCLUSIVELY in English.
+        You are the CRPM Quantitative Analyst. Analyze {ticker} (Price: {price}) using the 30-day 1-Sigma Range: {low} - {high}.
+        Current IV: {iv_pct}%.
 
-ANALYSIS TARGET: {ticker} @ {price}
-30-DAY PARAMETERS: 1-Sigma Range [{low} - {high}] | IV: {iv_pct}%
+        MANDATORY TASK: 
+        Apply the following 5 CRPM Machines from Massimiliano Riolfo's book to the current {ticker} data:
+        1. Machine 1: Long Call Based
+        2. Machine 2: Short Put Based
+        3. Machine 3: Married Put Based
+        4. Machine 4: Covered Call Based
+        5. Machine 5: Assigned Short Put + Covered Call
 
-Using the methodology from Chapter 8 (Calculated Risk and Profit Machines), generate an operational setup for each machine:
+        For each machine, explain the technical application for {ticker} given the current price and the probability range {low}-{high}.
+        Use the provided CONTEXT from the book to ensure the logic matches the author's methodology.
 
-1. Machine 1: Long Call Based (Para 8.1)
-   - Target Strike: Based on {high}. Discuss delta exposure and risk of total premium loss.
-2. Machine 2: Short Put Based (Para 8.2)
-   - Target Strike: Safety margin relative to {low}. Analyze the "Calculated Profit" vs assignment risk.
-3. Machine 3: Married Put Based (Para 8.3)
-   - Setup: Synthetic floor placement. Calculate the "Cost of Insurance" for the {ticker} position.
-4. Machine 4: Covered Call Based (Para 8.4)
-   - Setup: Income generation. Strike selection at the upper {high} boundary to maximize Theta decay.
-5. Machine 5: Assigned Short Put + Covered Call (Para 8.6)
-   - Strategy: The "Wheel" transition. Managing cost basis after assignment and strike selection for the Call leg.
+        CONTEXT FROM THE BOOK:
+        {context}
 
-MANDATORY: 
-- Refer to price levels {low} and {high} as hard boundaries for strike selection.
-- Maintain focus on "Calculated Risk" and "Profit Machines" as disciplined processes, not guesses.
-- NO general advice. ONLY technical execution logic.
-
-CONTEXT FROM BOOK:
-{context_text}
-"""
+        OUTPUT STRUCTURE:
+        - Volatility Analysis: Technical comment on {iv_pct}% IV.
+        - The 5 CRPM Machines for {ticker}: (Detailed technical bullet points for each).
+        - Risk Summary: One sentence on discipline and calculated risk.
+        """
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}).json()
         ai_analysis_result = res_gen['candidates'][0]['content']['parts'][0]['text']
