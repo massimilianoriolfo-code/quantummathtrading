@@ -43,8 +43,7 @@ def index():
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # Query mirata sulle 5 macchine del Capitolo 8
-        search_query = "Machine 1: Long Call Based, Machine 2: Short Put Based, Machine 3: Married Put Based, Machine 4: Covered Call Based, Machine 5: Assigned Short Put + Covered Call"
+        search_query = "Detailed strategies for Long Call Based, Short Put Based, Married Put Based, Covered Call Based, Assigned Short Put + Covered Call"
         
         emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}"
         res_emb = requests.post(emb_url, json={
@@ -57,31 +56,26 @@ def index():
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # --- RIGID PROFESSIONAL PROMPT ---
+        # --- CLEAN PROFESSIONAL PROMPT ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
         prompt = f"""
         STRICT INSTRUCTION: Respond EXCLUSIVELY in English. 
-        Use a professional, clean, financial reporting style. 
-        NO asterisks (*). NO mention of paragraph numbers in the final text.
+        Use a high-level executive financial report style. 
+        DO NOT use any asterisks (*) for bolding or lists. 
+        Use only standard text, dashes (-) for lists, and '###' for main titles.
         
-        DATA: {ticker} @ {price} | 30-day 1-Sigma: {low} - {high} | IV: {iv_pct}%
+        INPUT DATA: {ticker} @ {price} | 30-day 1-Sigma: {low} - {high} | IV: {iv_pct}%
 
-        FORMATTING:
-        - Use '###' for each Machine Title.
-        - Use Bold for: **Application:**, **Technical Details:**, **Rationale:**.
-        - Use simple dashes (-) for lists.
-
-        TASK: Analyze {ticker} using exactly these 5 Machines from the book:
-        1. Machine 1: Long Call Based
-        2. Machine 2: Short Put Based
-        3. Machine 3: Married Put Based
-        4. Machine 4: Covered Call Based
-        5. Machine 5: Assigned Short Put + Covered Call
+        STRUCTURE PER MACHINE:
+        1. Machine Name (using ###)
+        2. Application: (followed by text)
+        3. Technical Details: (followed by text)
+        4. Rationale: (followed by text)
 
         MATHEMATICAL MANDATE:
-        - For Machine 5, you MUST explain that the premium from the Short Put and the Covered Call are ADDED together to reduce the total cost basis.
-        - Base strike price examples on the calculated boundaries: {low} and {high}.
+        - Machine 5 (Assigned Short Put + Covered Call): Mathematically ADD both premiums to reduce the cost basis.
+        - Base strike price recommendations on the calculated boundaries: {low} and {high}.
 
         CONTEXT FROM THE BOOK:
         {context}
