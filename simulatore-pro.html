@@ -17,6 +17,8 @@
         button:hover { background: #333; }
         #res { background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #e1e8ed; margin-bottom: 20px; display: none; }
         .range-highlight { color: #007bff; font-size: 1.3em; font-weight: bold; }
+        /* Area dedicata all'Analisi AI del libro */
+        #ai-box { margin-top: 20px; padding: 20px; background: #fff; border-left: 4px solid #000; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0,0,0,0.02); display: none; line-height: 1.6; }
         #chartContainer { width: 100%; height: 500px; background: #fff; border-radius: 12px; padding: 10px; position: relative; }
         .footer-note { background: #fff9e6; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px; font-size: 0.9rem; border: 1px dashed #d4a017; }
     </style>
@@ -26,7 +28,8 @@
 <div class="card">
     <div class="header-info">
         <h2 style="margin:0; letter-spacing: -0.5px;">The Options Probability Cone</h2>
-        <div class="current-date">Analysis Date: April 28, 2026</div>
+        <!-- Correzione: Data dinamica -->
+        <div id="display-date" class="current-date"></div>
     </div>
     
     <div class="input-group">
@@ -40,21 +43,34 @@
         <canvas id="probabilityChart"></canvas>
     </div>
 
+    <!-- Nuova Sezione: Analisi AI CRPM -->
+    <div id="ai-box">
+        <h4 style="margin-top:0;">CRPM Agent Analysis</h4>
+        <div id="ai-content"></div>
+    </div>
+
     <div class="footer-note">
         <strong>CRPM Quantitative Model:</strong> 30-Day Forecast based on Implied Volatility and the Square Root of Time (1σ - 68.2% Confidence).
     </div>
 </div>
 
 <script>
+    // Imposta la data odierna nella testata all'avvio
+    document.getElementById('display-date').innerText = "Analysis Date: " + new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+
     let myChart = null;
 
     async function calcola() {
         const t = document.getElementById('ticker').value.toUpperCase();
         const resDiv = document.getElementById('res');
+        const aiBox = document.getElementById('ai-box');
+        const aiContent = document.getElementById('ai-content');
+        
         if(!t) return;
 
         resDiv.style.display = 'block';
-        resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogating Option Chains for 30d ATM IV...</em></p>";
+        resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogating Option Chains & Analyzing Book Knowledge...</em></p>";
+        aiBox.style.display = 'none';
 
         try {
             const response = await fetch('/api/index', {
@@ -67,8 +83,6 @@
             if(data.error) {
                 resDiv.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
             } else {
-                // IL DATO PURO: Prendiamo la volatilità che arriva dal server.
-                // Deve essere quella della scadenza a 30gg.
                 let ivToUse = data.volatility;
 
                 resDiv.innerHTML = `
@@ -80,24 +94,29 @@
                         Expected Range at Expiration (1σ): <span class="range-highlight">$${data.low} - $${data.high}</span>
                     </div>`;
                 
+                // Visualizza l'analisi AI prodotta dal backend
+                if(data.ai_analysis) {
+                    aiBox.style.display = 'block';
+                    aiContent.innerHTML = data.ai_analysis.replace(/\n/g, '<br>');
+                }
+                
                 drawProbabilityCone(data.price, ivToUse / 100);
             }
         } catch (e) {
-            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Connection Timeout. Please check data source.</p>";
+            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Connection Timeout. Please check backend status.</p>";
         }
     }
 
     function drawProbabilityCone(currentPrice, iv) {
         const ctx = document.getElementById('probabilityChart').getContext('2d');
         const labels = []; const upperBand = []; const lowerBand = []; const centerLine = [];
-        const today = new Date("2026-04-28");
+        const today = new Date();
 
         for (let d = 0; d <= 30; d++) {
             const pointDate = new Date(today);
             pointDate.setDate(today.getDate() + d);
             labels.push(pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
             
-            // Formula CRPM: Deviazione = Prezzo * IV * sqrt(giorni/365)
             const move = currentPrice * iv * Math.sqrt(d / 365);
             upperBand.push(currentPrice + move);
             lowerBand.push(currentPrice - move);
