@@ -10,7 +10,7 @@ from pinecone import Pinecone
 app = Flask(__name__)
 CORS(app)
 
-# --- CONFIGURAZIONE SICURA ---
+# --- CONFIGURATION ---
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_HOST = os.getenv("INDEX_HOST")
@@ -26,7 +26,7 @@ def index():
         stock = yf.Ticker(ticker)
         price = stock.fast_info['last_price']
         
-        # --- MOTORE QUANTITATIVO ---
+        # --- 1. LIVELLO: CALCOLO MATEMATICO RIGIDO (Dati yfinance) ---
         expirations = stock.options
         target_date = datetime.now() + timedelta(days=30)
         closest_exp = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - target_date).days))
@@ -39,12 +39,11 @@ def index():
         high, low = round(price + move, 2), round(price - move, 2)
         iv_pct = round(iv_val * 100, 2)
 
-        # --- RAG LOGIC (Knowledge Base) ---
+        # --- 2. LIVELLO: ANCORAGGIO AL TESTO (Retrieval Pinecone) ---
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # Query mirata sulle 5 macchine del Capitolo 8
-        search_query = "Machine 1: Long Call Based, Machine 2: Short Put Based, Machine 3: Married Put Based, Machine 4: Covered Call Based, Machine 5: Assigned Short Put + Covered Call"
+        search_query = "Detailed technical explanation of CRPM Machines 8.1 to 8.6: Long Call, Short Put, Married Put, Covered Call, Assigned Short Put + Covered Call"
         
         emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}"
         res_emb = requests.post(emb_url, json={
@@ -57,34 +56,33 @@ def index():
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # --- PROMPT RIPRISTINATO E CORRETTO ---
+        # --- 3. LIVELLO: FILTRO INGEGNERISTICO (Prompt Blindato) ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
         prompt = f"""
-        STRICT INSTRUCTION: Respond EXCLUSIVELY in English.
-        You are the CRPM Quantitative Analyst. Analyze {ticker} (Price: {price}) using the 30-day 1-Sigma Range: {low} - {high}.
-        Current IV: {iv_pct}%.
+        STRICT INSTRUCTION: Respond EXCLUSIVELY in English. Use a dry, technical, engineering-style tone. 
+        You are the CRPM Execution Engine for Massimiliano Riolfo. 
+        
+        TARGET ANALYSIS: {ticker} @ {price} | 30d 1-Sigma Cone: [{low} - {high}] | IV: {iv_pct}%
 
-        MANDATORY TASK: 
-        Apply the following 5 CRPM Machines from Massimiliano Riolfo's book to the current {ticker} data:
-        1. Machine 1: Long Call Based
-        2. Machine 2: Short Put Based
-        3. Machine 3: Married Put Based
-        4. Machine 4: Covered Call Based
-        5. Machine 5: Assigned Short Put + Covered Call
+        CORE RULES FOR ALL STRATEGIES:
+        - NEVER deviate from the mathematical logic of the book. 
+        - Refer specifically to Paragraphs 8.1, 8.2, 8.3, 8.4, and 8.6 for strategy definitions.
+        - SHORT OPTIONS (Machine 2, 4, 5): Premiums are ALWAYS positive cash inflows (credits) that reduce risk or cost basis.
+        - MACHINE 5 (Para 8.6): You MUST mathematically ADD the premium from the Short Put and the Covered Call to reduce the cost basis. 
+        - MACHINE 3 (Para 8.3): Premium is a DEBIT (Cost of Insurance) that establishes a hard price floor.
 
-        CRITICAL CALCULATION NOTE: For Machine 5, remember that premiums from the Short Put and the Covered Call are ADDED together to reduce the overall cost basis.
+        TASK: Describe the operational setup for {ticker} using the 5 CRPM Machines:
+        1. Machine 1: Long Call Based (Para 8.1)
+        2. Machine 2: Short Put Based (Para 8.2)
+        3. Machine 3: Married Put Based (Para 8.3)
+        4. Machine 4: Covered Call Based (Para 8.4)
+        5. Machine 5: Assigned Short Put + Covered Call (Para 8.6)
 
-        For each machine, explain the technical application for {ticker} given the current price and the probability range {low}-{high}.
-        Use the provided CONTEXT from the book to ensure the logic matches the author's methodology.
+        NO conversational filler. NO financial advice. ONLY technical execution logic based on the provided context.
 
         CONTEXT FROM THE BOOK:
         {context}
-
-        OUTPUT STRUCTURE:
-        - Volatility Analysis: Technical comment on {iv_pct}% IV.
-        - The 5 CRPM Machines for {ticker}: (Detailed technical bullet points for each).
-        - Risk Summary: One sentence on discipline and calculated risk.
         """
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}).json()
