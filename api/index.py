@@ -10,7 +10,7 @@ from pinecone import Pinecone
 app = Flask(__name__)
 CORS(app)
 
-# --- CONFIGURATION ---
+# --- CONFIGURAZIONE SICURA ---
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_HOST = os.getenv("INDEX_HOST")
@@ -26,6 +26,7 @@ def index():
         stock = yf.Ticker(ticker)
         price = stock.fast_info['last_price']
         
+        # --- MOTORE QUANTITATIVO ---
         expirations = stock.options
         target_date = datetime.now() + timedelta(days=30)
         closest_exp = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - target_date).days))
@@ -38,10 +39,11 @@ def index():
         high, low = round(price + move, 2), round(price - move, 2)
         iv_pct = round(iv_val * 100, 2)
 
-        # --- RAG LOGIC ---
+        # --- RAG LOGIC (Knowledge Base) ---
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
+        # Query mirata sulle 5 macchine del Capitolo 8
         search_query = "Machine 1: Long Call Based, Machine 2: Short Put Based, Machine 3: Married Put Based, Machine 4: Covered Call Based, Machine 5: Assigned Short Put + Covered Call"
         
         emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}"
@@ -55,31 +57,34 @@ def index():
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # --- ENHANCED PROFESSIONAL PROMPT ---
+        # --- PROMPT RIPRISTINATO E CORRETTO ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
         prompt = f"""
-        STRICT INSTRUCTION: Respond EXCLUSIVELY in English. Use professional financial formatting.
-        You are the CRPM Quantitative Executive Agent. 
-        
-        DATA: {ticker} @ {price} | 30-day 1-Sigma: {low} - {high} | IV: {iv_pct}%
+        STRICT INSTRUCTION: Respond EXCLUSIVELY in English.
+        You are the CRPM Quantitative Analyst. Analyze {ticker} (Price: {price}) using the 30-day 1-Sigma Range: {low} - {high}.
+        Current IV: {iv_pct}%.
 
-        FORMATTING RULES:
-        1. Use '###' for Machine Titles.
-        2. Bold the Machine Names.
-        3. Use Bold for sub-headers: **Application:**, **Technical Details:**, **Rationale:**.
-        4. Do NOT use naked asterisks for bullet points; use professional dashes (-) or clean lists.
-        5. Eliminate any introductory chatter.
-
-        TASK: Apply the 5 CRPM Machines from the context to {ticker}:
+        MANDATORY TASK: 
+        Apply the following 5 CRPM Machines from Massimiliano Riolfo's book to the current {ticker} data:
         1. Machine 1: Long Call Based
         2. Machine 2: Short Put Based
         3. Machine 3: Married Put Based
         4. Machine 4: Covered Call Based
         5. Machine 5: Assigned Short Put + Covered Call
 
-        CONTEXT:
+        CRITICAL CALCULATION NOTE: For Machine 5, remember that premiums from the Short Put and the Covered Call are ADDED together to reduce the overall cost basis.
+
+        For each machine, explain the technical application for {ticker} given the current price and the probability range {low}-{high}.
+        Use the provided CONTEXT from the book to ensure the logic matches the author's methodology.
+
+        CONTEXT FROM THE BOOK:
         {context}
+
+        OUTPUT STRUCTURE:
+        - Volatility Analysis: Technical comment on {iv_pct}% IV.
+        - The 5 CRPM Machines for {ticker}: (Detailed technical bullet points for each).
+        - Risk Summary: One sentence on discipline and calculated risk.
         """
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}).json()
