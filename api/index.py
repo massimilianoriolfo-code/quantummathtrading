@@ -26,7 +26,7 @@ def index():
         stock = yf.Ticker(ticker)
         price = stock.fast_info['last_price']
         
-        # --- QUANTITATIVE ENGINE (Objective Mathematical Core) ---
+        # --- QUANTITATIVE ENGINE ---
         expirations = stock.options
         target_date = datetime.now() + timedelta(days=30)
         closest_exp = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - target_date).days))
@@ -43,7 +43,7 @@ def index():
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        search_query = "Technical definitions: Machine 1 Long Call, Machine 2 Short Put, Machine 3 Married Put, Machine 4 Covered Call, Machine 5 Assigned Short Put + Covered Call"
+        search_query = "Detailed technical setup for Machine 1, Machine 2, Machine 3, Machine 4, and Machine 5"
         
         emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}"
         res_emb = requests.post(emb_url, json={
@@ -56,26 +56,44 @@ def index():
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # --- ANONYMOUS ALGORITHMIC PROMPT ---
+        # --- FIXED ALGORITHMIC PROMPT ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
         prompt = f"""
         STRICT INSTRUCTION: Respond EXCLUSIVELY in English. 
-        Maintain a neutral, clinical, and purely quantitative tone. 
-        NEVER mention any author names or specific individuals. 
-        Refer only to "the quantitative model" or "the CRPM methodology".
-        
+        Tone: Neutral, Clinical, Quantitative.
+        NO author names. Refer only to "the quantitative model".
+        NO asterisks (*).
+
         DATA: {ticker} @ {price} | 30-day 1-Sigma: {low} - {high} | IV: {iv_pct}%
 
-        FORMATTING:
-        - Use Bold for Machine Titles.
-        - Use Bold for headers: **Application:**, **Technical Details:**, **Rationale:**.
-        - No asterisks (*).
+        MANDATORY OUTPUT STRUCTURE:
+        You MUST generate 5 distinct sections, one for each machine, using the following exact format:
 
-        TASKS:
-        1. Analyze {ticker} using the 5 CRPM Machines (Long Call, Short Put, Married Put, Covered Call, Assigned Short Put + Covered Call).
-        2. Machine 5 RULE: Explain that the combined premiums from the Short Put and Covered Call are ADDED together to reduce the net cost basis of the position.
-        3. Rationale must focus on mathematical efficiency, risk premia extraction, and probability boundaries ({low} and {high}).
+        ### Machine 1: Long Call Based
+        **Application:** (Specific application for {ticker})
+        **Technical Details:** (Strike selection based on {high})
+        **Rationale:** (Mathematical logic)
+
+        ### Machine 2: Short Put Based
+        **Application:** (Specific application for {ticker})
+        **Technical Details:** (Strike selection based on {low})
+        **Rationale:** (Mathematical logic)
+
+        ### Machine 3: Married Put Based
+        **Application:** (Specific application for {ticker})
+        **Technical Details:** (Protection setup)
+        **Rationale:** (Mathematical logic)
+
+        ### Machine 4: Covered Call Based
+        **Application:** (Specific application for {ticker})
+        **Technical Details:** (Income setup based on {high})
+        **Rationale:** (Mathematical logic)
+
+        ### Machine 5: Assigned Short Put + Covered Call
+        **Application:** (Combined strategy setup)
+        **Technical Details:** (MANDATORY: Explain that Put premium + Call premium are ADDED to reduce cost basis)
+        **Rationale:** (Mathematical logic)
 
         CONTEXT:
         {context}
