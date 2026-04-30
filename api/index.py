@@ -42,8 +42,8 @@ def index():
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # Query mirata per estrarre le definizioni delle Macchine dal libro
-        search_query = f"Definizione operativa delle cinque macchine CRPM applicate a {ticker} con range {low}-{high}"
+        # Query specifica per trovare i capitoli delle macchine
+        search_query = f"Quali sono le definizioni operative delle cinque macchine CRPM descritte nel libro di Massimiliano Riolfo?"
         
         emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}"
         res_emb = requests.post(emb_url, json={
@@ -52,12 +52,11 @@ def index():
             "output_dimensionality": 768
         }).json()
         
-        # Aumentiamo top_k a 10 per assicurarci di catturare tutte le definizioni delle macchine
         query_v = res_emb['embedding']['values']
         search = index_pc.query(vector=query_v, top_k=10, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # --- PROMPT RIGOROSO: 5 MACCHINE OPERATIVE ---
+        # --- PROMPT RIGOROSO ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
         prompt = f"""
@@ -67,19 +66,21 @@ def index():
         COMPITI TASSATIVI:
         1. Identifica nel CONTESTO fornito le definizioni esatte delle CINQUE MACCHINE CRPM.
         2. Per ogni Macchina (dalla n. 1 alla n. 5), spiega come operare con le OPZIONI su {ticker} basandoti sulla logica del libro.
-        3. Sii sintetico, tecnico e rigoroso. Evita commenti discorsivi o introduzioni.
+        3. Sii sintetico, tecnico e rigoroso.
         
         CONTESTO DAL LIBRO:
         {context}
 
         STRUTTURA OUTPUT:
         - Analisi Volatilità: Commento tecnico su IV e perimetro operativo.
-        - Le 5 Macchine CRPM su {ticker}: (Elenco puntato con applicazione pratica delle opzioni).
-        - Nota Disciplinare: Massima brevità basata sulla logica del rischio calcolato.
+        - Le 5 Macchine CRPM su {ticker}: (Elenco puntato con applicazione pratica).
+        - Nota Disciplinare: Breve sintesi del rischio calcolato.
         """
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}).json()
-        ai_response = res_gen['candidates'][0]['content']['parts'][0]['text']
+        
+        # Salviamo la risposta nella variabile corretta che useremo nel return
+        ai_analysis_result = res_gen['candidates'][0]['content']['parts'][0]['text']
 
         return jsonify({
             "ticker": ticker,
@@ -87,7 +88,7 @@ def index():
             "volatility": round(iv_reale * 100, 2),
             "high": high,
             "low": low,
-            "ai_analysis": ai_analysis, # Corretto nome variabile per coerenza frontend
+            "ai_analysis": ai_analysis_result, # <--- VARIABILE CORRETTA
             "date": "2026-05-01"
         })
     except Exception as e:
