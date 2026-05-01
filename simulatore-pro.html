@@ -17,9 +17,8 @@
         button:hover { background: #333; }
         #res { background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #e1e8ed; margin-bottom: 20px; display: none; }
         .range-highlight { color: #007bff; font-size: 1.3em; font-weight: bold; }
-        /* Area dedicata all'Analisi AI del libro */
         #ai-box { margin-top: 20px; padding: 20px; background: #fff; border-left: 4px solid #000; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0,0,0,0.02); display: none; line-height: 1.6; }
-        #chartContainer { width: 100%; height: 500px; background: #fff; border-radius: 12px; padding: 10px; position: relative; }
+        #chartContainer { width: 100%; height: 500px; background: #fff; border-radius: 12px; padding: 10px; position: relative; margin-top: 20px; }
         .footer-note { background: #fff9e6; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px; font-size: 0.9rem; border: 1px dashed #d4a017; }
     </style>
 </head>
@@ -28,13 +27,12 @@
 <div class="card">
     <div class="header-info">
         <h2 style="margin:0; letter-spacing: -0.5px;">The Options Probability Cone</h2>
-        <!-- Correzione: Data dinamica -->
         <div id="display-date" class="current-date"></div>
     </div>
     
     <div class="input-group">
         <input type="text" id="ticker" placeholder="Enter Ticker (e.g. SPY)" maxlength="5">
-        <button onclick="calcola()">Generate Cone</button>
+        <button onclick="calcola()">Generate Analysis</button>
     </div>
     
     <div id="res"></div>
@@ -43,7 +41,6 @@
         <canvas id="probabilityChart"></canvas>
     </div>
 
-    <!-- Nuova Sezione: Analisi AI CRPM -->
     <div id="ai-box">
         <h4 style="margin-top:0;">CRPM Agent Analysis</h4>
         <div id="ai-content"></div>
@@ -55,8 +52,8 @@
 </div>
 
 <script>
-    // Imposta la data odierna nella testata all'avvio
-    document.getElementById('display-date').innerText = "Analysis Date: " + new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+    // Data di oggi fissa come da istruzioni
+    document.getElementById('display-date').innerText = "Analysis Date: May 1, 2026";
 
     let myChart = null;
 
@@ -69,7 +66,7 @@
         if(!t) return;
 
         resDiv.style.display = 'block';
-        resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogating Option Chains & Analyzing Book Knowledge...</em></p>";
+        resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogating Option Chains & Running Quantitative Models...</em></p>";
         aiBox.style.display = 'none';
 
         try {
@@ -83,64 +80,106 @@
             if(data.error) {
                 resDiv.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
             } else {
-                let ivToUse = data.volatility;
+                // Estrazione dati per il grafico (Hover perfetto)
+                const labels = data.cone_series.map(d => "Day " + d.day);
+                const upperData = data.cone_series.map(d => d.high);
+                const lowerData = data.cone_series.map(d => d.low);
+                const centerData = data.cone_series.map(d => d.reference);
 
                 resDiv.innerHTML = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <div style="text-align:right;"><strong>Asset:</strong> ${data.ticker} | <strong>Spot:</strong> $${data.price}</div>
-                        <div style="text-align:left;"><strong>30d Implied Volatility:</strong> ${ivToUse.toFixed(2)}%</div>
+                        <div style="text-align:right;"><strong>Asset:</strong> ${data.ticker} | <strong>Spot:</strong> $${data.current_price}</div>
+                        <div style="text-align:left;"><strong>IV Annualized:</strong> ${data.iv_annual}%</div>
                     </div>
                     <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px; text-align:center;">
-                        Expected Range at Expiration (1σ): <span class="range-highlight">$${data.low} - $${data.high}</span>
+                        Expected 30-Day Range (1σ): <span class="range-highlight">$${data.cone_series[29].low} - $${data.cone_series[29].high}</span>
                     </div>`;
                 
-                // Visualizza l'analisi AI prodotta dal backend
                 if(data.ai_analysis) {
                     aiBox.style.display = 'block';
                     aiContent.innerHTML = data.ai_analysis.replace(/\n/g, '<br>');
                 }
                 
-                drawProbabilityCone(data.price, ivToUse / 100);
+                renderInteractiveChart(labels, upperData, lowerData, centerData);
             }
         } catch (e) {
-            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Connection Timeout. Please check backend status.</p>";
+            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Connection Error. Please verify API status.</p>";
         }
     }
 
-    function drawProbabilityCone(currentPrice, iv) {
+    function renderInteractiveChart(labels, upper, lower, center) {
         const ctx = document.getElementById('probabilityChart').getContext('2d');
-        const labels = []; const upperBand = []; const lowerBand = []; const centerLine = [];
-        const today = new Date();
-
-        for (let d = 0; d <= 30; d++) {
-            const pointDate = new Date(today);
-            pointDate.setDate(today.getDate() + d);
-            labels.push(pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
-            
-            const move = currentPrice * iv * Math.sqrt(d / 365);
-            upperBand.push(currentPrice + move);
-            lowerBand.push(currentPrice - move);
-            centerLine.push(currentPrice);
-        }
-
+        
         if (myChart) { myChart.destroy(); }
+        
         myChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'Upper Boundary +1σ', data: upperBand, borderColor: '#2ecc71', borderWidth: 2.5, pointRadius: 0, fill: false, tension: 0.45 },
-                    { label: 'Lower Boundary -1σ', data: lowerBand, borderColor: '#e74c3c', borderWidth: 2.5, pointRadius: 0, fill: '-1', backgroundColor: 'rgba(46, 204, 113, 0.08)', tension: 0.45 },
-                    { label: 'Spot Price', data: centerLine, borderColor: '#bdc3c7', borderDash: [5, 5], borderWidth: 1.5, pointRadius: 0, fill: false }
+                    { 
+                        label: 'Upper Boundary (+1σ)', 
+                        data: upper, 
+                        borderColor: '#2ecc71', 
+                        backgroundColor: 'rgba(46, 204, 113, 0.1)', 
+                        fill: false, 
+                        pointRadius: 0, 
+                        pointHoverRadius: 5,
+                        tension: 0.3 
+                    },
+                    { 
+                        label: 'Lower Boundary (-1σ)', 
+                        data: lower, 
+                        borderColor: '#e74c3c', 
+                        fill: '-1', 
+                        backgroundColor: 'rgba(46, 204, 113, 0.05)', 
+                        pointRadius: 0, 
+                        pointHoverRadius: 5,
+                        tension: 0.3 
+                    },
+                    { 
+                        label: 'Current Spot Price', 
+                        data: center, 
+                        borderColor: '#bdc3c7', 
+                        borderDash: [5, 5], 
+                        fill: false, 
+                        pointRadius: 0 
+                    }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 6 } } },
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    tooltip: {
+                        enabled: true,
+                        backgroundColor: 'rgba(0,0,0,0.8)',
+                        titleFont: { size: 14 },
+                        bodyFont: { size: 13 },
+                        padding: 12,
+                        callbacks: {
+                            label: function(context) {
+                                return " " + context.dataset.label + ": $" + context.parsed.y.toFixed(2);
+                            }
+                        }
+                    },
+                    legend: { 
+                        position: 'top',
+                        labels: { usePointStyle: true, boxWidth: 6 }
+                    }
+                },
                 scales: {
-                    y: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 }, callback: value => '$' + value.toLocaleString() } },
-                    x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } }
+                    y: { 
+                        grid: { color: '#f0f0f0' },
+                        ticks: { callback: value => '$' + value.toLocaleString() }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
                 }
             }
         });
