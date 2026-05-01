@@ -10,7 +10,7 @@ from pinecone import Pinecone
 app = Flask(__name__)
 CORS(app)
 
-# --- CONFIGURATION ---
+# --- CONFIGURAZIONE SICURA ---
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_HOST = os.getenv("INDEX_HOST")
@@ -26,7 +26,7 @@ def index():
         stock = yf.Ticker(ticker)
         price = stock.fast_info['last_price']
         
-        # --- QUANTITATIVE ENGINE ---
+        # --- MOTORE QUANTITATIVO ---
         expirations = stock.options
         target_date = datetime.now() + timedelta(days=30)
         closest_exp = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - target_date).days))
@@ -38,13 +38,11 @@ def index():
         move = price * iv_val * np.sqrt(30 / 365)
         high, low = round(price + move, 2), round(price - move, 2)
         iv_pct = round(iv_val * 100, 2)
-        current_price = round(price, 2)
 
-        # --- KNOWLEDGE RETRIEVAL ---
+        # --- RAG LOGIC ---
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # Query specifica per forzare il recupero delle 5 macchine CRPM
         search_query = "Machine 1: Long Call Based, Machine 2: Short Put Based, Machine 3: Married Put Based, Machine 4: Covered Call Based, Machine 5: Assigned Short Put + Covered Call"
         
         emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}"
@@ -58,50 +56,40 @@ def index():
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # --- RIGID CRPM PROMPT ---
+        # --- PROMPT BLINDATO E PROFESSIONALE ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
         prompt = f"""
-        STRICT INSTRUCTION: Respond EXCLUSIVELY in English. 
-        Tone: Neutral, Clinical, Quantitative. NO author names. 
-        NO asterisks (*). Use professional headings.
+        STRICT INSTRUCTION: Respond EXCLUSIVELY in English. Use a technical, quantitative tone.
+        NEVER mention any author names or specific individuals. Refer only to "the model" or "the methodology".
+        Do not use asterisks (*) for formatting.
 
-        DATA: {ticker} @ {current_price} | 30-day 1-Sigma: {low} - {high} | IV: {iv_pct}%
+        You are the CRPM Quantitative Analyst. Analyze {ticker} (Price: {price}).
+        30-day 1-Sigma Probability Range: {low} - {high}.
+        Current IV: {iv_pct}%.
 
-        MANDATORY STRUCTURE:
-        1. Volatility Analysis: Technical comment on {iv_pct}% IV and market context for {ticker}.
-        
-        2. You MUST analyze EXACTLY these 5 Machines from the CRPM methodology:
-        
-        ### Machine 1: Long Call Based
-        **Application:** (Setup for {ticker})
-        **Technical Details:** (Strike selection near {high}. Round strikes to 2 decimals)
-        **Rationale:** (Quantitative logic)
+        MANDATORY TASK: 
+        Apply these 5 CRPM Machines from the methodology to {ticker}.
+        For Technical Details, select the NEAREST TRADABLE STRIKE (integers or .5) to the levels {low} and {high}. 
+        Do not use decimals like .41 or .91 for strikes.
 
-        ### Machine 2: Short Put Based
-        **Application:** (Setup for {ticker})
-        **Technical Details:** (Strike selection near {low}. Round strikes to 2 decimals)
-        **Rationale:** (Quantitative logic)
+        1. Machine 1: Long Call Based
+        2. Machine 2: Short Put Based
+        3. Machine 3: Married Put Based
+        4. Machine 4: Covered Call Based
+        5. Machine 5: Assigned Short Put + Covered Call (RULE: Both premiums are positive cash inflows added to reduce cost basis).
 
-        ### Machine 3: Married Put Based
-        **Application:** (Protection setup for {ticker})
-        **Technical Details:** (Floor placement based on {low})
-        **Rationale:** (Quantitative logic)
-
-        ### Machine 4: Covered Call Based
-        **Application:** (Income setup for {ticker})
-        **Technical Details:** (Strike selection near {high})
-        **Rationale:** (Quantitative logic)
-
-        ### Machine 5: Assigned Short Put + Covered Call
-        **Application:** (Wheel transition setup)
-        **Technical Details:** (MANDATORY: Explain that Put premium + Call premium are ADDED together to reduce net cost basis)
-        **Rationale:** (Quantitative logic)
-
-        Risk Summary: One sentence on discipline and calculated risk.
-
-        CONTEXT FROM THE BOOK:
+        CONTEXT FROM THE METHODOLOGY:
         {context}
+
+        OUTPUT STRUCTURE:
+        - Volatility Analysis: Technical comment on {iv_pct}% IV.
+        - The 5 CRPM Machines for {ticker}:
+          ### [Machine Name]
+          **Application:**
+          **Technical Details:**
+          **Rationale:**
+        - Risk Summary: One sentence on discipline.
         """
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}).json()
@@ -109,7 +97,7 @@ def index():
 
         return jsonify({
             "ticker": ticker,
-            "price": current_price,
+            "price": round(price, 2),
             "volatility": iv_pct,
             "high": high,
             "low": low,
