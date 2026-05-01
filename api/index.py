@@ -56,13 +56,13 @@ def index():
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # --- PROMPT BLINDATO E PROFESSIONALE ---
+        # --- PROMPT BLINDATO CON DISCLAIMER ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
         prompt = f"""
-        STRICT INSTRUCTION: Respond EXCLUSIVELY in English. Use a technical, quantitative tone.
-        NEVER mention any author names or specific individuals. Refer only to "the model" or "the methodology".
-        Do not use asterisks (*) for formatting.
+        STRICT INSTRUCTION: Respond EXCLUSIVELY in English. Use a technical, clinical, and quantitative tone.
+        NEVER mention any author names or specific individuals. Refer only to "the methodology" or "the model".
+        DO NOT use any asterisks (*) in the entire output. Use professional headings and spacing.
 
         You are the CRPM Quantitative Analyst. Analyze {ticker} (Price: {price}).
         30-day 1-Sigma Probability Range: {low} - {high}.
@@ -70,8 +70,7 @@ def index():
 
         MANDATORY TASK: 
         Apply these 5 CRPM Machines from the methodology to {ticker}.
-        For Technical Details, select the NEAREST TRADABLE STRIKE (integers or .5) to the levels {low} and {high}. 
-        Do not use decimals like .41 or .91 for strikes.
+        For Technical Details, select the NEAREST TRADABLE STRIKE (integers or .5) to the levels {low} and {high}.
 
         1. Machine 1: Long Call Based
         2. Machine 2: Short Put Based
@@ -83,13 +82,21 @@ def index():
         {context}
 
         OUTPUT STRUCTURE:
-        - Volatility Analysis: Technical comment on {iv_pct}% IV.
-        - The 5 CRPM Machines for {ticker}:
-          ### [Machine Name]
-          **Application:**
-          **Technical Details:**
-          **Rationale:**
-        - Risk Summary: One sentence on discipline.
+        Volatility Analysis: (Technical comment on {iv_pct}% IV)
+
+        ### [Machine Name]
+        Application: (Description)
+        Technical Details: (Specific strikes)
+        Rationale: (Quantitative logic)
+
+        (Repeat for all 5 Machines)
+
+        Risk Summary: (One sentence on discipline)
+
+        IMPORTANT LEGAL NOTE:
+        This analysis is purely based on mathematical models and quantitative data. 
+        It does not constitute financial advice, investment recommendations, or an invitation to trade. 
+        All trading involves risk.
         """
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}).json()
