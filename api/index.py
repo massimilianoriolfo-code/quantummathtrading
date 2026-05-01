@@ -56,47 +56,39 @@ def index():
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # --- PROMPT BLINDATO CON DISCLAIMER ---
+        # --- PROMPT PER FORMATTAZIONE HTML/GIUSTIFICATA ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
         prompt = f"""
-        STRICT INSTRUCTION: Respond EXCLUSIVELY in English. Use a technical, clinical, and quantitative tone.
-        NEVER mention any author names or specific individuals. Refer only to "the methodology" or "the model".
-        DO NOT use any asterisks (*) in the entire output. Use professional headings and spacing.
+        STRICT INSTRUCTION: Respond EXCLUSIVELY in English. Use a technical and quantitative tone.
+        NEVER mention any author names. Refer only to "the methodology" or "the model".
+        DO NOT use any asterisks (*) or hash symbols (#) for formatting.
 
         You are the CRPM Quantitative Analyst. Analyze {ticker} (Price: {price}).
-        30-day 1-Sigma Probability Range: {low} - {high}.
+        30-day 1-Sigma Range: {low} - {high}.
         Current IV: {iv_pct}%.
 
-        MANDATORY TASK: 
-        Apply these 5 CRPM Machines from the methodology to {ticker}.
-        For Technical Details, select the NEAREST TRADABLE STRIKE (integers or .5) to the levels {low} and {high}.
+        MANDATORY FORMATTING:
+        - Wrap the entire response in a <div style="text-align: justify;"> tag.
+        - Machine titles MUST be in plain bold text without #.
+        - Section labels (Application, Technical Details, Rationale) MUST be in italics.
+        - Select NEAREST TRADABLE STRIKES for {low} and {high}.
 
-        1. Machine 1: Long Call Based
-        2. Machine 2: Short Put Based
-        3. Machine 3: Married Put Based
-        4. Machine 4: Covered Call Based
-        5. Machine 5: Assigned Short Put + Covered Call (RULE: Both premiums are positive cash inflows added to reduce cost basis).
+        STRUCTURE:
+        Volatility Analysis: (Comment on {iv_pct}% IV)
 
-        CONTEXT FROM THE METHODOLOGY:
-        {context}
-
-        OUTPUT STRUCTURE:
-        Volatility Analysis: (Technical comment on {iv_pct}% IV)
-
-        ### [Machine Name]
-        Application: (Description)
-        Technical Details: (Specific strikes)
-        Rationale: (Quantitative logic)
+        **Machine X: Name**
+        _Application:_ (Text)
+        _Technical Details:_ (Strike details)
+        _Rationale:_ (Logic)
 
         (Repeat for all 5 Machines)
 
-        Risk Summary: (One sentence on discipline)
+        **Risk Summary:** (Text)
 
-        IMPORTANT LEGAL NOTE:
-        This analysis is purely based on mathematical models and quantitative data. 
-        It does not constitute financial advice, investment recommendations, or an invitation to trade. 
-        All trading involves risk.
+        **IMPORTANT LEGAL NOTE:**
+        This analysis is based on mathematical models and does not constitute financial advice. All trading involves risk.
+        </div>
         """
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}).json()
