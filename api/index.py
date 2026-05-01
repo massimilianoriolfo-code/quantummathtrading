@@ -74,34 +74,34 @@ def index():
         OUTPUT STRUCTURE:
         Volatility Analysis: (Technical comment)
 
-        **Machine 1: Long Call Based**
-        _Application:_ 
-        _Technical Details:_ 
-        _Rationale:_ 
+        Machine 1: Long Call Based
+        Application: 
+        Technical Details: 
+        Rationale: 
 
-        **Machine 2: Short Put Based**
-        _Application:_ 
-        _Technical Details:_ 
-        _Rationale:_ 
+        Machine 2: Short Put Based
+        Application: 
+        Technical Details: 
+        Rationale: 
 
-        **Machine 3: Married Put Based**
-        _Application:_ (Buying protection for the underlying)
-        _Technical Details:_ (Buying Put at nearest strike to {low})
-        _Rationale:_ 
+        Machine 3: Married Put Based
+        Application: (Buying protection for the underlying)
+        Technical Details: (Buying Put at nearest strike to {low})
+        Rationale: 
 
-        **Machine 4: Covered Call Based**
-        _Application:_ 
-        _Technical Details:_ (Selling Call at nearest strike to {high})
-        _Rationale:_ 
+        Machine 4: Covered Call Based
+        Application: 
+        Technical Details:_ (Selling Call at nearest strike to {high})
+        Rationale: 
 
-        **Machine 5: Assigned Short Put + Covered Call**
-        _Application:_ 
-        _Technical Details:_ (Explain the sum of premiums received)
-        _Rationale:_ 
+        Machine 5: Assigned Short Put + Covered Call**
+        Application: 
+        Technical Details: (Explain the sum of premiums received)
+        Rationale: 
 
-        **Risk Summary:** (One sentence)
+        Risk Summary:** (One sentence)
 
-        **IMPORTANT LEGAL NOTE:**
+        IMPORTANT LEGAL NOTE:
         This analysis is based on mathematical models and does not constitute financial advice. All trading involves risk.
         """
         
