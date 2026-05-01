@@ -18,7 +18,7 @@
         #res { background: #f8f9fa; padding: 20px; border-radius: 12px; border: 1px solid #e1e8ed; margin-bottom: 20px; display: none; }
         .range-highlight { color: #007bff; font-size: 1.3em; font-weight: bold; }
         #ai-box { margin-top: 20px; padding: 20px; background: #fff; border-left: 4px solid #000; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0,0,0,0.02); display: none; line-height: 1.6; }
-        #chartContainer { width: 100%; height: 500px; background: #fff; border-radius: 12px; padding: 10px; position: relative; margin-top: 20px; }
+        #chartContainer { width: 100%; height: 500px; background: #fff; border-radius: 12px; padding: 10px; position: relative; }
         .footer-note { background: #fff9e6; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px; font-size: 0.9rem; border: 1px dashed #d4a017; }
     </style>
 </head>
@@ -32,7 +32,7 @@
     
     <div class="input-group">
         <input type="text" id="ticker" placeholder="Enter Ticker (e.g. SPY)" maxlength="5">
-        <button onclick="calcola()">Generate Analysis</button>
+        <button onclick="calcola()">Generate Cone</button>
     </div>
     
     <div id="res"></div>
@@ -52,8 +52,8 @@
 </div>
 
 <script>
-    // Data di oggi fissa come da istruzioni
-    document.getElementById('display-date').innerText = "Analysis Date: May 1, 2026";
+    // Configurazione data dinamica come da richiesta
+    document.getElementById('display-date').innerText = "Analysis Date: " + new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 
     let myChart = null;
 
@@ -66,7 +66,7 @@
         if(!t) return;
 
         resDiv.style.display = 'block';
-        resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogating Option Chains & Running Quantitative Models...</em></p>";
+        resDiv.innerHTML = "<p style='text-align:center;'><em>Interrogating Option Chains & Analyzing Book Knowledge...</em></p>";
         aiBox.style.display = 'none';
 
         try {
@@ -80,19 +80,19 @@
             if(data.error) {
                 resDiv.innerHTML = `<p style="color:red; text-align:center;">${data.error}</p>`;
             } else {
-                // Estrazione dati per il grafico (Hover perfetto)
-                const labels = data.cone_series.map(d => "Day " + d.day);
-                const upperData = data.cone_series.map(d => d.high);
-                const lowerData = data.cone_series.map(d => d.low);
-                const centerData = data.cone_series.map(d => d.reference);
+                // Supporto per variabili flessibili dal backend
+                const ivToUse = data.volatility || data.iv_annual;
+                const price = data.price || data.current_price;
+                const high = data.high || (data.cone_series ? data.cone_series[29].high : 0);
+                const low = data.low || (data.cone_series ? data.cone_series[29].low : 0);
 
                 resDiv.innerHTML = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                        <div style="text-align:right;"><strong>Asset:</strong> ${data.ticker} | <strong>Spot:</strong> $${data.current_price}</div>
-                        <div style="text-align:left;"><strong>IV Annualized:</strong> ${data.iv_annual}%</div>
+                        <div style="text-align:right;"><strong>Asset:</strong> ${data.ticker} | <strong>Spot:</strong> $${price}</div>
+                        <div style="text-align:left;"><strong>30d Implied Volatility:</strong> ${ivToUse.toFixed(2)}%</div>
                     </div>
                     <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px; text-align:center;">
-                        Expected 30-Day Range (1σ): <span class="range-highlight">$${data.cone_series[29].low} - $${data.cone_series[29].high}</span>
+                        Expected Range at Expiration (1σ): <span class="range-highlight">$${low} - $${high}</span>
                     </div>`;
                 
                 if(data.ai_analysis) {
@@ -100,51 +100,38 @@
                     aiContent.innerHTML = data.ai_analysis.replace(/\n/g, '<br>');
                 }
                 
-                renderInteractiveChart(labels, upperData, lowerData, centerData);
+                drawProbabilityCone(price, ivToUse / 100);
             }
         } catch (e) {
-            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Connection Error. Please verify API status.</p>";
+            resDiv.innerHTML = "<p style='color:orange; text-align:center;'>Connection Timeout. Please check backend status.</p>";
         }
     }
 
-    function renderInteractiveChart(labels, upper, lower, center) {
+    function drawProbabilityCone(currentPrice, iv) {
         const ctx = document.getElementById('probabilityChart').getContext('2d');
-        
+        const labels = []; const upperBand = []; const lowerBand = []; const centerLine = [];
+        const today = new Date();
+
+        for (let d = 0; d <= 30; d++) {
+            const pointDate = new Date(today);
+            pointDate.setDate(today.getDate() + d);
+            labels.push(pointDate.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }));
+            
+            const move = currentPrice * iv * Math.sqrt(d / 365);
+            upperBand.push(currentPrice + move);
+            lowerBand.push(currentPrice - move);
+            centerLine.push(currentPrice);
+        }
+
         if (myChart) { myChart.destroy(); }
-        
         myChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [
-                    { 
-                        label: 'Upper Boundary (+1σ)', 
-                        data: upper, 
-                        borderColor: '#2ecc71', 
-                        backgroundColor: 'rgba(46, 204, 113, 0.1)', 
-                        fill: false, 
-                        pointRadius: 0, 
-                        pointHoverRadius: 5,
-                        tension: 0.3 
-                    },
-                    { 
-                        label: 'Lower Boundary (-1σ)', 
-                        data: lower, 
-                        borderColor: '#e74c3c', 
-                        fill: '-1', 
-                        backgroundColor: 'rgba(46, 204, 113, 0.05)', 
-                        pointRadius: 0, 
-                        pointHoverRadius: 5,
-                        tension: 0.3 
-                    },
-                    { 
-                        label: 'Current Spot Price', 
-                        data: center, 
-                        borderColor: '#bdc3c7', 
-                        borderDash: [5, 5], 
-                        fill: false, 
-                        pointRadius: 0 
-                    }
+                    { label: 'Upper Boundary +1σ', data: upperBand, borderColor: '#2ecc71', borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, fill: false, tension: 0.4 },
+                    { label: 'Lower Boundary (-1σ)', data: lowerBand, borderColor: '#e74c3c', borderWidth: 2, pointRadius: 0, pointHoverRadius: 6, fill: '-1', backgroundColor: 'rgba(46, 204, 113, 0.08)', tension: 0.4 },
+                    { label: 'Spot Price', data: centerLine, borderColor: '#bdc3c7', borderDash: [5, 5], borderWidth: 1.5, pointRadius: 0, fill: false }
                 ]
             },
             options: {
@@ -152,34 +139,22 @@
                 maintainAspectRatio: false,
                 interaction: {
                     mode: 'index',
-                    intersect: false,
+                    intersect: false
                 },
-                plugins: {
+                plugins: { 
+                    legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 6 } },
                     tooltip: {
                         enabled: true,
-                        backgroundColor: 'rgba(0,0,0,0.8)',
-                        titleFont: { size: 14 },
-                        bodyFont: { size: 13 },
-                        padding: 12,
                         callbacks: {
                             label: function(context) {
-                                return " " + context.dataset.label + ": $" + context.parsed.y.toFixed(2);
+                                return context.dataset.label + ": $" + context.parsed.y.toFixed(2);
                             }
                         }
-                    },
-                    legend: { 
-                        position: 'top',
-                        labels: { usePointStyle: true, boxWidth: 6 }
                     }
                 },
                 scales: {
-                    y: { 
-                        grid: { color: '#f0f0f0' },
-                        ticks: { callback: value => '$' + value.toLocaleString() }
-                    },
-                    x: {
-                        grid: { display: false }
-                    }
+                    y: { grid: { color: '#f0f0f0' }, ticks: { callback: value => '$' + value.toLocaleString() } },
+                    x: { grid: { display: false }, ticks: { autoSkip: true, maxTicksLimit: 10 } }
                 }
             }
         });
