@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRPM Strategy Hub</title>
+    <title>CRPM Strategy Hub - Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; background: #f4f7f9; color: #333; }
@@ -12,13 +12,14 @@
         .input-group { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
         input { padding: 12px; border: 2px solid #dfe3e8; border-radius: 8px; width: 200px; font-size: 16px; text-transform: uppercase; }
         button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .strategy-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #eee; }
-        .strategy-table th { background: #f8f9fa; padding: 15px; text-align: left; border-bottom: 2px solid #eee; }
-        .strategy-table td { padding: 15px; border-bottom: 1px solid #eee; }
-        .unlimited { color: #28a745; font-weight: bold; text-transform: uppercase; }
-        .risk-val { color: #dc3545; font-weight: bold; }
+        .strategy-table { width: 100%; border-collapse: collapse; margin-top: 25px; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #eee; font-size: 14px; }
+        .strategy-table th { background: #f8f9fa; padding: 12px; text-align: left; border-bottom: 2px solid #eee; }
+        .strategy-table td { padding: 12px; border-bottom: 1px solid #eee; }
+        .action-buy { color: #007bff; font-weight: bold; }
+        .action-sell { color: #dc3545; font-weight: bold; }
+        .unlimited { color: #28a745; font-weight: bold; }
+        .comment-cell { font-style: italic; color: #555; background: #fafafa; }
         #chartContainer { width: 100%; height: 450px; margin: 20px 0; }
-        #chat-section { margin-top: 40px; border-top: 2px solid #eee; padding-top: 20px; }
     </style>
 </head>
 <body>
@@ -30,8 +31,8 @@
     </div>
     
     <div class="input-group">
-        <input type="text" id="ticker" placeholder="E.G. MSFT" maxlength="5">
-        <button onclick="calcola()">Run Analysis</button>
+        <input type="text" id="ticker" placeholder="E.G. MA" maxlength="5">
+        <button onclick="calcola()">Run Full Analysis</button>
     </div>
 
     <div id="summary-data" style="text-align:center; font-weight:bold; margin-bottom:10px; display:none;">
@@ -39,17 +40,7 @@
     </div>
 
     <div id="chartContainer"><canvas id="probabilityChart"></canvas></div>
-
     <div id="tables-container"></div>
-
-    <div id="chat-section">
-        <h4>Ask the CRPM Assistant</h4>
-        <div class="input-group">
-            <input type="text" id="chat-input" placeholder="How to protect my MSFT shares?" style="width: 70%;">
-            <button onclick="askAI()" style="background: #007bff;">Ask</button>
-        </div>
-        <div id="chat-response" style="margin-top:15px; padding:15px; background:#f8f9fa; border-radius:8px; display:none;"></div>
-    </div>
 </div>
 
 <script>
@@ -58,7 +49,6 @@
     async function calcola() {
         const t = document.getElementById('ticker').value.toUpperCase();
         if(!t) return;
-        
         const response = await fetch('/api/index?ticker=' + t);
         const data = await response.json();
         
@@ -73,45 +63,36 @@
         data.machines.forEach(m => {
             html += `
             <table class="strategy-table">
-                <thead><tr><th colspan="2">${m.name}</th></tr></thead>
+                <thead><tr><th colspan="4" style="background:#333; color:#fff;">${m.name}</th></tr></thead>
                 <tbody>
-                    <tr><td>Strike Price</td><td><strong>$${m.strike}</strong></td></tr>
-                    <tr><td>Expiration</td><td>${m.expiry}</td></tr>
-                    <tr><td>Potential Profit</td><td class="${m.profit === 'UNLIMITED' ? 'unlimited' : ''}">${m.profit}</td></tr>
-                    <tr><td>Maximum Risk</td><td class="risk-val">${m.risk}</td></tr>
+                    <tr>
+                        <td width="25%"><strong>Action:</strong> <span class="${m.action === 'BUY' ? 'action-buy' : 'action-sell'}">${m.action} ${m.instrument}</span></td>
+                        <td width="25%"><strong>Strike:</strong> $${m.strike}</td>
+                        <td width="25%"><strong>Expiry:</strong> ${m.expiry}</td>
+                        <td width="25%"><strong>Est. Premium:</strong> $${m.premium}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Profit:</strong> <span class="${m.profit === 'UNLIMITED' ? 'unlimited' : ''}">${m.profit}</span></td>
+                        <td><strong>Max Risk:</strong> ${m.risk}</td>
+                        <td colspan="2" class="comment-cell"><strong>Comment:</strong> ${m.comment}</td>
+                    </tr>
                 </tbody>
             </table>`;
         });
         document.getElementById('tables-container').innerHTML = html;
-        
         drawProbabilityCone(data.price, data.volatility / 100);
-    }
-
-    async function askAI() {
-        const query = document.getElementById('chat-input').value;
-        const respDiv = document.getElementById('chat-response');
-        respDiv.style.display = 'block';
-        respDiv.innerHTML = "<em>Analyzing chapters...</em>";
-        
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ query: query })
-        });
-        const data = await response.json();
-        respDiv.innerHTML = "<strong>Assistant:</strong> " + data.response;
     }
 
     function drawProbabilityCone(price, iv) {
         const ctx = document.getElementById('probabilityChart').getContext('2d');
-        const labels = []; const u = []; const l = [];
+        const labels = []; const u = []; const l = []; const s = [];
         const today = new Date("2026-05-04");
         for (let d = 0; d <= 30; d++) {
             const date = new Date(today);
             date.setDate(today.getDate() + d);
             labels.push(date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }));
             const move = price * iv * Math.sqrt(d / 365);
-            u.push(price + move); l.push(price - move);
+            u.push(price + move); l.push(price - move); s.push(price);
         }
         if (myChart) myChart.destroy();
         myChart = new Chart(ctx, {
@@ -120,14 +101,14 @@
                 labels: labels,
                 datasets: [
                     { label: '+1σ Boundary', data: u, borderColor: '#2ecc71', pointRadius: 0, fill: false, tension: 0.3 },
-                    { label: '-1σ Boundary', data: l, borderColor: '#e74c3c', pointRadius: 0, fill: '-1', backgroundColor: 'rgba(46, 204, 113, 0.05)', tension: 0.3 }
+                    { label: '-1σ Boundary', data: l, borderColor: '#e74c3c', pointRadius: 0, fill: '-1', backgroundColor: 'rgba(46, 204, 113, 0.05)', tension: 0.3 },
+                    { label: 'Spot Price', data: s, borderColor: '#bdc3c7', borderDash: [5, 5], pointRadius: 0, fill: false }
                 ]
             },
             options: { 
                 responsive: true, 
                 maintainAspectRatio: false,
-                plugins: { tooltip: { mode: 'index', intersect: false } },
-                scales: { x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } } }
+                plugins: { tooltip: { mode: 'index', intersect: false } }
             }
         });
     }
