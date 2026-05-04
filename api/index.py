@@ -37,22 +37,23 @@ def chat():
         
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
-        # PROMPT ASETTICO E PROFESSIONALE
+        # PROMPT ASETTICO E PROFESSIONALE SENZA ASTERISCHI
         prompt_chat = f"""TODAY IS {today_str}. 
         IDENTITY: You are a quantitative analytical engine based on the 'Calculated Risk and Profit Machines' (CRPM) methodology.
         CONTEXT: {context}.
         USER QUERY: {user_query}. 
         
-        STRICT RULES:
+        STRICT FORMATTING RULES:
         1. DO NOT mention any personal names.
         2. Respond EXCLUSIVELY in English.
-        3. If the query involves owning 100 shares of an asset (e.g., MSFT), prioritize explaining Machine 3 (Protection via Married Put) or Machine 4 (Yield via Covered Call).
-        4. Structure the response using the following facsimile of the Machine layout:
-           [Title: Machine X - Action Name]
-           [Core Logic: Brief clinical description]
-           [Parameters: Strike selection based on context]
-           [Rationale: Mathematical justification from the methodology]
-        5. Tone: Aseptic, professional, and data-driven."""
+        3. DO NOT use asterisks (*) for any reason.
+        4. Use ONLY bold headers in the format **[Label:]** at the start of paragraphs.
+        5. Structure the response like the Machine tables above:
+           **[Title:]** Machine X - Strategy Name
+           **[Core Logic:]** Description of the quantitative framework.
+           **[Parameters:]** Specific strike and expiry selection logic.
+           **[Rationale:]** Mathematical justification based on CRPM principles.
+        6. Tone: Aseptic and professional."""
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}).json()
         return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
@@ -100,7 +101,7 @@ def index():
                     "name": "Machine 1: Long Call Based", "action": "BUY CALL", "strike": s_call, "expiry": exp_30, "prem": f2(p_call),
                     "max_profit": "Unlimited", "max_risk": f"${f2(p_call*100)} ({pct(p_call*100)})",
                     "comment": "Bullish momentum.",
-                    "desc": "Capitalizes on price appreciation beyond the 1-Sigma upper boundary."
+                    "desc": "Capitalizes on price appreciation beyond the 1-Sigma upper boundary. High leverage with premium-limited risk."
                 },
                 {
                     "name": "Machine 2: Short Put Based", "action": "SELL PUT", "strike": s_put_30, "expiry": exp_30, "prem": f2(p_put_30),
@@ -112,7 +113,7 @@ def index():
                     "name": "Machine 3: Married Put Based", "action": "BUY PUT (+100 Shares)", "strike": s_put_180, "expiry": exp_180, "prem": f2(p_put_180),
                     "max_profit": "UNLIMITED", "max_risk": f"${f2(round((p_put_180 + (price - s_put_180))*100, 2))} ({pct((p_put_180 + (price - s_put_180))*100)})",
                     "comment": "Structural hedging.",
-                    "desc": "Long-term protection using an ITM Put (6+ months) to protect capital."
+                    "desc": "Strategic long-term protection using an ITM Put (6+ months) to protect capital."
                 },
                 {
                     "name": "Machine 4: Covered Call Based", "action": "SELL CALL (+100 Shares)", "strike": s_call, "expiry": exp_30, "prem": f2(p_call),
