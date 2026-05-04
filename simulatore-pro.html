@@ -22,7 +22,7 @@
         .comment-box { background: #f9f9f9; padding: 15px !important; color: #666; font-size: 0.85rem; vertical-align: middle; width: 30%; }
         #chartContainer { width: 100%; height: 450px; margin: 20px 0; }
         
-        /* Layout Assistant Coerente con le Macchine */
+        /* Layout Assistant Coerente */
         #chat-response { 
             margin-top: 25px; 
             padding: 0; 
@@ -33,8 +33,9 @@
             overflow: hidden;
         }
         .ai-header { background: #333; color: #fff; padding: 12px; font-weight: bold; text-transform: uppercase; font-size: 14px; }
-        .ai-body { padding: 20px; line-height: 1.6; font-size: 0.95rem; color: #2c3e50; }
-        .ai-body b { color: #000; font-weight: 700; }
+        .ai-body { padding: 25px; line-height: 1.8; font-size: 0.95rem; color: #2c3e50; }
+        /* Forza grassetto per le etichette dell'AI senza asterischi */
+        .ai-body b, .ai-body strong { color: #000; font-weight: 700; }
     </style>
 </head>
 <body>
@@ -106,7 +107,7 @@
                     </tr>
                     <tr>
                         <td colspan="3" class="desc-cell"><strong>Description:</strong> ${m.desc}</td>
-                        <td class="comment-box">${m.comment}</td>
+                        <td class="comment-box"><strong>Note:</strong> ${m.comment}</td>
                     </tr>
                 </tbody>
             </table>`;
@@ -120,7 +121,7 @@
         const respDiv = document.getElementById('chat-response');
         const bodyDiv = document.getElementById('ai-content-body');
         respDiv.style.display = 'block';
-        bodyDiv.innerHTML = "<em>Analyzing methodology and market parameters...</em>";
+        bodyDiv.innerHTML = "<em>Analyzing methodology and parameters...</em>";
         
         const response = await fetch('/api/chat', {
             method: 'POST',
@@ -128,7 +129,14 @@
             body: JSON.stringify({ query: query })
         });
         const data = await response.json();
-        bodyDiv.innerHTML = data.response.replace(/\n/g, '<br>');
+        
+        // Formattazione per pulire asterischi e forzare grassetti
+        let formatted = data.response
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Trasforma asterischi in grassetto HTML
+            .replace(/\*/g, '') // Rimuove asterischi singoli residui
+            .replace(/\n/g, '<br>'); // Gestisce i ritorni a capo
+            
+        bodyDiv.innerHTML = formatted;
     }
 
     function drawProbabilityCone(price, iv) {
