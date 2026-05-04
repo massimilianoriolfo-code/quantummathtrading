@@ -24,7 +24,7 @@ def find_nearest_strike(chain, target):
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.get_json()
-    user_query = data.get('query')
+    user_query = data.get('query').upper()
     today_str = get_now().strftime('%B %d, %Y')
     try:
         pc = Pinecone(api_key=PINECONE_API_KEY)
@@ -37,18 +37,22 @@ def chat():
         
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         
-        # PROMPT DI IDENTITÀ RAFFORZATO
+        # PROMPT ASETTICO E PROFESSIONALE
         prompt_chat = f"""TODAY IS {today_str}. 
-        IDENTITY: You are the CRPM Assistant, an expert in the 'Calculated Risk and Profit Machines' (CRPM) methodology.
-        AUTHOR: Massimiliano Riolfo.
-        SOURCE MATERIAL: '{context}'.
+        IDENTITY: You are a quantitative analytical engine based on the 'Calculated Risk and Profit Machines' (CRPM) methodology.
+        CONTEXT: {context}.
+        USER QUERY: {user_query}. 
         
-        STRICT INSTRUCTIONS:
-        - You know exactly what CRPM stands for: Calculated Risk and Profit Machines.
-        - Respond in English with a professional, quantitative, and clinical tone.
-        - Format your response with clear headers and bullet points.
-        - Never use raw Markdown tables.
-        - If asked about CRPM, explain it is a mathematical and disciplined process to transform investing from an intuitive act into a conscious one."""
+        STRICT RULES:
+        1. DO NOT mention any personal names.
+        2. Respond EXCLUSIVELY in English.
+        3. If the query involves owning 100 shares of an asset (e.g., MSFT), prioritize explaining Machine 3 (Protection via Married Put) or Machine 4 (Yield via Covered Call).
+        4. Structure the response using the following facsimile of the Machine layout:
+           [Title: Machine X - Action Name]
+           [Core Logic: Brief clinical description]
+           [Parameters: Strike selection based on context]
+           [Rationale: Mathematical justification from the methodology]
+        5. Tone: Aseptic, professional, and data-driven."""
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}).json()
         return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
@@ -95,32 +99,32 @@ def index():
                 {
                     "name": "Machine 1: Long Call Based", "action": "BUY CALL", "strike": s_call, "expiry": exp_30, "prem": f2(p_call),
                     "max_profit": "Unlimited", "max_risk": f"${f2(p_call*100)} ({pct(p_call*100)})",
-                    "comment": "Bullish momentum stance.",
-                    "desc": "Capitalizes on price appreciation beyond the 1-Sigma upper boundary. High leverage with premium-limited risk."
+                    "comment": "Bullish momentum.",
+                    "desc": "Capitalizes on price appreciation beyond the 1-Sigma upper boundary."
                 },
                 {
                     "name": "Machine 2: Short Put Based", "action": "SELL PUT", "strike": s_put_30, "expiry": exp_30, "prem": f2(p_put_30),
                     "max_profit": f"${f2(p_put_30*100)} ({pct(p_put_30*100)})", "max_risk": f"${f2(round((s_put_30 - p_put_30)*100, 2))} ({pct((s_put_30 - p_put_30)*100)})",
-                    "comment": "Income generation stance.",
-                    "desc": "Harvests volatility at the lower boundary. Risk is the net cost of the stock if assigned (Strike - Premium)."
+                    "comment": "Income generation.",
+                    "desc": "Harvests volatility at the lower boundary. Risk is Strike minus Premium."
                 },
                 {
                     "name": "Machine 3: Married Put Based", "action": "BUY PUT (+100 Shares)", "strike": s_put_180, "expiry": exp_180, "prem": f2(p_put_180),
                     "max_profit": "UNLIMITED", "max_risk": f"${f2(round((p_put_180 + (price - s_put_180))*100, 2))} ({pct((p_put_180 + (price - s_put_180))*100)})",
-                    "comment": "Structural hedging stance.",
-                    "desc": "Strategic long-term protection using an ITM Put (6+ months) to minimize Theta decay and protect capital."
+                    "comment": "Structural hedging.",
+                    "desc": "Long-term protection using an ITM Put (6+ months) to protect capital."
                 },
                 {
                     "name": "Machine 4: Covered Call Based", "action": "SELL CALL (+100 Shares)", "strike": s_call, "expiry": exp_30, "prem": f2(p_call),
                     "max_profit": f"${f2(round((p_call + (s_call - price))*100, 2))} ({pct((p_call + (s_call - price))*100)})", "max_risk": "Finite (Stock Ownership)",
-                    "comment": "Yield enhancement stance.",
-                    "desc": "Generates recurring income on existing holdings, capping upside at the strike price for immediate premium."
+                    "comment": "Yield enhancement.",
+                    "desc": "Generates income on existing holdings, capping upside at strike price."
                 },
                 {
                     "name": "Machine 5: Assigned Short Put + Covered Call", "action": "COMBINED PUT & CALL", "strike": f"{s_put_30} / {s_call}", "expiry": exp_30, "prem": f2(round(p_call + p_put_30, 2)),
                     "max_profit": "Enhanced Yield", "max_risk": "Reduced Cost Basis",
-                    "comment": "Cost basis reduction stance.",
-                    "desc": "Combines premiums to lower the break-even point, transforming market instability into measurable profit."
+                    "comment": "Cost basis reduction.",
+                    "desc": "Combines premiums to lower break-even, transforming instability into profit."
                 }
             ]
         })
