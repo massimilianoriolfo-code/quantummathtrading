@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRPM Strategy Hub</title>
+    <title>CRPM Strategy Hub - 2026 Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; background: #f4f7f9; color: #333; }
@@ -12,43 +12,36 @@
         .input-group { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
         input { padding: 12px; border: 2px solid #dfe3e8; border-radius: 8px; font-size: 16px; width: 250px; }
         button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        #res { background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: none; border: 1px solid #eee; text-align: center; }
-        #ai-box { margin-top: 20px; padding: 20px; background: #fff; border-left: 5px solid #28a745; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: none; line-height: 1.6; }
+        #res { background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: none; text-align: center; border: 1px solid #eee; }
+        #ai-box { margin-top: 20px; padding: 20px; background: #fff; border-left: 5px solid #28a745; display: none; line-height: 1.6; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         #chartContainer { width: 100%; height: 450px; margin-bottom: 20px; }
         #chat-section { margin-top: 40px; border-top: 2px solid #eee; padding-top: 20px; }
         #chat-response { margin-top: 15px; padding: 15px; background: #f0f4f8; border-radius: 8px; display: none; border-left: 4px solid #007bff; }
-        .unlimited { color: #28a745; font-weight: bold; text-transform: uppercase; }
+        .unlimited { color: #28a745; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div class="header-info">
-        <h2 id="main-title">The Options Probability Cone</h2>
-        <div id="display-date" class="current-date">Analysis Date: May 4, 2026</div>
+        <h2 id="main-title">CRPM Probability Analysis</h2>
+        <div id="display-date" style="color:#888;">Analysis Date: May 4, 2026</div>
     </div>
     
     <div class="input-group">
         <input type="text" id="ticker" placeholder="Enter Ticker (e.g. MSFT)" maxlength="5">
-        <button onclick="calcola()">Generate Analysis</button>
+        <button onclick="calcola()">Run 2026 Analysis</button>
     </div>
     
     <div id="res"></div>
-
-    <div id="chartContainer">
-        <canvas id="probabilityChart"></canvas>
-    </div>
-
-    <div id="ai-box">
-        <h4 style="margin-top:0; color:#28a745;">CRPM Quantitative Strategy & Technical Schemes</h4>
-        <div id="ai-content"></div>
-    </div>
+    <div id="chartContainer"><canvas id="probabilityChart"></canvas></div>
+    <div id="ai-box"><div id="ai-content"></div></div>
 
     <div id="chat-section">
-        <h4><span style="color: #007bff;">●</span> Ask the CRPM Book Assistant</h4>
+        <h4><span style="color: #007bff;">●</span> Ask the CRPM Expert (Live 2026)</h4>
         <div class="input-group">
-            <input type="text" id="chat-input" placeholder="How to protect my MSFT shares?" style="width: 75%;">
-            <button onclick="askAI()" style="background: #007bff;">Ask Assistant</button>
+            <input type="text" id="chat-input" placeholder="How to hedge my portfolio today?" style="width: 75%;">
+            <button onclick="askAI()" style="background: #007bff;">Ask</button>
         </div>
         <div id="chat-response"></div>
     </div>
@@ -61,9 +54,8 @@
         const t = document.getElementById('ticker').value.toUpperCase();
         if(!t) return;
         const resDiv = document.getElementById('res');
-        const aiBox = document.getElementById('ai-box');
         resDiv.style.display = 'block';
-        resDiv.innerHTML = "<em>Calculating CRPM Probabilities...</em>";
+        resDiv.innerHTML = "<em>Processing 2026 Market Data...</em>";
         
         try {
             const response = await fetch('/api/index', {
@@ -73,16 +65,12 @@
             });
             const data = await response.json();
             document.getElementById('main-title').innerText = data.company;
+            document.getElementById('display-date').innerText = "Analysis Date: " + data.date;
             resDiv.innerHTML = `<strong>Spot:</strong> $${data.price} | <strong>IV:</strong> ${data.volatility}% | <strong>30-Day Range:</strong> $${data.low} - $${data.high}`;
-            aiBox.style.display = 'block';
-            
-            // Formattazione grassetto per UNLIMITED
-            let text = data.ai_analysis.replace(/\n/g, '<br>');
-            text = text.replace(/UNLIMITED/gi, '<span class="unlimited">UNLIMITED</span>');
-            document.getElementById('ai-content').innerHTML = text;
-            
+            document.getElementById('ai-box').style.display = 'block';
+            document.getElementById('ai-content').innerHTML = data.ai_analysis.replace(/\n/g, '<br>').replace(/UNLIMITED/g, '<span class="unlimited">UNLIMITED</span>');
             drawProbabilityCone(data.price, data.volatility / 100);
-        } catch (e) { alert("Error loading data."); }
+        } catch (e) { alert("Backend synchronization error."); }
     }
 
     async function askAI() {
@@ -90,7 +78,7 @@
         const respDiv = document.getElementById('chat-response');
         if(!query) return;
         respDiv.style.display = 'block';
-        respDiv.innerHTML = "<em>Consulting the book...</em>";
+        respDiv.innerHTML = "<em>Scanning 2026 methodology...</em>";
         
         try {
             const response = await fetch('/api/chat', {
@@ -100,7 +88,7 @@
             });
             const data = await response.json();
             respDiv.innerHTML = "<strong>Assistant:</strong> " + data.response.replace(/\n/g, '<br>');
-        } catch (e) { respDiv.innerHTML = "Error connecting to Assistant."; }
+        } catch (e) { respDiv.innerHTML = "Connection to Knowledge Base failed."; }
     }
 
     function drawProbabilityCone(currentPrice, iv) {
