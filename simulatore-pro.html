@@ -18,7 +18,7 @@
         .action-buy { color: #007bff; font-weight: bold; }
         .action-sell { color: #dc3545; font-weight: bold; }
         .unlimited { color: #28a745; font-weight: bold; text-transform: uppercase; }
-        .comment-cell { font-style: italic; color: #555; background: #fafafa; }
+        .desc-row { background: #fdfdfd; font-size: 0.85rem; color: #666; line-height: 1.4; }
         #chartContainer { width: 100%; height: 450px; margin: 20px 0; }
         .op-note { margin-top: 25px; padding: 15px; background: #fff9e6; border-radius: 8px; font-size: 0.85rem; border: 1px solid #ffeeba; }
     </style>
@@ -33,7 +33,7 @@
     </div>
     
     <div class="input-group">
-        <input type="text" id="ticker" placeholder="E.G. MSFT" maxlength="5">
+        <input type="text" id="ticker" placeholder="E.G. MA" maxlength="5">
         <button onclick="calcola()">Run Full Analysis</button>
     </div>
 
@@ -45,7 +45,7 @@
     <div id="tables-container"></div>
 
     <div class="op-note">
-        <strong>OPERATIONAL NOTE:</strong> All calculations refer to <strong>1 standard option contract</strong> (100 shares). Premia, risks, and profits are absolute dollar values and as a percentage of the capital required to buy 100 shares at the spot price.
+        <strong>OPERATIONAL NOTE:</strong> All calculations refer to <strong>1 standard option contract</strong> (100 shares). Max risks and Max profits are shown in absolute values and as a percentage of the total capital invested in the underlying.
     </div>
 
     <div id="chat-section" style="margin-top:30px; border-top:1px solid #eee; padding-top:20px;">
@@ -68,7 +68,7 @@
         const data = await response.json();
         
         document.getElementById('main-title').innerText = data.company;
-        document.getElementById('cap-invested').innerText = data.invested_capital.toLocaleString();
+        document.getElementById('cap-invested').innerText = data.inv_cap.toLocaleString();
         document.getElementById('summary-data').style.display = 'block';
         document.getElementById('spot').innerText = data.price;
         document.getElementById('iv').innerText = data.volatility;
@@ -82,15 +82,17 @@
                 <thead><tr><th colspan="4">${m.name}</th></tr></thead>
                 <tbody>
                     <tr>
-                        <td><strong>Action:</strong> <span class="${m.action === 'BUY' ? 'action-buy' : 'action-sell'}">${m.action} ${m.instrument}</span></td>
+                        <td><strong>Action:</strong> <span class="${m.action.includes('BUY') ? 'action-buy' : 'action-sell'}">${m.action}</span></td>
                         <td><strong>Strike:</strong> $${m.strike}</td>
                         <td><strong>Expiry:</strong> ${m.expiry}</td>
-                        <td><strong>Est. Premium:</strong> $${m.premium}</td>
+                        <td><strong>Est. Premium:</strong> $${m.prem}</td>
                     </tr>
                     <tr>
-                        <td><strong>Profit:</strong> <span class="${m.profit === 'UNLIMITED' ? 'unlimited' : ''}">${m.profit}</span></td>
-                        <td><strong>Max Risk:</strong> <span style="color:#dc3545; font-weight:bold;">${m.risk}</span></td>
-                        <td colspan="2" class="comment-cell"><strong>Comment:</strong> ${m.comment}</td>
+                        <td><strong>Max Profit:</strong> <span class="${m.max_profit === 'UNLIMITED' ? 'unlimited' : ''}">${m.max_profit}</span></td>
+                        <td colspan="3"><strong>Max Risk:</strong> <span style="color:#dc3545; font-weight:bold;">${m.max_risk}</span></td>
+                    </tr>
+                    <tr class="desc-row">
+                        <td colspan="4"><strong>Description:</strong> ${m.desc} <br><em>Note: ${m.comment}</em></td>
                     </tr>
                 </tbody>
             </table>`;
