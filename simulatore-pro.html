@@ -13,30 +13,28 @@
         input { padding: 12px; border: 2px solid #dfe3e8; border-radius: 8px; width: 220px; font-size: 16px; text-transform: uppercase; }
         button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .strategy-table { width: 100%; border-collapse: collapse; margin-top: 25px; background: #fff; border: 1px solid #eee; font-size: 14px; }
-        .strategy-table th { background: #333; color: #fff; padding: 12px; text-align: left; }
+        .strategy-table th { background: #333; color: #fff; padding: 12px; text-align: left; text-transform: uppercase; letter-spacing: 1px; }
         .strategy-table td { padding: 12px; border-bottom: 1px solid #eee; }
         .action-buy { color: #007bff; font-weight: bold; }
         .action-sell { color: #dc3545; font-weight: bold; }
         .unlimited { color: #28a745; font-weight: bold; text-transform: uppercase; }
         .desc-cell { font-size: 0.88rem; color: #444; line-height: 1.5; padding: 15px !important; border-right: 1px solid #eee; }
-        .comment-box { background: #f9f9f9; padding: 15px !important; font-style: italic; color: #666; font-size: 0.85rem; vertical-align: middle; width: 30%; }
+        .comment-box { background: #f9f9f9; padding: 15px !important; color: #666; font-size: 0.85rem; vertical-align: middle; width: 30%; }
         #chartContainer { width: 100%; height: 450px; margin: 20px 0; }
-        .op-note { margin-top: 25px; padding: 15px; background: #fff9e6; border-radius: 8px; font-size: 0.85rem; border: 1px solid #ffeeba; }
         
-        /* Layout Assistant Professionale */
+        /* Layout Assistant Coerente con le Macchine */
         #chat-response { 
-            margin-top: 20px; 
-            padding: 30px; 
-            background: #ffffff; 
-            border-radius: 12px; 
+            margin-top: 25px; 
+            padding: 0; 
+            background: #fff; 
+            border-radius: 8px; 
             display: none; 
-            border: 1px solid #dcdcdc; 
-            line-height: 1.8; 
-            color: #2c3e50;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+            overflow: hidden;
         }
-        #chat-response h2, #chat-response h3 { color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-top: 20px; }
-        #chat-response b, #chat-response strong { color: #000; }
+        .ai-header { background: #333; color: #fff; padding: 12px; font-weight: bold; text-transform: uppercase; font-size: 14px; }
+        .ai-body { padding: 20px; line-height: 1.6; font-size: 0.95rem; color: #2c3e50; }
+        .ai-body b { color: #000; font-weight: 700; }
     </style>
 </head>
 <body>
@@ -60,17 +58,16 @@
     <div id="chartContainer"><canvas id="probabilityChart"></canvas></div>
     <div id="tables-container"></div>
 
-    <div class="op-note">
-        <strong>OPERATIONAL NOTE:</strong> Calculations refer to 1 standard contract (100 shares). Max risks/profits are absolute values and as a percentage of the capital required to purchase 100 shares at spot.
-    </div>
-
     <div id="chat-section" style="margin-top:40px; border-top:1px solid #eee; padding-top:20px;">
         <h4 style="margin-bottom:15px; color: #333;">Ask the CRPM Assistant</h4>
         <div class="input-group">
-            <input type="text" id="chat-input" placeholder="What is CRPM methodology?" style="width: 75%;">
+            <input type="text" id="chat-input" placeholder="What to do with 100 MSFT in portfolio?" style="width: 75%;">
             <button onclick="askAI()" style="background: #007bff;">Ask Assistant</button>
         </div>
-        <div id="chat-response"></div>
+        <div id="chat-response">
+            <div class="ai-header">Analytical Engine Response</div>
+            <div class="ai-body" id="ai-content-body"></div>
+        </div>
     </div>
 </div>
 
@@ -109,7 +106,7 @@
                     </tr>
                     <tr>
                         <td colspan="3" class="desc-cell"><strong>Description:</strong> ${m.desc}</td>
-                        <td class="comment-box"><strong>Quick Note:</strong> ${m.comment}</td>
+                        <td class="comment-box">${m.comment}</td>
                     </tr>
                 </tbody>
             </table>`;
@@ -121,23 +118,17 @@
     async function askAI() {
         const query = document.getElementById('chat-input').value;
         const respDiv = document.getElementById('chat-response');
+        const bodyDiv = document.getElementById('ai-content-body');
         respDiv.style.display = 'block';
-        respDiv.innerHTML = "<em>Analyzing the CRPM methodology...</em>";
+        bodyDiv.innerHTML = "<em>Analyzing methodology and market parameters...</em>";
+        
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ query: query })
         });
         const data = await response.json();
-        
-        // Formattazione per rendere la risposta pulita (Headers e Grassetti)
-        let formatted = data.response
-            .replace(/\n\n/g, '<br><br>')
-            .replace(/^# (.*$)/gim, '<h2>$1</h2>')
-            .replace(/^## (.*$)/gim, '<h3>$1</h3>')
-            .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>');
-            
-        respDiv.innerHTML = formatted;
+        bodyDiv.innerHTML = data.response.replace(/\n/g, '<br>');
     }
 
     function drawProbabilityCone(price, iv) {
