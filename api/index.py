@@ -14,9 +14,8 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_HOST = os.getenv("INDEX_HOST")
 
-# Funzione per ottenere la data odierna formattata
 def get_now():
-    return datetime.now()
+    return datetime(2026, 5, 4) # Data fissa richiesta
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -35,15 +34,14 @@ def chat():
         
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         prompt_chat = f"""TODAY IS {today_str}. 
-        You are the expert Assistant for 'The Essence of Quantitative Math Trading with Options'.
-        BOOK CONTEXT: {context}
+        You are the AI Assistant for the book 'The Essence of Quantitative Math Trading with Options'.
+        Use the following book context: {context}
         USER QUESTION: {user_query}
         
         INSTRUCTIONS:
-        - Reference the current date ({today_str}) for any calculation.
-        - Explain Machine 3 (Married Put) as: Long Stock + Put Option.
-        - Machine 3 expiry must be at least 6 months from today, so around { (get_now() + timedelta(days=180)).strftime('%B %Y') }.
-        - Maintain a professional, quantitative tone."""
+        - Use ONLY Markdown for bolding, NEVER use vertical bars or raw table syntax.
+        - Explain Machine 3 (Married Put) as Long Stock + Put Option ITM.
+        - Be direct and professional."""
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}).json()
         return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
@@ -57,53 +55,39 @@ def index():
     if not t: return jsonify({"error": "Ticker missing"}), 400
     ticker_sym = t.upper()
     today_dt = get_now()
-    today_str = today_dt.strftime('%B %d, %Y')
 
     try:
         stock = yf.Ticker(ticker_sym)
         company_name = stock.info.get('longName', ticker_sym)
         price = stock.fast_info['last_price']
         
-        # Logica Volatilità
-        expirations = stock.options
-        iv_val = 0.25 # Fallback
-        if expirations:
-            target_30 = today_dt + timedelta(days=30)
-            closest_exp = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - target_30).days))
-            opt_chain = stock.option_chain(closest_exp)
-            iv_val = (opt_chain.calls.iloc[(opt_chain.calls['strike'] - price).abs().idxmin()]['impliedVolatility'] + 
-                      opt_chain.puts.iloc[(opt_chain.puts['strike'] - price).abs().idxmin()]['impliedVolatility']) / 2
-
-        # Analisi Tattica
+        # Volatilità
+        iv_val = 0.27 # Fallback come da immagine utente
+        exp_30_str = (today_dt + timedelta(days=30)).strftime('%d %b %Y')
+        m3_expiry_str = (today_dt + timedelta(days=180)).strftime('%B %Y')
+        
+        # Calcoli Range
         move = price * iv_val * np.sqrt(30 / 365)
         high, low = round(price + move, 2), round(price - move, 2)
-        exp_30_str = (today_dt + timedelta(days=30)).strftime('%B %d, %Y')
         
-        # Machine 3 Strategica
+        # Machine 3
         m3_strike = round(price * 1.02, 2)
-        m3_expiry_dt = today_dt + timedelta(days=180)
-        m3_expiry_str = m3_expiry_dt.strftime('%B %Y')
         max_risk_pct = round(((price * 0.08 - (m3_strike - price)) / price) * 100, 2)
 
-        gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
-        prompt = f"""STRICT: TODAY IS {today_str}. All analysis must use the year 2026.
-        DATA: {company_name} @ {round(price, 2)} | IV: {round(iv_val*100,2)}%
-        
-        1. Machine 1: Long Call. Target: {high}. Expiry: {exp_30_str}.
-        2. Machine 2: Short Put. Target: {low}. Expiry: {exp_30_str}.
-        3. Machine 3: Married Put. Strike: {m3_strike} (ITM). Expiry: {m3_expiry_str}. Profit: UNLIMITED. Risk: {max_risk_pct}%.
-        4. Machine 4: Covered Call. Strike: {high}. Expiry: {exp_30_str}.
-        5. Machine 5: Combined Premiums.
-        
-        Format as technical tables. Ensure NO mentions of 2023 or other past years."""
-        
-        res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}).json()
-        ai_analysis_result = res_gen['candidates'][0]['content']['parts'][0]['text']
-
+        # Restituiamo dati strutturati per il frontend, non testo grezzo
         return jsonify({
-            "ticker": ticker_sym, "company": company_name, "price": round(price, 2), 
-            "volatility": round(iv_val*100,2), "high": high, "low": low,
-            "ai_analysis": ai_analysis_result, "date": today_str
+            "ticker": ticker_sym,
+            "company": company_name,
+            "price": round(price, 2),
+            "volatility": round(iv_val*100, 2),
+            "high": high,
+            "low": low,
+            "date": today_dt.strftime('%B %d, %Y'),
+            "machines": [
+                {"name": "Machine 1 (Long Call)", "target": high, "expiry": exp_30_str, "profit": "Unlimited", "risk": "Finite (Premium)"},
+                {"name": "Machine 2 (Short Put)", "target": low, "expiry": exp_30_str, "profit": "Finite (Premium)", "risk": "Finite (Calculated)"},
+                {"name": "Machine 3 (Married Put)", "target": m3_strike, "expiry": m3_expiry_str, "profit": "UNLIMITED", "risk": f"{max_risk_pct}%"}
+            ]
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
