@@ -14,6 +14,38 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_HOST = os.getenv("INDEX_HOST")
 
+# --- NUOVO ENDPOINT PER LA CHAT LIBERA CON IL LIBRO ---
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    data = request.get_json()
+    user_query = data.get('query')
+    if not user_query: return jsonify({"error": "Query missing"}), 400
+    
+    try:
+        pc = Pinecone(api_key=PINECONE_API_KEY)
+        index_pc = pc.Index(host=INDEX_HOST)
+        
+        # Embedding della domanda
+        res_emb = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}", 
+            json={"model": "models/gemini-embedding-2", "content": {"parts": [{"text": user_query}]}, "output_dimensionality": 768}).json()
+        query_v = res_emb['embedding']['values']
+        
+        # Recupero contesto dal libro
+        search = index_pc.query(vector=query_v, top_k=5, include_metadata=True)
+        context = "\n".join([m.metadata["text"] for m in search.matches])
+        
+        # Generazione risposta citando il libro
+        gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
+        prompt_chat = f"""You are the Assistant for 'The Essence of Quantitative Math Trading with Options'. 
+        Based ONLY on this context: {context}
+        Answer the user: {user_query}. 
+        Cite chapters if mentioned. Tone: Professional. No financial advice."""
+        
+        res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}).json()
+        return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/index', methods=['POST', 'GET'])
 def index():
     data = request.get_json(silent=True) or {}
@@ -23,11 +55,9 @@ def index():
 
     try:
         stock = yf.Ticker(ticker_sym)
-        # Recupero Nome Azienda e Prezzo
         company_name = stock.info.get('longName', ticker_sym)
         price = stock.fast_info['last_price']
         
-        # --- GESTIONE VOLATILITÀ (FALLBACK SE 0) ---
         expirations = stock.options
         target_date = datetime.now() + timedelta(days=30)
         closest_exp = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - target_date).days))
@@ -36,74 +66,36 @@ def index():
         iv_val = (opt_chain.calls.iloc[(opt_chain.calls['strike'] - price).abs().idxmin()]['impliedVolatility'] + 
                   opt_chain.puts.iloc[(opt_chain.puts['strike'] - price).abs().idxmin()]['impliedVolatility']) / 2
         
-        if iv_val <= 0: # Fallback su volatilità storica se mercato chiuso
+        if iv_val <= 0:
             hist = stock.history(period="1mo")
             iv_val = np.log(hist['Close'] / hist['Close'].shift(1)).std() * np.sqrt(252) if not hist.empty else 0.25
 
-        # --- MOTORE QUANTITATIVO ---
         move = price * iv_val * np.sqrt(30 / 365)
         high, low = round(price + move, 2), round(price - move, 2)
         
-        # --- PARAMETRI MACHINE 3 (LIBRO) ---
-        m3_strike = round(price * 1.02, 2) # ITM
+        m3_strike = round(price * 1.02, 2)
         m3_expiry = (datetime.now() + timedelta(days=180)).strftime('%B %Y')
-        est_premium = price * 0.08 # Stima premio 6 mesi
+        est_premium = price * 0.08
         max_risk_monetary = round((est_premium - (m3_strike - price)) * 100, 2)
         max_risk_pct = round((max_risk_monetary / (price * 100)) * 100, 2)
 
-        # --- RAG LOGIC ---
-        pc = Pinecone(api_key=PINECONE_API_KEY)
-        index_pc = pc.Index(host=INDEX_HOST)
-        search_query = "Technical definitions: Machine 3 Married Put ITM 6 months unlimited profit"
-        
-        res_emb = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}", 
-            json={"model": "models/gemini-embedding-2", "content": {"parts": [{"text": search_query}]}, "output_dimensionality": 768}).json()
-        
-        query_v = res_emb['embedding']['values']
-        search = index_pc.query(vector=query_v, top_k=10, include_metadata=True)
-        context = "\n".join([m.metadata["text"] for m in search.matches])
-        
-        # --- PROMPT AGGIORNATO ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
+        
+        # PROMPT STRUTTURATO PER TABELLE TECNICHE
         prompt = f"""
-        STRICT INSTRUCTION: Respond EXCLUSIVELY in English. Tone: Clinical and Quantitative.
-        NO names. Refer only to "the methodology" or "the model". No asterisks or hashes.
+        STRICT INSTRUCTION: Respond EXCLUSIVELY in English. Use clinical, quantitative tone. No asterisks.
+        FORMAT: Provide a structured technical summary for each Machine (1-5).
+        
+        DATA: {company_name} ({ticker_sym}) @ {round(price, 2)} | 1-Sigma: {low}-{high}
+        
+        For each Machine, list:
+        - TARGET: (Bullish/Neutral/Protection)
+        - TECHNICALS: (Strike and Expiry)
+        - RISK PROFILE: (Finite or Unbounded)
+        - PROFIT PROFILE: (Finite or Unbounded)
+        - RATIONALE: (Why per CRPM methodology)
 
-        DATA: {company_name} ({ticker_sym}) @ {round(price, 2)}
-        30-day 1-Sigma: {low} - {high} | IV: {round(iv_val*100,2)}%
-        Machine 3 Params: Strike {m3_strike} ITM, Expiry {m3_expiry}, Max Risk {max_risk_pct}%.
-
-        MANDATORY STRUCTURE:
-        Volatility Analysis: (Technical comment on IV and price boundaries)
-
-        Machine 1: Long Call Based
-        Application: Bullish
-        Technical Details: Strike near {high}
-        Rationale: Quantitative upside exposure.
-
-        Machine 2: Short Put Based
-        Application: Neutral-Bullish
-        Technical Details: Strike near {low}
-        Rationale: Volatility harvesting.
-
-        Machine 3: Married Put Based
-        Application: Strategic Protection for underlying shares.
-        Technical Details: Buy Put at {m3_strike} with expiry {m3_expiry}.
-        Rationale: As per the book, uses ITM strike and 6+ months duration to minimize Theta decay. 
-        Max Risk: {max_risk_pct}% of capital. Max Profit: UNLIMITED.
-
-        Machine 4: Covered Call Based
-        Application: Yield generation.
-        Technical Details: Sell Call at {high}.
-        Rationale: Disciplined profit harvesting at upper boundary.
-
-        Machine 5: Assigned Short Put + Covered Call
-        Application: Cost basis reduction.
-        Technical Details: Sum of premiums from Put and Call.
-        Rationale: Building measurable returns through market instability.
-
-        Risk Summary: Investing is transformed from an intuitive act into a disciplined process.
-        LEGAL: This is a mathematical model, not financial advice.
+        Machine 3 must use {m3_strike} strike and {m3_expiry} expiry. Others use 30-day targets.
         """
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}).json()
