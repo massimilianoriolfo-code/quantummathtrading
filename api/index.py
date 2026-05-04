@@ -24,7 +24,7 @@ def find_nearest_strike(chain, target):
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.get_json()
-    user_query = data.get('query') # Rimosso .upper() per mantenere caratteri normali
+    user_query = data.get('query')
     today_str = get_now().strftime('%B %d, %Y')
     try:
         pc = Pinecone(api_key=PINECONE_API_KEY)
@@ -46,7 +46,7 @@ def chat():
         1. Respond EXCLUSIVELY in English.
         2. NO personal names. NO square brackets [].
         3. Use ONLY bold text for section titles (e.g., **Title:**).
-        4. If query is about owning 100 shares, ALWAYS present two options:
+        4. If the query is about owning 100 shares, ALWAYS present two options:
            - **Machine 3: Married Put Based** (For structural protection).
            - **Machine 4: Covered Call Based** (For yield generation).
         5. DO NOT mention Expected Value or E(X) formulas.
@@ -108,13 +108,13 @@ def index():
                 },
                 {
                     "name": "Machine 3: Married Put Based", "action": "BUY PUT (+100 Shares)", "strike": s_put_180, "expiry": exp_180, "prem": f2(p_put_180),
-                    "max_profit": "UNLIMITED", "max_risk": f"${f2(round((p_put_180 + (price - s_put_180))*100, 2))} ({pct((p_put_180 + (price - s_put_180))*100)})",
+                    "max_profit": "UNLIMITED", "max_risk": f"${f2(round(p_put_180*100 + (price - s_put_180)*100, 2))} ({pct(p_put_180*100 + (price - s_put_180)*100)})",
                     "comment": "Structural hedging.",
                     "desc": "Strategic long-term protection using an ITM Put (6+ months) to protect capital."
                 },
                 {
                     "name": "Machine 4: Covered Call Based", "action": "SELL CALL (+100 Shares)", "strike": s_call, "expiry": exp_30, "prem": f2(p_call),
-                    "max_profit": f"${f2(round((p_call + (s_call - price))*100, 2))} ({pct((p_call + (s_call - price))*100)})", "max_risk": "Finite (Stock Ownership)",
+                    "max_profit": f"${f2(round(p_call*100 + (s_call - price)*100, 2))} ({pct(p_call*100 + (s_call - price)*100)})", "max_risk": "Finite (Stock Ownership)",
                     "comment": "Yield enhancement.",
                     "desc": "Generates income on existing holdings, capping upside at strike price."
                 },
