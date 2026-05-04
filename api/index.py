@@ -5,9 +5,14 @@ import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from datetime import datetime, timedelta
+from pinecone import Pinecone
 
 app = Flask(__name__)
 CORS(app)
+
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+INDEX_HOST = os.getenv("INDEX_HOST")
 
 def get_now():
     return datetime(2026, 5, 4)
@@ -15,6 +20,27 @@ def get_now():
 def find_nearest_strike(chain, target):
     strikes = chain['strike'].values
     return strikes[np.abs(strikes - target).argmin()]
+
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    data = request.get_json()
+    user_query = data.get('query')
+    today_str = get_now().strftime('%B %d, %Y')
+    try:
+        pc = Pinecone(api_key=PINECONE_API_KEY)
+        index_pc = pc.Index(host=INDEX_HOST)
+        res_emb = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}", 
+            json={"model": "models/gemini-embedding-2", "content": {"parts": [{"text": user_query}]}, "output_dimensionality": 768}).json()
+        query_v = res_emb['embedding']['values']
+        search = index_pc.query(vector=query_v, top_k=10, include_metadata=True)
+        context = "\n".join([m.metadata["text"] for m in search.matches])
+        
+        gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
+        prompt_chat = f"TODAY IS {today_str}. You are the Assistant for 'The Essence of Quantitative Math Trading'. Use context: {context}. User: {user_query}. Respond in English only."
+        res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}).json()
+        return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/index', methods=['POST', 'GET'])
 def index():
@@ -30,33 +56,26 @@ def index():
         price = round(stock.fast_info['last_price'], 2)
         invested_capital = price * 100
         
-        # 1. Recupero scadenze reali
         expirations = stock.options
         if not expirations: return jsonify({"error": "No options available"}), 400
 
-        # Scadenza 30gg (Tattica)
-        target_30 = today_dt + timedelta(days=30)
-        exp_30 = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - target_30).days))
-        
-        # Scadenza 6 mesi (Strategica)
-        target_180 = today_dt + timedelta(days=180)
-        exp_180 = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - target_180).days))
+        # Scadenze Reali
+        exp_30 = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - (today_dt + timedelta(days=30))).days))
+        exp_180 = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - (today_dt + timedelta(days=180))).days))
 
-        # 2. Analisi Tattica (1-Sigma)
-        iv_val = 0.27 # Utilizziamo IV media per il calcolo del cono
+        # Analisi Tattica
+        iv_val = 0.27 
         move = price * iv_val * np.sqrt(30 / 365)
-        high_target, low_target = price + move, price - move
-
-        # 3. Estrazione Premi Reali per Macchine
+        
         chain_30 = stock.option_chain(exp_30)
         chain_180 = stock.option_chain(exp_180)
 
         # Machine 1 & 4 (Call)
-        strike_call = find_nearest_strike(chain_30.calls, high_target)
+        strike_call = find_nearest_strike(chain_30.calls, price + move)
         prem_call = chain_30.calls[chain_30.calls['strike'] == strike_call]['lastPrice'].values[0]
 
         # Machine 2 (Put)
-        strike_put_30 = find_nearest_strike(chain_30.puts, low_target)
+        strike_put_30 = find_nearest_strike(chain_30.puts, price - move)
         prem_put_30 = chain_30.puts[chain_30.puts['strike'] == strike_put_30]['lastPrice'].values[0]
 
         # Machine 3 (Put ITM 6 mesi)
@@ -67,25 +86,41 @@ def index():
 
         return jsonify({
             "ticker": ticker_sym, "company": company_name, "price": price,
-            "invested_capital": invested_capital, "date": today_dt.strftime('%B %d, %Y'),
+            "invested_capital": invested_capital, "volatility": round(iv_val*100, 2),
+            "high": strike_call, "low": strike_put_30, "date": today_dt.strftime('%B %d, %Y'),
             "machines": [
                 {
                     "name": "Machine 1: Long Call Based", "action": "BUY", "instrument": "CALL",
                     "strike": strike_call, "expiry": exp_30, "premium": prem_call,
-                    "profit": "Unlimited", "risk": f"${prem_call*100} ({fmt_pct(prem_call*100)})",
-                    "comment": "Bullish. Buying the upper boundary strike."
+                    "profit": "Unlimited", "risk": f"${round(prem_call*100, 2)} ({fmt_pct(prem_call*100)})",
+                    "comment": "Bullish stance. Leverages momentum at the upper boundary."
                 },
                 {
                     "name": "Machine 2: Short Put Based", "action": "SELL", "instrument": "PUT",
                     "strike": strike_put_30, "expiry": exp_30, "premium": prem_put_30,
-                    "profit": f"${prem_put_30*100} ({fmt_pct(prem_put_30*100)})", "risk": f"${strike_put_30*100} (Cash Secured)",
-                    "comment": "Income. Selling the lower boundary strike."
+                    "profit": f"${round(prem_put_30*100, 2)} ({fmt_pct(prem_put_30*100)})", 
+                    "risk": f"${round(strike_put_30*100, 2)} (Cash Secured)",
+                    "comment": "Income generation. Selling the lower boundary."
                 },
                 {
                     "name": "Machine 3: Married Put Based", "action": "BUY", "instrument": "PUT (+100 Shares)",
                     "strike": strike_put_180, "expiry": exp_180, "premium": prem_put_180,
-                    "profit": "UNLIMITED", "risk": f"${round((prem_put_180 + (price - strike_put_180))*100, 2)} ({fmt_pct((prem_put_180 + (price - strike_put_180))*100)})",
-                    "comment": "Strategic protection with ITM Put 6+ months."
+                    "profit": "UNLIMITED", 
+                    "risk": f"${round((prem_put_180 + (price - strike_put_180))*100, 2)} ({fmt_pct((prem_put_180 + (price - strike_put_180))*100)})",
+                    "comment": "Strategic protection. ITM Put for structural hedging."
+                },
+                {
+                    "name": "Machine 4: Covered Call Based", "action": "SELL", "instrument": "CALL (+100 Shares)",
+                    "strike": strike_call, "expiry": exp_30, "premium": prem_call,
+                    "profit": f"${round((prem_call + (strike_call - price))*100, 2)} ({fmt_pct((prem_call + (strike_call - price))*100)})",
+                    "risk": "Finite (Stock Ownership)",
+                    "comment": "Yield enhancement. Monetizing sideways or slightly bullish markets."
+                },
+                {
+                    "name": "Machine 5: Assigned Short Put + Covered Call", "action": "COMBINED", "instrument": "PUT & CALL",
+                    "strike": f"{strike_put_30} / {strike_call}", "expiry": exp_30, "premium": round(prem_call + prem_put_30, 2),
+                    "profit": "Enhanced Yield", "risk": "Reduced Cost Basis",
+                    "comment": "Systematic cost basis reduction via dual premium harvesting."
                 }
             ]
         })
