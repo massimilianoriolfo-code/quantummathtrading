@@ -18,9 +18,24 @@
         .action-buy { color: #007bff; font-weight: bold; }
         .action-sell { color: #dc3545; font-weight: bold; }
         .unlimited { color: #28a745; font-weight: bold; text-transform: uppercase; }
-        .desc-row { background: #fdfdfd; font-size: 0.85rem; color: #666; line-height: 1.4; }
+        .desc-row { background: #fdfdfd; font-size: 0.88rem; color: #444; line-height: 1.5; padding: 15px !important; }
+        .note-text { font-style: italic; color: #777; margin-top: 5px; display: block; }
         #chartContainer { width: 100%; height: 450px; margin: 20px 0; }
         .op-note { margin-top: 25px; padding: 15px; background: #fff9e6; border-radius: 8px; font-size: 0.85rem; border: 1px solid #ffeeba; }
+        
+        /* Layout Migliorato Assistant */
+        #chat-response { 
+            margin-top: 15px; 
+            padding: 25px; 
+            background: #ffffff; 
+            border-radius: 12px; 
+            display: none; 
+            border: 1px solid #e0e0e0; 
+            line-height: 1.7; 
+            color: #2c3e50;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+        #chat-response b, #chat-response strong { color: #000; font-weight: 700; }
     </style>
 </head>
 <body>
@@ -45,16 +60,16 @@
     <div id="tables-container"></div>
 
     <div class="op-note">
-        <strong>OPERATIONAL NOTE:</strong> All calculations refer to <strong>1 standard option contract</strong> (100 shares). Max risks and Max profits are shown in absolute values and as a percentage of the total capital invested in the underlying.
+        <strong>OPERATIONAL NOTE:</strong> All calculations refer to <strong>1 standard option contract</strong> (100 shares). Max risks and Max profits are shown in absolute values and as a percentage of the total capital required to buy 100 shares at the spot price.
     </div>
 
-    <div id="chat-section" style="margin-top:30px; border-top:1px solid #eee; padding-top:20px;">
-        <h4>Ask the CRPM Assistant</h4>
+    <div id="chat-section" style="margin-top:40px; border-top:1px solid #eee; padding-top:20px;">
+        <h4 style="margin-bottom:15px;">Ask the CRPM Assistant</h4>
         <div class="input-group">
-            <input type="text" id="chat-input" placeholder="How to hedge MSFT?" style="width: 70%;">
-            <button onclick="askAI()" style="background: #007bff;">Ask</button>
+            <input type="text" id="chat-input" placeholder="How to invest 100K USD?" style="width: 75%;">
+            <button onclick="askAI()" style="background: #007bff;">Ask Assistant</button>
         </div>
-        <div id="chat-response" style="margin-top:10px; padding:15px; background:#f8f9fa; border-radius:8px; display:none;"></div>
+        <div id="chat-response"></div>
     </div>
 </div>
 
@@ -68,7 +83,7 @@
         const data = await response.json();
         
         document.getElementById('main-title').innerText = data.company;
-        document.getElementById('cap-invested').innerText = data.inv_cap.toLocaleString();
+        document.getElementById('cap-invested').innerText = data.inv_cap.toLocaleString(undefined, {minimumFractionDigits: 2});
         document.getElementById('summary-data').style.display = 'block';
         document.getElementById('spot').innerText = data.price;
         document.getElementById('iv').innerText = data.volatility;
@@ -82,37 +97,41 @@
                 <thead><tr><th colspan="4">${m.name}</th></tr></thead>
                 <tbody>
                     <tr>
-                        <td><strong>Action:</strong> <span class="${m.action.includes('BUY') ? 'action-buy' : 'action-sell'}">${m.action}</span></td>
-                        <td><strong>Strike:</strong> $${m.strike}</td>
-                        <td><strong>Expiry:</strong> ${m.expiry}</td>
-                        <td><strong>Est. Premium:</strong> $${m.prem}</td>
+                        <td width="25%"><strong>Action:</strong> <span class="${m.action.includes('BUY') ? 'action-buy' : 'action-sell'}">${m.action}</span></td>
+                        <td width="25%"><strong>Strike:</strong> $${m.strike}</td>
+                        <td width="25%"><strong>Expiry:</strong> ${m.expiry}</td>
+                        <td width="25%"><strong>Est. Premium:</strong> $${m.prem}</td>
                     </tr>
                     <tr>
                         <td><strong>Max Profit:</strong> <span class="${m.max_profit === 'UNLIMITED' ? 'unlimited' : ''}">${m.max_profit}</span></td>
                         <td colspan="3"><strong>Max Risk:</strong> <span style="color:#dc3545; font-weight:bold;">${m.max_risk}</span></td>
                     </tr>
                     <tr class="desc-row">
-                        <td colspan="4"><strong>Description:</strong> ${m.desc} <br><em>Note: ${m.comment}</em></td>
+                        <td colspan="4">
+                            <strong>Description:</strong> ${m.desc}
+                            <span class="note-text">Note: ${m.comment}</span>
+                        </td>
                     </tr>
                 </tbody>
             </table>`;
         });
         document.getElementById('tables-container').innerHTML = html;
-        drawProbabilityCone(data.price, data.volatility / 100);
+        drawProbabilityCone(parseFloat(data.price), data.volatility / 100);
     }
 
     async function askAI() {
         const query = document.getElementById('chat-input').value;
         const respDiv = document.getElementById('chat-response');
         respDiv.style.display = 'block';
-        respDiv.innerHTML = "<em>Analyzing...</em>";
+        respDiv.innerHTML = "<em>Analyzing chapters and methodology...</em>";
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ query: query })
         });
         const data = await response.json();
-        respDiv.innerHTML = "<strong>Assistant:</strong> " + data.response;
+        // Sostituzione ritorni a capo per HTML
+        respDiv.innerHTML = data.response.replace(/\n/g, '<br>');
     }
 
     function drawProbabilityCone(price, iv) {
