@@ -5,19 +5,69 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CRPM Strategy Hub</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- MathJax per le formule E(X) -->
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
-        /* ... (Stili precedenti invariati per mantenere il layout approvato) ... */
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; background: #f4f7f9; color: #333; }
+        .card { background: white; padding: 30px; border-radius: 16px; max-width: 1000px; margin: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #e1e8ed; }
+        .header-info { text-align: center; margin-bottom: 25px; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+        input { padding: 12px; border: 2px solid #dfe3e8; border-radius: 8px; width: 220px; font-size: 16px; text-transform: uppercase; }
+        button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .strategy-table { width: 100%; border-collapse: collapse; margin-top: 25px; background: #fff; border: 1px solid #eee; font-size: 14px; }
+        .strategy-table th { background: #333; color: #fff; padding: 12px; text-align: left; text-transform: uppercase; letter-spacing: 1px; }
+        .strategy-table td { padding: 12px; border-bottom: 1px solid #eee; }
+        .action-buy { color: #007bff; font-weight: bold; }
+        .action-sell { color: #dc3545; font-weight: bold; }
+        .unlimited { color: #28a745; font-weight: bold; text-transform: uppercase; }
+        .desc-cell { font-size: 0.88rem; color: #444; line-height: 1.5; padding: 15px !important; border-right: 1px solid #eee; }
+        .comment-box { background: #f9f9f9; padding: 15px !important; color: #666; font-size: 0.85rem; vertical-align: middle; width: 30%; }
+        #chartContainer { width: 100%; height: 450px; margin: 20px 0; }
+        .op-note { margin-top: 25px; padding: 15px; background: #fff9e6; border-radius: 8px; font-size: 0.85rem; border: 1px solid #ffeeba; }
+        
+        /* Layout Assistant Coerente */
+        #chat-response { 
+            margin-top: 25px; 
+            padding: 0; 
+            background: #fff; 
+            border-radius: 8px; 
+            display: none; 
+            border: 1px solid #eee;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .ai-header { background: #333; color: #fff; padding: 12px; font-weight: bold; text-transform: uppercase; font-size: 14px; text-align: center; }
         .ai-body { padding: 25px; line-height: 1.8; font-size: 1rem; color: #2c3e50; }
         .ai-body strong { color: #000; font-weight: 700; display: block; margin-top: 15px; }
     </style>
 </head>
 <body>
-<div class="card">
-    <!-- ... (Header e Input precedenti) ... -->
 
-    <div id="chat-section">
+<div class="card">
+    <div class="header-info">
+        <h2 id="main-title">CRPM Quantitative Analysis</h2>
+        <div id="display-date" style="color:#888;">May 04, 2026</div>
+        <div style="margin-top:5px; font-size: 0.95rem;"><strong>Capital Invested (100 Shares):</strong> $<span id="cap-invested">---</span></div>
+    </div>
+    
+    <div class="input-group">
+        <input type="text" id="ticker" placeholder="ENTER TICKER" maxlength="5">
+        <button onclick="calcola()">Run CRPM Analysis</button>
+    </div>
+
+    <div id="summary-data" style="text-align:center; font-weight:bold; margin-bottom:10px; display:none;">
+        Spot: $<span id="spot"></span> | IV: <span id="iv"></span>% | 1-Sigma: $<span id="low"></span> - $<span id="high"></span>
+    </div>
+
+    <div id="chartContainer"><canvas id="probabilityChart"></canvas></div>
+    <div id="tables-container"></div>
+
+    <div class="op-note">
+        <strong>OPERATIONAL NOTE:</strong> Calculations refer to 1 standard contract (100 shares). Max risks/profits are absolute values and as a percentage of the capital required to purchase 100 shares at spot.
+    </div>
+
+    <div id="chat-section" style="margin-top:40px; border-top:1px solid #eee; padding-top:20px;">
         <h4 style="margin-bottom:15px; color: #333;">Ask the CRPM Assistant</h4>
         <div class="input-group">
             <input type="text" id="chat-input" placeholder="What to do with 100 MSFT in portfolio?" style="width: 75%;">
@@ -31,7 +81,48 @@
 </div>
 
 <script>
-    // ... (Funzione calcola precedente) ...
+    let myChart = null;
+
+    async function calcola() {
+        const t = document.getElementById('ticker').value.toUpperCase();
+        if(!t) return;
+        const response = await fetch('/api/index?ticker=' + t);
+        const data = await response.json();
+        
+        document.getElementById('main-title').innerText = data.company;
+        document.getElementById('cap-invested').innerText = parseFloat(data.inv_cap).toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('summary-data').style.display = 'block';
+        document.getElementById('spot').innerText = data.price;
+        document.getElementById('iv').innerText = data.volatility;
+        document.getElementById('low').innerText = data.low;
+        document.getElementById('high').innerText = data.high;
+
+        let html = '';
+        data.machines.forEach(m => {
+            html += `
+            <table class="strategy-table">
+                <thead><tr><th colspan="4">${m.name}</th></tr></thead>
+                <tbody>
+                    <tr>
+                        <td width="25%"><strong>Action:</strong> <span class="${m.action.includes('BUY') ? 'action-buy' : 'action-sell'}">${m.action}</span></td>
+                        <td width="25%"><strong>Strike:</strong> $${m.strike}</td>
+                        <td width="25%"><strong>Expiry:</strong> ${m.expiry}</td>
+                        <td width="25%"><strong>Est. Premium:</strong> $${m.prem}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Max Profit:</strong> <span class="${m.max_profit === 'UNLIMITED' ? 'unlimited' : ''}">${m.max_profit}</span></td>
+                        <td colspan="3"><strong>Max Risk:</strong> <span style="color:#dc3545; font-weight:bold;">${m.max_risk}</span></td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" class="desc-cell"><strong>Description:</strong> ${m.desc}</td>
+                        <td class="comment-box"><strong>Note:</strong> ${m.comment}</td>
+                    </tr>
+                </tbody>
+            </table>`;
+        });
+        document.getElementById('tables-container').innerHTML = html;
+        drawProbabilityCone(parseFloat(data.price), data.volatility / 100);
+    }
 
     async function askAI() {
         const query = document.getElementById('chat-input').value;
@@ -47,17 +138,43 @@
         });
         const data = await response.json();
         
-        // Formattazione pulita: trasforma i grassetti e gestisce LaTeX
+        // Formattazione grassetti e LaTeX
         let formatted = data.response
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\n/g, '<br>');
             
         bodyDiv.innerHTML = formatted;
         
-        // Forza MathJax a renderizzare le formule caricate dinamicamente
+        // Renderizza formule
         if (window.MathJax) {
             MathJax.typesetPromise([bodyDiv]);
         }
+    }
+
+    function drawProbabilityCone(price, iv) {
+        const ctx = document.getElementById('probabilityChart').getContext('2d');
+        const labels = []; const u = []; const l = []; const s = [];
+        const today = new Date("2026-05-04");
+        for (let d = 0; d <= 30; d++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + d);
+            labels.push(date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }));
+            const move = price * iv * Math.sqrt(d / 365);
+            u.push(price + move); l.push(price - move); s.push(price);
+        }
+        if (myChart) myChart.destroy();
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: '+1σ Boundary', data: u, borderColor: '#2ecc71', pointRadius: 0, fill: false, tension: 0.3 },
+                    { label: '-1σ Boundary', data: l, borderColor: '#e74c3c', pointRadius: 0, fill: '-1', backgroundColor: 'rgba(46, 204, 113, 0.05)', tension: 0.3 },
+                    { label: 'Spot Price', data: s, borderColor: '#bdc3c7', borderDash: [5, 5], pointRadius: 0, fill: false }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { mode: 'index', intersect: false } } }
+        });
     }
 </script>
 </body>
