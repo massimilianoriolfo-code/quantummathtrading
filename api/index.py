@@ -10,7 +10,6 @@ from pinecone import Pinecone
 app = Flask(__name__)
 CORS(app)
 
-# --- CONFIGURAZIONE ---
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_HOST = os.getenv("INDEX_HOST")
@@ -20,13 +19,15 @@ def index():
     data = request.get_json(silent=True) or {}
     t = data.get('ticker') or request.args.get('ticker')
     if not t: return jsonify({"error": "Ticker missing"}), 400
-    ticker = t.upper()
+    ticker_sym = t.upper()
 
     try:
-        stock = yf.Ticker(ticker)
+        stock = yf.Ticker(ticker_sym)
+        # Recupero Nome Azienda e Prezzo
+        company_name = stock.info.get('longName', ticker_sym)
         price = stock.fast_info['last_price']
         
-        # --- MOTORE QUANTITATIVO (Dati Oggettivi) ---
+        # --- GESTIONE VOLATILITÀ (FALLBACK SE 0) ---
         expirations = stock.options
         target_date = datetime.now() + timedelta(days=30)
         closest_exp = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - target_date).days))
@@ -35,82 +36,83 @@ def index():
         iv_val = (opt_chain.calls.iloc[(opt_chain.calls['strike'] - price).abs().idxmin()]['impliedVolatility'] + 
                   opt_chain.puts.iloc[(opt_chain.puts['strike'] - price).abs().idxmin()]['impliedVolatility']) / 2
         
+        if iv_val <= 0: # Fallback su volatilità storica se mercato chiuso
+            hist = stock.history(period="1mo")
+            iv_val = np.log(hist['Close'] / hist['Close'].shift(1)).std() * np.sqrt(252) if not hist.empty else 0.25
+
+        # --- MOTORE QUANTITATIVO ---
         move = price * iv_val * np.sqrt(30 / 365)
         high, low = round(price + move, 2), round(price - move, 2)
-        iv_pct = round(iv_val * 100, 2)
-        curr_p = round(price, 2)
+        
+        # --- PARAMETRI MACHINE 3 (LIBRO) ---
+        m3_strike = round(price * 1.02, 2) # ITM
+        m3_expiry = (datetime.now() + timedelta(days=180)).strftime('%B %Y')
+        est_premium = price * 0.08 # Stima premio 6 mesi
+        max_risk_monetary = round((est_premium - (m3_strike - price)) * 100, 2)
+        max_risk_pct = round((max_risk_monetary / (price * 100)) * 100, 2)
 
         # --- RAG LOGIC ---
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
-        search_query = "Technical definitions: Machine 1 to 5, Long Call, Short Put, Married Put, Covered Call, Assigned Short Put + Covered Call"
+        search_query = "Technical definitions: Machine 3 Married Put ITM 6 months unlimited profit"
         
         res_emb = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}", 
             json={"model": "models/gemini-embedding-2", "content": {"parts": [{"text": search_query}]}, "output_dimensionality": 768}).json()
         
         query_v = res_emb['embedding']['values']
-        search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
+        search = index_pc.query(vector=query_v, top_k=10, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # --- PROMPT INVIOLABILE ---
+        # --- PROMPT AGGIORNATO ---
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
-        
         prompt = f"""
         STRICT INSTRUCTION: Respond EXCLUSIVELY in English. Tone: Clinical and Quantitative.
-        NO names. Refer only to "the methodology" or "the model".
-        DO NOT use asterisks (*). No hash symbols (#).
+        NO names. Refer only to "the methodology" or "the model". No asterisks or hashes.
 
-        DATA: {ticker} @ {curr_p} | 30-day 1-Sigma: {low} - {high} | IV: {iv_pct}%
+        DATA: {company_name} ({ticker_sym}) @ {round(price, 2)}
+        30-day 1-Sigma: {low} - {high} | IV: {round(iv_val*100,2)}%
+        Machine 3 Params: Strike {m3_strike} ITM, Expiry {m3_expiry}, Max Risk {max_risk_pct}%.
 
-        MANDATORY MACHINE LOGIC:
-        1. Machine 1: Long Call Based. (Action: BUY Call).
-        2. Machine 2: Short Put Based. (Action: SELL Put).
-        3. Machine 3: Married Put Based. (Action: Long Stock + BUY Put Option. This is a COST for insurance).
-        4. Machine 4: Covered Call Based. (Action: Long Stock + SELL Call).
-        5. Machine 5: Assigned Short Put + Covered Call. (Action: Combined premiums from Put and Call are ADDED to reduce cost basis).
-
-        For Technical Details, select strikes as integers or .5 based on {low} and {high}.
-
-        OUTPUT STRUCTURE:
-        Volatility Analysis: (Technical comment)
+        MANDATORY STRUCTURE:
+        Volatility Analysis: (Technical comment on IV and price boundaries)
 
         Machine 1: Long Call Based
-        Application: 
-        Technical Details: 
-        Rationale: 
+        Application: Bullish
+        Technical Details: Strike near {high}
+        Rationale: Quantitative upside exposure.
 
         Machine 2: Short Put Based
-        Application: 
-        Technical Details: 
-        Rationale: 
+        Application: Neutral-Bullish
+        Technical Details: Strike near {low}
+        Rationale: Volatility harvesting.
 
         Machine 3: Married Put Based
-        Application: (Buying protection for the underlying)
-        Technical Details: (Buying Put at nearest strike to {low})
-        Rationale: 
+        Application: Strategic Protection for underlying shares.
+        Technical Details: Buy Put at {m3_strike} with expiry {m3_expiry}.
+        Rationale: As per the book, uses ITM strike and 6+ months duration to minimize Theta decay. 
+        Max Risk: {max_risk_pct}% of capital. Max Profit: UNLIMITED.
 
         Machine 4: Covered Call Based
-        Application: 
-        Technical Details:_ (Selling Call at nearest strike to {high})
-        Rationale: 
+        Application: Yield generation.
+        Technical Details: Sell Call at {high}.
+        Rationale: Disciplined profit harvesting at upper boundary.
 
-        Machine 5: Assigned Short Put + Covered Call**
-        Application: 
-        Technical Details: (Explain the sum of premiums received)
-        Rationale: 
+        Machine 5: Assigned Short Put + Covered Call
+        Application: Cost basis reduction.
+        Technical Details: Sum of premiums from Put and Call.
+        Rationale: Building measurable returns through market instability.
 
-        Risk Summary:** (One sentence)
-
-        IMPORTANT LEGAL NOTE:
-        This analysis is based on mathematical models and does not constitute financial advice. All trading involves risk.
+        Risk Summary: Investing is transformed from an intuitive act into a disciplined process.
+        LEGAL: This is a mathematical model, not financial advice.
         """
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}).json()
         ai_analysis_result = res_gen['candidates'][0]['content']['parts'][0]['text']
 
         return jsonify({
-            "ticker": ticker, "price": curr_p, "volatility": iv_pct, "high": high, "low": low,
-            "ai_analysis": ai_analysis_result, "date": "2026-05-01"
+            "ticker": ticker_sym, "company": company_name, "price": round(price, 2), 
+            "volatility": round(iv_val*100,2), "high": high, "low": low,
+            "ai_analysis": ai_analysis_result, "m3_risk_pct": max_risk_pct, "date": "2026-05-04"
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
