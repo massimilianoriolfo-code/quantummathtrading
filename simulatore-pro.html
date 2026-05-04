@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRPM Strategy Hub - Pro</title>
+    <title>CRPM Strategy Hub</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; background: #f4f7f9; color: #333; }
@@ -12,14 +12,15 @@
         .input-group { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
         input { padding: 12px; border: 2px solid #dfe3e8; border-radius: 8px; width: 200px; font-size: 16px; text-transform: uppercase; }
         button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .strategy-table { width: 100%; border-collapse: collapse; margin-top: 25px; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #eee; font-size: 14px; }
-        .strategy-table th { background: #f8f9fa; padding: 12px; text-align: left; border-bottom: 2px solid #eee; }
+        .strategy-table { width: 100%; border-collapse: collapse; margin-top: 25px; background: #fff; border: 1px solid #eee; font-size: 14px; }
+        .strategy-table th { background: #333; color: #fff; padding: 12px; text-align: left; }
         .strategy-table td { padding: 12px; border-bottom: 1px solid #eee; }
         .action-buy { color: #007bff; font-weight: bold; }
         .action-sell { color: #dc3545; font-weight: bold; }
-        .unlimited { color: #28a745; font-weight: bold; }
+        .unlimited { color: #28a745; font-weight: bold; text-transform: uppercase; }
         .comment-cell { font-style: italic; color: #555; background: #fafafa; }
         #chartContainer { width: 100%; height: 450px; margin: 20px 0; }
+        .op-note { margin-top: 25px; padding: 15px; background: #fff9e6; border-radius: 8px; font-size: 0.85rem; border: 1px solid #ffeeba; }
     </style>
 </head>
 <body>
@@ -28,19 +29,33 @@
     <div class="header-info">
         <h2 id="main-title">CRPM Quantitative Analysis</h2>
         <div id="display-date" style="color:#888;">May 04, 2026</div>
+        <div style="margin-top:5px; font-size: 0.95rem;"><strong>Capital Invested (100 Shares):</strong> $<span id="cap-invested">---</span></div>
     </div>
     
     <div class="input-group">
-        <input type="text" id="ticker" placeholder="E.G. MA" maxlength="5">
+        <input type="text" id="ticker" placeholder="E.G. MSFT" maxlength="5">
         <button onclick="calcola()">Run Full Analysis</button>
     </div>
 
     <div id="summary-data" style="text-align:center; font-weight:bold; margin-bottom:10px; display:none;">
-        Spot: $<span id="spot"></span> | IV: <span id="iv"></span>% | 30-Day Range: $<span id="low"></span> - $<span id="high"></span>
+        Spot: $<span id="spot"></span> | IV: <span id="iv"></span>% | 1-Sigma: $<span id="low"></span> - $<span id="high"></span>
     </div>
 
     <div id="chartContainer"><canvas id="probabilityChart"></canvas></div>
     <div id="tables-container"></div>
+
+    <div class="op-note">
+        <strong>OPERATIONAL NOTE:</strong> All calculations refer to <strong>1 standard option contract</strong> (100 shares). Premia, risks, and profits are absolute dollar values and as a percentage of the capital required to buy 100 shares at the spot price.
+    </div>
+
+    <div id="chat-section" style="margin-top:30px; border-top:1px solid #eee; padding-top:20px;">
+        <h4>Ask the CRPM Assistant</h4>
+        <div class="input-group">
+            <input type="text" id="chat-input" placeholder="How to hedge MSFT?" style="width: 70%;">
+            <button onclick="askAI()" style="background: #007bff;">Ask</button>
+        </div>
+        <div id="chat-response" style="margin-top:10px; padding:15px; background:#f8f9fa; border-radius:8px; display:none;"></div>
+    </div>
 </div>
 
 <script>
@@ -53,6 +68,7 @@
         const data = await response.json();
         
         document.getElementById('main-title').innerText = data.company;
+        document.getElementById('cap-invested').innerText = data.invested_capital.toLocaleString();
         document.getElementById('summary-data').style.display = 'block';
         document.getElementById('spot').innerText = data.price;
         document.getElementById('iv').innerText = data.volatility;
@@ -63,17 +79,17 @@
         data.machines.forEach(m => {
             html += `
             <table class="strategy-table">
-                <thead><tr><th colspan="4" style="background:#333; color:#fff;">${m.name}</th></tr></thead>
+                <thead><tr><th colspan="4">${m.name}</th></tr></thead>
                 <tbody>
                     <tr>
-                        <td width="25%"><strong>Action:</strong> <span class="${m.action === 'BUY' ? 'action-buy' : 'action-sell'}">${m.action} ${m.instrument}</span></td>
-                        <td width="25%"><strong>Strike:</strong> $${m.strike}</td>
-                        <td width="25%"><strong>Expiry:</strong> ${m.expiry}</td>
-                        <td width="25%"><strong>Est. Premium:</strong> $${m.premium}</td>
+                        <td><strong>Action:</strong> <span class="${m.action === 'BUY' ? 'action-buy' : 'action-sell'}">${m.action} ${m.instrument}</span></td>
+                        <td><strong>Strike:</strong> $${m.strike}</td>
+                        <td><strong>Expiry:</strong> ${m.expiry}</td>
+                        <td><strong>Est. Premium:</strong> $${m.premium}</td>
                     </tr>
                     <tr>
                         <td><strong>Profit:</strong> <span class="${m.profit === 'UNLIMITED' ? 'unlimited' : ''}">${m.profit}</span></td>
-                        <td><strong>Max Risk:</strong> ${m.risk}</td>
+                        <td><strong>Max Risk:</strong> <span style="color:#dc3545; font-weight:bold;">${m.risk}</span></td>
                         <td colspan="2" class="comment-cell"><strong>Comment:</strong> ${m.comment}</td>
                     </tr>
                 </tbody>
@@ -81,6 +97,20 @@
         });
         document.getElementById('tables-container').innerHTML = html;
         drawProbabilityCone(data.price, data.volatility / 100);
+    }
+
+    async function askAI() {
+        const query = document.getElementById('chat-input').value;
+        const respDiv = document.getElementById('chat-response');
+        respDiv.style.display = 'block';
+        respDiv.innerHTML = "<em>Analyzing...</em>";
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ query: query })
+        });
+        const data = await response.json();
+        respDiv.innerHTML = "<strong>Assistant:</strong> " + data.response;
     }
 
     function drawProbabilityCone(price, iv) {
@@ -105,11 +135,7 @@
                     { label: 'Spot Price', data: s, borderColor: '#bdc3c7', borderDash: [5, 5], pointRadius: 0, fill: false }
                 ]
             },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false,
-                plugins: { tooltip: { mode: 'index', intersect: false } }
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: { mode: 'index', intersect: false } } }
         });
     }
 </script>
