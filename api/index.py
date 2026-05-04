@@ -24,7 +24,7 @@ def find_nearest_strike(chain, target):
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.get_json()
-    user_query = data.get('query').upper()
+    user_query = data.get('query') # Rimosso .upper() per mantenere caratteri normali
     today_str = get_now().strftime('%B %d, %Y')
     try:
         pc = Pinecone(api_key=PINECONE_API_KEY)
@@ -46,12 +46,11 @@ def chat():
         1. Respond EXCLUSIVELY in English.
         2. NO personal names. NO square brackets [].
         3. Use ONLY bold text for section titles (e.g., **Title:**).
-        4. If the query is about owning 100 shares, ALWAYS present two options:
+        4. If query is about owning 100 shares, ALWAYS present two options:
            - **Machine 3: Married Put Based** (For structural protection).
            - **Machine 4: Covered Call Based** (For yield generation).
-        5. Use LaTeX for the Expected Value formula: $$E(X) = (P_{{below}} \times Premium) + (P_{{above}} \times (Premium - (Price - Strike)))$$.
-        6. Explain that E(X) defines the statistical edge of the CRPM model.
-        7. Tone: Aseptic, professional, and data-driven."""
+        5. DO NOT mention Expected Value or E(X) formulas.
+        6. Tone: Aseptic, professional, and data-driven."""
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}).json()
         return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
