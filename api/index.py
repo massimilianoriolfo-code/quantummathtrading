@@ -15,7 +15,7 @@ PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_HOST = os.getenv("INDEX_HOST")
 
 def get_now():
-    return datetime(2026, 5, 4) # Data fissa richiesta
+    return datetime(2026, 5, 4)
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
@@ -34,14 +34,15 @@ def chat():
         
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
         prompt_chat = f"""TODAY IS {today_str}. 
-        You are the AI Assistant for the book 'The Essence of Quantitative Math Trading with Options'.
-        Use the following book context: {context}
+        You are the AI Assistant for 'The Essence of Quantitative Math Trading with Options'.
+        BOOK CONTEXT: {context}
         USER QUESTION: {user_query}
         
         INSTRUCTIONS:
-        - Use ONLY Markdown for bolding, NEVER use vertical bars or raw table syntax.
-        - Explain Machine 3 (Married Put) as Long Stock + Put Option ITM.
-        - Be direct and professional."""
+        - Respond ONLY in English.
+        - Use ONLY Markdown for bolding. No raw table syntax.
+        - Explain Machine 3 as Long Stock + Put Option ITM with 6+ months expiry.
+        - Maintain a professional tone."""
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}).json()
         return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
@@ -60,21 +61,17 @@ def index():
         stock = yf.Ticker(ticker_sym)
         company_name = stock.info.get('longName', ticker_sym)
         price = stock.fast_info['last_price']
+        iv_val = 0.27 
         
-        # Volatilità
-        iv_val = 0.27 # Fallback come da immagine utente
         exp_30_str = (today_dt + timedelta(days=30)).strftime('%d %b %Y')
         m3_expiry_str = (today_dt + timedelta(days=180)).strftime('%B %Y')
         
-        # Calcoli Range
         move = price * iv_val * np.sqrt(30 / 365)
         high, low = round(price + move, 2), round(price - move, 2)
         
-        # Machine 3
         m3_strike = round(price * 1.02, 2)
         max_risk_pct = round(((price * 0.08 - (m3_strike - price)) / price) * 100, 2)
 
-        # Restituiamo dati strutturati per il frontend, non testo grezzo
         return jsonify({
             "ticker": ticker_sym,
             "company": company_name,
@@ -84,9 +81,9 @@ def index():
             "low": low,
             "date": today_dt.strftime('%B %d, %Y'),
             "machines": [
-                {"name": "Machine 1 (Long Call)", "target": high, "expiry": exp_30_str, "profit": "Unlimited", "risk": "Finite (Premium)"},
-                {"name": "Machine 2 (Short Put)", "target": low, "expiry": exp_30_str, "profit": "Finite (Premium)", "risk": "Finite (Calculated)"},
-                {"name": "Machine 3 (Married Put)", "target": m3_strike, "expiry": m3_expiry_str, "profit": "UNLIMITED", "risk": f"{max_risk_pct}%"}
+                {"name": "Machine 1: Long Call Based", "strike": high, "expiry": exp_30_str, "profit": "Unlimited", "risk": "Finite (Premium Paid)"},
+                {"name": "Machine 2: Short Put Based", "strike": low, "expiry": exp_30_str, "profit": "Finite (Premium Received)", "risk": "Finite (Cash Secured)"},
+                {"name": "Machine 3: Married Put Based", "strike": m3_strike, "expiry": m3_expiry_str, "profit": "UNLIMITED", "risk": f"{max_risk_pct}% of Capital"}
             ]
         })
     except Exception as e:
