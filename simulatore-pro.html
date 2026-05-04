@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,18 +10,14 @@
         .card { background: white; padding: 30px; border-radius: 16px; max-width: 1000px; margin: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         .header-info { text-align: center; margin-bottom: 25px; }
         .input-group { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
-        input { padding: 12px; border: 2px solid #dfe3e8; border-radius: 8px; width: 200px; font-size: 16px; }
+        input { padding: 12px; border: 2px solid #dfe3e8; border-radius: 8px; width: 200px; font-size: 16px; text-transform: uppercase; }
         button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        
-        /* Stile Tabelle Vere */
         .strategy-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #eee; }
         .strategy-table th { background: #f8f9fa; padding: 15px; text-align: left; border-bottom: 2px solid #eee; }
         .strategy-table td { padding: 15px; border-bottom: 1px solid #eee; }
-        .strategy-table tr:last-child td { border-bottom: none; }
-        
-        .unlimited { color: #28a745; font-weight: bold; }
+        .unlimited { color: #28a745; font-weight: bold; text-transform: uppercase; }
         .risk-val { color: #dc3545; font-weight: bold; }
-        #chartContainer { width: 100%; height: 400px; margin: 20px 0; }
+        #chartContainer { width: 100%; height: 450px; margin: 20px 0; }
         #chat-section { margin-top: 40px; border-top: 2px solid #eee; padding-top: 20px; }
     </style>
 </head>
@@ -34,12 +30,12 @@
     </div>
     
     <div class="input-group">
-        <input type="text" id="ticker" placeholder="ES. MSFT" maxlength="5">
-        <button onclick="calcola()">Genera Analisi</button>
+        <input type="text" id="ticker" placeholder="E.G. MSFT" maxlength="5">
+        <button onclick="calcola()">Run Analysis</button>
     </div>
 
     <div id="summary-data" style="text-align:center; font-weight:bold; margin-bottom:10px; display:none;">
-        Spot: $<span id="spot"></span> | IV: <span id="iv"></span>% | Range 30gg: $<span id="low"></span> - $<span id="high"></span>
+        Spot: $<span id="spot"></span> | IV: <span id="iv"></span>% | 30-Day Range: $<span id="low"></span> - $<span id="high"></span>
     </div>
 
     <div id="chartContainer"><canvas id="probabilityChart"></canvas></div>
@@ -47,10 +43,10 @@
     <div id="tables-container"></div>
 
     <div id="chat-section">
-        <h4>Chiedi all'Assistente del Libro</h4>
+        <h4>Ask the CRPM Assistant</h4>
         <div class="input-group">
-            <input type="text" id="chat-input" placeholder="Come proteggo MSFT?" style="width: 70%;">
-            <button onclick="askAI()" style="background: #007bff;">Chiedi</button>
+            <input type="text" id="chat-input" placeholder="How to protect my MSFT shares?" style="width: 70%;">
+            <button onclick="askAI()" style="background: #007bff;">Ask</button>
         </div>
         <div id="chat-response" style="margin-top:15px; padding:15px; background:#f8f9fa; border-radius:8px; display:none;"></div>
     </div>
@@ -73,17 +69,16 @@
         document.getElementById('low').innerText = data.low;
         document.getElementById('high').innerText = data.high;
 
-        // Generazione Tabelle Vere
         let html = '';
         data.machines.forEach(m => {
             html += `
             <table class="strategy-table">
                 <thead><tr><th colspan="2">${m.name}</th></tr></thead>
                 <tbody>
-                    <tr><td>Target / Strike</td><td><strong>$${m.target}</strong></td></tr>
-                    <tr><td>Scadenza</td><td>${m.expiry}</td></tr>
-                    <tr><td>Profitto Potenziale</td><td class="${m.profit === 'UNLIMITED' ? 'unlimited' : ''}">${m.profit}</td></tr>
-                    <tr><td>Rischio Massimo</td><td class="risk-val">${m.risk}</td></tr>
+                    <tr><td>Strike Price</td><td><strong>$${m.strike}</strong></td></tr>
+                    <tr><td>Expiration</td><td>${m.expiry}</td></tr>
+                    <tr><td>Potential Profit</td><td class="${m.profit === 'UNLIMITED' ? 'unlimited' : ''}">${m.profit}</td></tr>
+                    <tr><td>Maximum Risk</td><td class="risk-val">${m.risk}</td></tr>
                 </tbody>
             </table>`;
         });
@@ -96,7 +91,7 @@
         const query = document.getElementById('chat-input').value;
         const respDiv = document.getElementById('chat-response');
         respDiv.style.display = 'block';
-        respDiv.innerHTML = "<em>Ricerca nel libro...</em>";
+        respDiv.innerHTML = "<em>Analyzing chapters...</em>";
         
         const response = await fetch('/api/chat', {
             method: 'POST',
@@ -104,14 +99,17 @@
             body: JSON.stringify({ query: query })
         });
         const data = await response.json();
-        respDiv.innerHTML = "<strong>Assistente:</strong> " + data.response;
+        respDiv.innerHTML = "<strong>Assistant:</strong> " + data.response;
     }
 
     function drawProbabilityCone(price, iv) {
         const ctx = document.getElementById('probabilityChart').getContext('2d');
         const labels = []; const u = []; const l = [];
+        const today = new Date("2026-05-04");
         for (let d = 0; d <= 30; d++) {
-            labels.push("G "+d);
+            const date = new Date(today);
+            date.setDate(today.getDate() + d);
+            labels.push(date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }));
             const move = price * iv * Math.sqrt(d / 365);
             u.push(price + move); l.push(price - move);
         }
@@ -121,11 +119,16 @@
             data: {
                 labels: labels,
                 datasets: [
-                    { label: '+1σ', data: u, borderColor: '#2ecc71', pointRadius: 0, fill: false },
-                    { label: '-1σ', data: l, borderColor: '#e74c3c', pointRadius: 0, fill: '-1', backgroundColor: 'rgba(46, 204, 113, 0.05)' }
+                    { label: '+1σ Boundary', data: u, borderColor: '#2ecc71', pointRadius: 0, fill: false, tension: 0.3 },
+                    { label: '-1σ Boundary', data: l, borderColor: '#e74c3c', pointRadius: 0, fill: '-1', backgroundColor: 'rgba(46, 204, 113, 0.05)', tension: 0.3 }
                 ]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { tooltip: { mode: 'index', intersect: false } },
+                scales: { x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 10 } } }
+            }
         });
     }
 </script>
