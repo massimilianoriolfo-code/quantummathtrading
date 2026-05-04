@@ -10,7 +10,7 @@
         .card { background: white; padding: 30px; border-radius: 16px; max-width: 1000px; margin: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #e1e8ed; }
         .header-info { text-align: center; margin-bottom: 25px; }
         .input-group { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
-        input { padding: 12px; border: 2px solid #dfe3e8; border-radius: 8px; width: 220px; font-size: 16px; } /* Rimosso uppercase */
+        input { padding: 12px; border: 2px solid #dfe3e8; border-radius: 8px; width: 220px; font-size: 16px; }
         button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .strategy-table { width: 100%; border-collapse: collapse; margin-top: 25px; background: #fff; border: 1px solid #eee; font-size: 14px; }
         .strategy-table th { background: #333; color: #fff; padding: 12px; text-align: left; text-transform: uppercase; letter-spacing: 1px; }
@@ -23,7 +23,7 @@
         #chartContainer { width: 100%; height: 450px; margin: 20px 0; }
         .op-note { margin-top: 25px; padding: 15px; background: #fff9e6; border-radius: 8px; font-size: 0.85rem; border: 1px solid #ffeeba; text-align: justify; }
         
-        /* Layout Assistant Giustificato e Compatto */
+        /* Layout Assistant Giustificato con interlinea corretta */
         #chat-response { 
             margin-top: 25px; 
             padding: 0; 
@@ -36,8 +36,9 @@
         }
         .ai-header { background: #333; color: #fff; padding: 12px; font-weight: bold; text-transform: uppercase; font-size: 14px; text-align: center; }
         .ai-body { padding: 25px; line-height: 1.6; font-size: 0.95rem; color: #2c3e50; text-align: justify; }
-        /* Riduzione spazio titoli */
-        .ai-body strong { color: #000; font-weight: 700; display: block; margin-top: 10px; margin-bottom: 2px; }
+        /* Stile Titoli Assistant senza spazio eccessivo */
+        .ai-body strong { color: #000; font-weight: 700; display: block; margin-top: 20px; margin-bottom: 4px; }
+        .ai-body strong:first-child { margin-top: 0; }
     </style>
 </head>
 <body>
