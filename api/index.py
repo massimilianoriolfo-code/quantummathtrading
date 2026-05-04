@@ -36,7 +36,7 @@ def chat():
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
-        prompt_chat = f"TODAY IS {today_str}. You are the Assistant for 'The Essence of Quantitative Math Trading'. Use context: {context}. User: {user_query}. Respond in English only."
+        prompt_chat = f"TODAY IS {today_str}. Assistant for 'The Essence of Quantitative Math Trading'. Context: {context}. User: {user_query}. Respond in English."
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}).json()
         return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
     except Exception as e:
@@ -54,73 +54,62 @@ def index():
         stock = yf.Ticker(ticker_sym)
         company_name = stock.info.get('longName', ticker_sym)
         price = round(stock.fast_info['last_price'], 2)
-        invested_capital = price * 100
+        inv_cap = price * 100
         
         expirations = stock.options
-        if not expirations: return jsonify({"error": "No options available"}), 400
-
-        # Scadenze Reali
         exp_30 = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - (today_dt + timedelta(days=30))).days))
         exp_180 = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - (today_dt + timedelta(days=180))).days))
 
-        # Analisi Tattica
-        iv_val = 0.27 
-        move = price * iv_val * np.sqrt(30 / 365)
-        
         chain_30 = stock.option_chain(exp_30)
         chain_180 = stock.option_chain(exp_180)
+        iv_val = 0.27
+        move = price * iv_val * np.sqrt(30 / 365)
 
-        # Machine 1 & 4 (Call)
-        strike_call = find_nearest_strike(chain_30.calls, price + move)
-        prem_call = chain_30.calls[chain_30.calls['strike'] == strike_call]['lastPrice'].values[0]
+        # Machine Calculations
+        s_call = find_nearest_strike(chain_30.calls, price + move)
+        p_call = chain_30.calls[chain_30.calls['strike'] == s_call]['lastPrice'].values[0]
 
-        # Machine 2 (Put)
-        strike_put_30 = find_nearest_strike(chain_30.puts, price - move)
-        prem_put_30 = chain_30.puts[chain_30.puts['strike'] == strike_put_30]['lastPrice'].values[0]
+        s_put_30 = find_nearest_strike(chain_30.puts, price - move)
+        p_put_30 = chain_30.puts[chain_30.puts['strike'] == s_put_30]['lastPrice'].values[0]
 
-        # Machine 3 (Put ITM 6 mesi)
-        strike_put_180 = find_nearest_strike(chain_180.puts, price * 1.02)
-        prem_put_180 = chain_180.puts[chain_180.puts['strike'] == strike_put_180]['lastPrice'].values[0]
+        s_put_180 = find_nearest_strike(chain_180.puts, price * 1.02)
+        p_put_180 = chain_180.puts[chain_180.puts['strike'] == s_put_180]['lastPrice'].values[0]
 
-        def fmt_pct(val): return f"{round((val / invested_capital) * 100, 2)}%"
+        def pct(v): return f"{round((v / inv_cap) * 100, 2)}%"
 
         return jsonify({
-            "ticker": ticker_sym, "company": company_name, "price": price,
-            "invested_capital": invested_capital, "volatility": round(iv_val*100, 2),
-            "high": strike_call, "low": strike_put_30, "date": today_dt.strftime('%B %d, %Y'),
+            "ticker": ticker_sym, "company": company_name, "price": price, "inv_cap": inv_cap,
+            "volatility": 27.0, "high": s_call, "low": s_put_30, "date": today_dt.strftime('%B %d, %Y'),
             "machines": [
                 {
-                    "name": "Machine 1: Long Call Based", "action": "BUY", "instrument": "CALL",
-                    "strike": strike_call, "expiry": exp_30, "premium": prem_call,
-                    "profit": "Unlimited", "risk": f"${round(prem_call*100, 2)} ({fmt_pct(prem_call*100)})",
-                    "comment": "Bullish stance. Leverages momentum at the upper boundary."
+                    "name": "Machine 1: Long Call Based", "action": "BUY CALL", "strike": s_call, "expiry": exp_30, "prem": p_call,
+                    "max_profit": "Unlimited", "max_risk": f"${p_call*100} ({pct(p_call*100)})",
+                    "comment": "Bullish momentum strategy.",
+                    "desc": "This machine seeks to capitalize on price appreciation beyond the 1-Sigma upper boundary. It offers high leverage with risk limited strictly to the premium paid."
                 },
                 {
-                    "name": "Machine 2: Short Put Based", "action": "SELL", "instrument": "PUT",
-                    "strike": strike_put_30, "expiry": exp_30, "premium": prem_put_30,
-                    "profit": f"${round(prem_put_30*100, 2)} ({fmt_pct(prem_put_30*100)})", 
-                    "risk": f"${round(strike_put_30*100, 2)} (Cash Secured)",
-                    "comment": "Income generation. Selling the lower boundary."
+                    "name": "Machine 2: Short Put Based", "action": "SELL PUT", "strike": s_put_30, "expiry": exp_30, "prem": p_put_30,
+                    "max_profit": f"${p_put_30*100} ({pct(p_put_30*100)})", "max_risk": f"${round((s_put_30 - p_put_30)*100, 2)} ({pct((s_put_30 - p_put_30)*100)})",
+                    "comment": "Income generation strategy.",
+                    "desc": "Designed to harvest volatility by selling the lower probability boundary. The maximum risk is the net cost of the stock if assigned (Strike minus Premium)."
                 },
                 {
-                    "name": "Machine 3: Married Put Based", "action": "BUY", "instrument": "PUT (+100 Shares)",
-                    "strike": strike_put_180, "expiry": exp_180, "premium": prem_put_180,
-                    "profit": "UNLIMITED", 
-                    "risk": f"${round((prem_put_180 + (price - strike_put_180))*100, 2)} ({fmt_pct((prem_put_180 + (price - strike_put_180))*100)})",
-                    "comment": "Strategic protection. ITM Put for structural hedging."
+                    "name": "Machine 3: Married Put Based", "action": "BUY PUT (+100 Shares)", "strike": s_put_180, "expiry": exp_180, "prem": p_put_180,
+                    "max_profit": "UNLIMITED", "max_risk": f"${round((p_put_180 + (price - s_put_180))*100, 2)} ({pct((p_put_180 + (price - s_put_180))*100)})",
+                    "comment": "Structural hedging strategy.",
+                    "desc": "A strategic long-term protection. By using an ITM Put with 6+ months to expiry, it minimizes time decay while ensuring the portfolio remains protected against tail risks."
                 },
                 {
-                    "name": "Machine 4: Covered Call Based", "action": "SELL", "instrument": "CALL (+100 Shares)",
-                    "strike": strike_call, "expiry": exp_30, "premium": prem_call,
-                    "profit": f"${round((prem_call + (strike_call - price))*100, 2)} ({fmt_pct((prem_call + (strike_call - price))*100)})",
-                    "risk": "Finite (Stock Ownership)",
-                    "comment": "Yield enhancement. Monetizing sideways or slightly bullish markets."
+                    "name": "Machine 4: Covered Call Based", "action": "SELL CALL (+100 Shares)", "strike": s_call, "expiry": exp_30, "prem": p_call,
+                    "max_profit": f"${round((p_call + (s_call - price))*100, 2)} ({pct((p_call + (s_call - price))*100)})", "max_risk": "Finite (Stock Ownership)",
+                    "comment": "Yield enhancement strategy.",
+                    "desc": "Used to generate recurring income on existing stock holdings. It caps the upside at the strike price in exchange for the immediate premium income."
                 },
                 {
-                    "name": "Machine 5: Assigned Short Put + Covered Call", "action": "COMBINED", "instrument": "PUT & CALL",
-                    "strike": f"{strike_put_30} / {strike_call}", "expiry": exp_30, "premium": round(prem_call + prem_put_30, 2),
-                    "profit": "Enhanced Yield", "risk": "Reduced Cost Basis",
-                    "comment": "Systematic cost basis reduction via dual premium harvesting."
+                    "name": "Machine 5: Assigned Short Put + Covered Call", "action": "COMBINED PUT & CALL", "strike": f"{s_put_30} / {s_call}", "expiry": exp_30, "prem": round(p_call + p_put_30, 2),
+                    "max_profit": "Enhanced Yield", "max_risk": "Reduced Cost Basis",
+                    "comment": "Cost basis reduction strategy.",
+                    "desc": "This machine combines the premiums from multiple directions to aggressively lower the break-even point of a position, transforming market instability into measurable profit."
                 }
             ]
         })
