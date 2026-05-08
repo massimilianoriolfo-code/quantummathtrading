@@ -24,39 +24,46 @@ def find_nearest_strike(chain, target):
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.get_json()
-    user_query = data.get('query', '') # Allineamento corretto
+    user_query = data.get('query', '')
     today_str = get_now().strftime('%B %d, %Y')
     try:
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # 1. Embedding stabile
-        res_emb = requests.post(
+        # 1. Embedding con timeout per evitare blocchi
+        res_emb_raw = requests.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={GOOGLE_API_KEY}", 
-            json={"model": "models/text-embedding-004", "content": {"parts": [{"text": user_query}]}}
-        ).json()
+            json={"model": "models/text-embedding-004", "content": {"parts": [{"text": user_query}]}},
+            timeout=5
+        )
+        res_emb = res_emb_raw.json()
         
+        if 'embedding' not in res_emb:
+            return jsonify({"response": "System initializing. Please try again in 5 seconds."})
+
         query_v = res_emb['embedding']['values']
         search = index_pc.query(vector=query_v, top_k=5, include_metadata=True)
-        context = "\n".join([m.metadata["text"] for m in search.matches])
+        context = "\n".join([m.metadata["text"] for m in search.matches if "text" in m.metadata])
         
-        # 2. Generazione stabile (Gemini 1.5 Flash)
+        # 2. Generazione con Gemini 1.5 Flash (Stabile)
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
         
         prompt_chat = f"""TODAY IS {today_str}. 
         IDENTITY: CRPM Engine. CONTEXT: {context}. QUERY: {user_query}. 
-        STRICT RULES: English only. Professional tone. Section titles in bold."""
+        STRICT RULES: English only. Professional tone. Section titles in bold. No personal names."""
         
-        res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}).json()
+        res_gen_raw = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}, timeout=10)
+        res_gen = res_gen_raw.json()
         
         if 'candidates' in res_gen and len(res_gen['candidates']) > 0:
             ai_text = res_gen['candidates'][0]['content']['parts'][0]['text']
             return jsonify({"response": ai_text})
         else:
-            return jsonify({"response": "Service busy. Please try again."})
+            return jsonify({"response": "The engine is currently calculating complex data. Please resubmit your query."})
             
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # Restituiamo un messaggio pulito all'utente invece di un crash 500
+        return jsonify({"response": f"Connection active, but analysis timed out. Detail: {str(e)}"}), 200
 
 @app.route('/api/index', methods=['POST', 'GET'])
 def index():
