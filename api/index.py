@@ -5,7 +5,6 @@ import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from datetime import datetime, timedelta
-from pinecone import Pinecone
 
 app = Flask(__name__)
 CORS(app)
@@ -31,43 +30,43 @@ def chat():
         return jsonify({"response": "Query missing."})
 
     try:
-        pc = Pinecone(api_key=PINECONE_API_KEY)
-        index_pc = pc.Index(host=INDEX_HOST)
+        # Pulizia dell'host per risolvere l'errore NameResolutionError
+        clean_host = INDEX_HOST.replace("https://", "").replace("http://", "").strip("/")
+        rest_url = f"https://{clean_host}/records/namespaces/__default__/search"
+        headers = {
+            "Api-Key": PINECONE_API_KEY, 
+            "Content-Type": "application/json"
+        }
         
-        try:
-            res_search = index_pc.search(inputs={"text": user_query}, top_k=5)
-        except TypeError:
-            try:
-                res_search = index_pc.search({"inputs": {"text": user_query}, "top_k": 5})
-            except TypeError:
-                try:
-                    res_search = index_pc.search(user_query, top_k=5)
-                except Exception as sdk_err:
-                    rest_url = f"https://{INDEX_HOST}/search"
-                    headers = {"Api-Key": PINECONE_API_KEY, "Content-Type": "application/json"}
-                    payload = {"query": {"inputs": {"text": user_query}}, "top_k": 5}
-                    res_search = requests.post(rest_url, headers=headers, json=payload).json()
+        payload = {
+            "query": {
+                "inputs": {"text": user_query},
+                "top_k": 5
+            }
+        }
+        
+        # Chiamata REST diretta a Pinecone Document API
+        res_search_raw = requests.post(rest_url, headers=headers, json=payload, timeout=10)
+        
+        if res_search_raw.status_code == 404:
+            # Fallback per endpoint root
+            rest_url_fallback = f"https://{clean_host}/search"
+            res_search_raw = requests.post(rest_url_fallback, headers=headers, json=payload, timeout=10)
             
+        if res_search_raw.status_code >= 400:
+            return jsonify({"response": f"Pinecone Server Error [{res_search_raw.status_code}]: {res_search_raw.text}"})
+            
+        res_search = res_search_raw.json()
+        
         context_parts = []
-        try:
-            if isinstance(res_search, dict):
-                hits = res_search.get('hits', []) or res_search.get('result', {}).get('hits', [])
-                for h in hits:
-                    fields = h.get('fields', {})
-                    context_parts.append(fields.get('text', str(fields)))
-            else:
-                hits = getattr(res_search, 'hits', [])
-                if not hits and hasattr(res_search, 'result'):
-                    hits = getattr(res_search.result, 'hits', [])
-                for h in hits:
-                    fields = getattr(h, 'fields', {})
-                    text_val = fields.get('text', str(fields)) if isinstance(fields, dict) else getattr(fields, 'text', str(fields))
-                    context_parts.append(str(text_val))
-        except Exception:
-            pass
+        hits = res_search.get('hits', []) or res_search.get('result', {}).get('hits', [])
+        for h in hits:
+            fields = h.get('fields', {})
+            context_parts.append(fields.get('text', str(fields)))
             
         context = "\n".join(context_parts)
         
+        # Generazione Gemini 2.5 Flash
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GOOGLE_API_KEY}"
         prompt_chat = f"""TODAY IS {today_str}. 
         IDENTITY: CRPM Engine. CONTEXT: {context}. QUERY: {user_query}. 
@@ -84,7 +83,7 @@ def chat():
             return jsonify({"response": f"Google Generation Error: {err_msg}"})
             
     except requests.exceptions.Timeout:
-        return jsonify({"response": "API provider timeout. Please try a simpler query."})
+        return jsonify({"response": "API provider timeout. Please try again."})
     except Exception as e:
         return jsonify({"response": f"System Error: {str(e)}"}), 200
 
