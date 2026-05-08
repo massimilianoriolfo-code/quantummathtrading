@@ -31,59 +31,48 @@ def chat():
     today_str = get_now().strftime('%B %d, %Y')
     
     try:
-        # Inizializzazione SDK ufficiale
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # RICERCA DOCUMENTALE NATIVA
-        # Questo è l'unico metodo che non genera l'errore "document-based schema"
-        try:
-            search_res = index_pc.search(
-                inputs={"text": user_query},
-                top_k=5
-            )
-        except Exception as e:
-            # Fallback se l'SDK ha versioni discordanti
-            return jsonify({"response": f"Database search failed: {str(e)}. Please check Pinecone index settings."})
-            
-        # Estrazione del testo dal libro (Knowledge Base)
+        # CORREZIONE ERRORE TYPEERROR:
+        # La tua versione di Pinecone vuole 'query' come primo argomento, non 'inputs'.
+        search_res = index_pc.search(
+            query={"inputs": {"text": user_query}}, 
+            top_k=5
+        )
+        
         context_parts = []
-        hits = search_res.get('result', {}).get('hits', []) if isinstance(search_res, dict) else getattr(search_res, 'hits', [])
+        # Gestione robusta dei risultati
+        results = search_res.to_dict() if hasattr(search_res, 'to_dict') else search_res
+        hits = results.get('result', {}).get('hits', [])
         
         for h in hits:
-            # Pinecone integrated restituisce il testo nel campo 'text' all'interno di 'fields'
-            fields = h.get('fields', {}) if isinstance(h, dict) else getattr(h, 'fields', {})
-            txt = fields.get('text') if isinstance(fields, dict) else getattr(fields, 'text', None)
-            if txt:
-                context_parts.append(str(txt))
-                
-        context = "\n".join(context_parts)
+            text_fragment = h.get('fields', {}).get('text', '')
+            if text_fragment:
+                context_parts.append(text_fragment)
         
-        # Generazione risposta con Gemini 1.5 Flash
+        context = "\n".join(context_parts)
+        if not context:
+            context = "Focus on general CRPM principles for this analysis."
+
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
         
         prompt_chat = f"""TODAY IS {today_str}. 
-        IDENTITY: Quantitative analytical engine based on the 'Calculated Risk and Profit Machines' (CRPM) methodology.
-        CONTEXT FROM BOOK: {context}.
+        IDENTITY: CRPM analytical engine.
+        CONTEXT: {context}.
         USER QUERY: {user_query}. 
+        RULES: English only. Bold titles. Aseptic tone."""
         
-        RULES:
-        1. English only. 
-        2. Professional tone. 
-        3. Bold section titles. 
-        4. If query is about shares, mention Machine 3 (Protection) and Machine 4 (Yield)."""
+        res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}, timeout=12).json()
         
-        res_gen_raw = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}, timeout=12)
-        res_gen = res_gen_raw.json()
-        
-        if 'candidates' in res_gen and res_gen['candidates']:
-            ai_text = res_gen['candidates'][0]['content']['parts'][0]['text']
-            return jsonify({"response": ai_text})
+        if 'candidates' in res_gen:
+            return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
         else:
-            return jsonify({"response": "The assistant is currently offline. Please try again later."})
+            return jsonify({"response": "The engine is currently calibrating. Please retry."})
             
     except Exception as e:
-        return jsonify({"response": f"System Error: {str(e)}"}), 200
+        # Restituisce l'errore esatto nel box chat per capire se mancano le chiavi API
+        return jsonify({"response": f"Status: {str(e)}"}), 200
 
 @app.route('/api/index', methods=['POST', 'GET'])
 def index():
