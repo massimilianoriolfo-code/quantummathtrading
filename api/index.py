@@ -34,28 +34,39 @@ def chat():
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # 1. Modello Embedding con FORZATURA a 768 dimensioni per Pinecone
-        emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}"
-        res_emb_raw = requests.post(
-            emb_url, 
-            json={
-                "model": "models/gemini-embedding-2", 
-                "content": {"parts": [{"text": user_query}]},
-                "outputDimensionality": 768  # <-- LA SOLUZIONE ALL'ERRORE È QUI
-            },
-            timeout=8
-        )
-        res_emb = res_emb_raw.json()
+        # LA SVOLTA: Usiamo la nuova API Document di Pinecone.
+        # Nessun modello di embedding esterno, fa tutto il database!
+        try:
+            res_search = index_pc.search(
+                query={
+                    "inputs": {"text": user_query},
+                    "top_k": 5
+                }
+            )
+        except Exception as search_err:
+            return jsonify({"response": f"Pinecone Document API Error: {str(search_err)}"})
+            
+        # Estrazione del contesto dai risultati nativi di Pinecone
+        context_parts = []
+        try:
+            # Gestione sicura del formato JSON di ritorno
+            if isinstance(res_search, dict):
+                hits = res_search.get('result', {}).get('hits', [])
+                for h in hits:
+                    fields = h.get('fields', {})
+                    context_parts.append(fields.get('text', str(fields)))
+            else:
+                hits = res_search.result.hits if hasattr(res_search, 'result') else getattr(res_search, 'hits', [])
+                for h in hits:
+                    fields = getattr(h, 'fields', {})
+                    text_val = fields.get('text', str(fields)) if isinstance(fields, dict) else str(fields)
+                    context_parts.append(text_val)
+        except Exception:
+            pass
+            
+        context = "\n".join(context_parts)
         
-        if 'embedding' not in res_emb:
-            err_msg = res_emb.get('error', {}).get('message', 'Unknown API Error')
-            return jsonify({"response": f"Google Embedding Error: {err_msg}"})
-
-        query_v = res_emb['embedding']['values']
-        search = index_pc.query(vector=query_v, top_k=5, include_metadata=True)
-        context = "\n".join([m.metadata["text"] for m in search.matches if "text" in m.metadata])
-        
-        # 2. Modello Generazione (Gemini 2.5 Flash)
+        # 2. Motore di Generazione della Risposta CRPM
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GOOGLE_API_KEY}"
         
         prompt_chat = f"""TODAY IS {today_str}. 
