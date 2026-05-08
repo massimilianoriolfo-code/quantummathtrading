@@ -5,6 +5,7 @@ import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from datetime import datetime, timedelta
+from pinecone import Pinecone
 
 app = Flask(__name__)
 CORS(app)
@@ -30,69 +31,57 @@ def chat():
     today_str = get_now().strftime('%B %d, %Y')
     
     try:
-        # BYPASS TOTALE DELL'SDK PINECONE
-        # Comunichiamo direttamente con il server per evitare incompatibilità della libreria.
-        clean_host = INDEX_HOST.replace("https://", "").replace("http://", "").strip("/")
-        rest_url = f"https://{clean_host}/records/namespaces/__default__/search"
+        # Inizializzazione SDK ufficiale
+        pc = Pinecone(api_key=PINECONE_API_KEY)
+        index_pc = pc.Index(host=INDEX_HOST)
         
-        headers = {
-            "Api-Key": PINECONE_API_KEY,
-            "Content-Type": "application/json",
-            "X-Pinecone-Api-Version": "2024-10" # Versione esatta richiesta per i Document API
-        }
-        
-        payload = {
-            "query": {
-                "inputs": {"text": user_query},
-                "top_k": 5
-            }
-        }
-        
-        # Invia la richiesta direttamente al database CRPM
-        search_res_raw = requests.post(rest_url, headers=headers, json=payload, timeout=10)
-        
-        if search_res_raw.status_code != 200:
-            return jsonify({"response": f"Pinecone Connection Error [{search_res_raw.status_code}]: {search_res_raw.text}"})
+        # RICERCA DOCUMENTALE NATIVA
+        # Questo è l'unico metodo che non genera l'errore "document-based schema"
+        try:
+            search_res = index_pc.search(
+                inputs={"text": user_query},
+                top_k=5
+            )
+        except Exception as e:
+            # Fallback se l'SDK ha versioni discordanti
+            return jsonify({"response": f"Database search failed: {str(e)}. Please check Pinecone index settings."})
             
-        search_res = search_res_raw.json()
-        
-        # Estrazione del testo dai capitoli trovati
+        # Estrazione del testo dal libro (Knowledge Base)
         context_parts = []
-        hits = search_res.get('result', {}).get('hits', []) or search_res.get('hits', [])
+        hits = search_res.get('result', {}).get('hits', []) if isinstance(search_res, dict) else getattr(search_res, 'hits', [])
+        
         for h in hits:
-            text_fragment = h.get('fields', {}).get('text', '')
-            if text_fragment:
-                context_parts.append(text_fragment)
+            # Pinecone integrated restituisce il testo nel campo 'text' all'interno di 'fields'
+            fields = h.get('fields', {}) if isinstance(h, dict) else getattr(h, 'fields', {})
+            txt = fields.get('text') if isinstance(fields, dict) else getattr(fields, 'text', None)
+            if txt:
+                context_parts.append(str(txt))
                 
         context = "\n".join(context_parts)
         
-        if not context.strip():
-            context = "No specific text found in the methodology book. Rely on core CRPM principles."
-        
-        # Generazione della risposta con l'AI di Google
+        # Generazione risposta con Gemini 1.5 Flash
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
         
         prompt_chat = f"""TODAY IS {today_str}. 
-        IDENTITY: CRPM quantitative engine based on the methodology in the book.
-        CONTEXT: {context}.
+        IDENTITY: Quantitative analytical engine based on the 'Calculated Risk and Profit Machines' (CRPM) methodology.
+        CONTEXT FROM BOOK: {context}.
         USER QUERY: {user_query}. 
-        RULES: English only. Bold section titles. Aseptic tone. Always present Machine 3 and 4 options if query is about 100 shares."""
+        
+        RULES:
+        1. English only. 
+        2. Professional tone. 
+        3. Bold section titles. 
+        4. If query is about shares, mention Machine 3 (Protection) and Machine 4 (Yield)."""
         
         res_gen_raw = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}, timeout=12)
-        
-        if res_gen_raw.status_code != 200:
-             return jsonify({"response": f"Google AI Error [{res_gen_raw.status_code}]: {res_gen_raw.text}"})
-             
         res_gen = res_gen_raw.json()
         
-        if 'candidates' in res_gen and len(res_gen['candidates']) > 0:
+        if 'candidates' in res_gen and res_gen['candidates']:
             ai_text = res_gen['candidates'][0]['content']['parts'][0]['text']
             return jsonify({"response": ai_text})
         else:
-            return jsonify({"response": "Calculation processed but no output generated. Please try again."})
+            return jsonify({"response": "The assistant is currently offline. Please try again later."})
             
-    except requests.exceptions.Timeout:
-        return jsonify({"response": "The server timed out because the analysis took too long. Please try a simpler query."})
     except Exception as e:
         return jsonify({"response": f"System Error: {str(e)}"}), 200
 
