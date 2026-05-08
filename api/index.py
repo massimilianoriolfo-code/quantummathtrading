@@ -15,7 +15,7 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_HOST = os.getenv("INDEX_HOST")
 
-# Inizializzazione stabile
+# Inizializzazione AI stabile
 genai.configure(api_key=GOOGLE_API_KEY)
 
 def get_now():
@@ -45,7 +45,7 @@ def chat():
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # Chiamata al modello stabile (Gemini 1.5 Flash invece di Gemma via URL)
+        # Modello Gemini 1.5 Flash (Sostituisce il vecchio Gemma via URL che non risponde più)
         model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt_chat = f"""TODAY IS {today_str}. 
