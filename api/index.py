@@ -76,7 +76,7 @@ def index():
                 {"name": "Machine 2: Short Put Based", "action": "SELL PUT", "strike": s_put30, "expiry": exp_30, "prem": f2(p_put30), "max_profit": f"${f2(p_put30*100)}", "max_risk": f"${f2((s_put30-p_put30)*100)}", "comment": "Income.", "desc": "Volatility harvest."},
                 {"name": "Machine 3: Married Put Based", "action": "BUY PUT (+100)", "strike": s_put180, "expiry": exp_180, "prem": f2(p_put180), "max_profit": "UNLIMITED", "max_risk": f"${f2((p_put180+(price-s_put180))*100)}", "comment": "Hedging.", "desc": "Protection."},
                 {"name": "Machine 4: Covered Call Based", "action": "SELL CALL (+100)", "strike": s_call, "expiry": exp_30, "prem": f2(p_call), "max_profit": f"${f2((p_call+(s_call-price))*100)}", "max_risk": "Stock", "comment": "Yield.", "desc": "Income generation."},
-                {"name": "Machine 5: Combined", "action": "PUT & CALL", "strike": f"{s_put30}/{s_call}", "expiry": exp_30, "prem": f2(p_call+p_put30), "max_profit": "Yield+", "max_risk": "Basis-", "comment": "Cost reduction.", "desc": "Profit."}
+                {"name": "Machine 5: Combined", "action": "PUT & CALL", "strike": f"{s_put30}/{s_call}", "expiry": exp_30, "prem": f2(p_call + p_put30), "max_profit": "Yield+", "max_risk": "Basis-", "comment": "Cost reduction.", "desc": "Profit."}
             ]
         })
     except Exception as e:
