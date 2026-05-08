@@ -5,7 +5,6 @@ import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from datetime import datetime, timedelta
-from pinecone import Pinecone
 
 app = Flask(__name__)
 CORS(app)
@@ -24,60 +23,78 @@ def find_nearest_strike(chain, target):
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.get_json(silent=True) or {}
-    user_query = data.get('query', '').upper()
+    user_query = data.get('query', '')
     if not user_query:
         return jsonify({"response": "Query missing."})
         
     today_str = get_now().strftime('%B %d, %Y')
     
     try:
-        pc = Pinecone(api_key=PINECONE_API_KEY)
-        index_pc = pc.Index(host=INDEX_HOST)
+        # BYPASS TOTALE DELL'SDK PINECONE
+        # Comunichiamo direttamente con il server per evitare incompatibilità della libreria.
+        clean_host = INDEX_HOST.replace("https://", "").replace("http://", "").strip("/")
+        rest_url = f"https://{clean_host}/records/namespaces/__default__/search"
         
-        # IL TUO CODICE ESATTO DEL 4 MAGGIO (con la sintassi corretta output_dimensionality)
-        res_emb_raw = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}", 
-            json={"model": "models/gemini-embedding-2", "content": {"parts": [{"text": user_query}]}, "output_dimensionality": 768},
-            timeout=8
-        )
-        res_emb = res_emb_raw.json()
+        headers = {
+            "Api-Key": PINECONE_API_KEY,
+            "Content-Type": "application/json",
+            "X-Pinecone-Api-Version": "2024-10" # Versione esatta richiesta per i Document API
+        }
         
-        if 'embedding' not in res_emb:
-            return jsonify({"response": f"Google API Error: {res_emb.get('error', {}).get('message', 'Errore embedding')}"})
+        payload = {
+            "query": {
+                "inputs": {"text": user_query},
+                "top_k": 5
+            }
+        }
+        
+        # Invia la richiesta direttamente al database CRPM
+        search_res_raw = requests.post(rest_url, headers=headers, json=payload, timeout=10)
+        
+        if search_res_raw.status_code != 200:
+            return jsonify({"response": f"Pinecone Connection Error [{search_res_raw.status_code}]: {search_res_raw.text}"})
             
-        query_v = res_emb['embedding']['values']
-        search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
-        context = "\n".join([m.metadata["text"] for m in search.matches])
+        search_res = search_res_raw.json()
         
-        # Generazione sicura con timeout
+        # Estrazione del testo dai capitoli trovati
+        context_parts = []
+        hits = search_res.get('result', {}).get('hits', []) or search_res.get('hits', [])
+        for h in hits:
+            text_fragment = h.get('fields', {}).get('text', '')
+            if text_fragment:
+                context_parts.append(text_fragment)
+                
+        context = "\n".join(context_parts)
+        
+        if not context.strip():
+            context = "No specific text found in the methodology book. Rely on core CRPM principles."
+        
+        # Generazione della risposta con l'AI di Google
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
         
         prompt_chat = f"""TODAY IS {today_str}. 
-        IDENTITY: You are a quantitative analytical engine based on the 'Calculated Risk and Profit Machines' (CRPM) methodology.
+        IDENTITY: CRPM quantitative engine based on the methodology in the book.
         CONTEXT: {context}.
         USER QUERY: {user_query}. 
-        
-        STRICT FORMATTING RULES:
-        1. Respond EXCLUSIVELY in English.
-        2. NO personal names. NO square brackets [].
-        3. Use ONLY bold text for section titles (e.g., **Title:**).
-        4. If the query is about owning 100 shares, ALWAYS present due options:
-           - **Machine 3: Married Put Based** (For structural protection).
-           - **Machine 4: Covered Call Based** (For yield generation).
-        5. Tone: Aseptic, professional, and data-driven."""
+        RULES: English only. Bold section titles. Aseptic tone. Always present Machine 3 and 4 options if query is about 100 shares."""
         
         res_gen_raw = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}, timeout=12)
+        
+        if res_gen_raw.status_code != 200:
+             return jsonify({"response": f"Google AI Error [{res_gen_raw.status_code}]: {res_gen_raw.text}"})
+             
         res_gen = res_gen_raw.json()
         
         if 'candidates' in res_gen and len(res_gen['candidates']) > 0:
-            return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
+            ai_text = res_gen['candidates'][0]['content']['parts'][0]['text']
+            return jsonify({"response": ai_text})
         else:
-            return jsonify({"response": f"Generation Error: {res_gen.get('error', {}).get('message', 'Errore AI')}"})
+            return jsonify({"response": "Calculation processed but no output generated. Please try again."})
             
     except requests.exceptions.Timeout:
-        return jsonify({"response": "L'analisi richiede troppo tempo e Vercel ha chiuso la connessione. Riprova."})
+        return jsonify({"response": "The server timed out because the analysis took too long. Please try a simpler query."})
     except Exception as e:
-        return jsonify({"response": f"Error: {str(e)}"}), 200
+        return jsonify({"response": f"System Error: {str(e)}"}), 200
 
 @app.route('/api/index', methods=['POST', 'GET'])
 def index():
@@ -116,36 +133,11 @@ def index():
             "ticker": ticker_sym, "company": company_name, "price": f2(price), "inv_cap": f2(inv_cap),
             "volatility": 27.0, "high": s_call, "low": s_put_30, "date": today_dt.strftime('%B %d, %Y'),
             "machines": [
-                {
-                    "name": "Machine 1: Long Call Based", "action": "BUY CALL", "strike": s_call, "expiry": exp_30, "prem": f2(p_call),
-                    "max_profit": "Unlimited", "max_risk": f"${f2(p_call*100)} ({pct(p_call*100)})",
-                    "comment": "Bullish momentum.",
-                    "desc": "Capitalizes on price appreciation beyond the 1-Sigma upper boundary."
-                },
-                {
-                    "name": "Machine 2: Short Put Based", "action": "SELL PUT", "strike": s_put_30, "expiry": exp_30, "prem": f2(p_put_30),
-                    "max_profit": f"${f2(p_put_30*100)} ({pct(p_put_30*100)})", "max_risk": f"${f2(round((s_put_30 - p_put_30)*100, 2))} ({pct((s_put_30 - p_put_30)*100)})",
-                    "comment": "Income generation.",
-                    "desc": "Harvests volatility at the lower boundary. Risk is Strike minus Premium."
-                },
-                {
-                    "name": "Machine 3: Married Put Based", "action": "BUY PUT (+100 Shares)", "strike": s_put_180, "expiry": exp_180, "prem": f2(p_put_180),
-                    "max_profit": "UNLIMITED", "max_risk": f"${f2(round((p_put_180 + (price - s_put_180))*100, 2))} ({pct((p_put_180 + (price - s_put_180))*100)})",
-                    "comment": "Structural hedging.",
-                    "desc": "Strategic long-term protection using an ITM Put (6+ months) to protect capital."
-                },
-                {
-                    "name": "Machine 4: Covered Call Based", "action": "SELL CALL (+100 Shares)", "strike": s_call, "expiry": exp_30, "prem": f2(p_call),
-                    "max_profit": f"${f2(round((p_call + (s_call - price))*100, 2))} ({pct((p_call + (s_call - price))*100)})", "max_risk": "Finite (Stock Ownership)",
-                    "comment": "Yield enhancement.",
-                    "desc": "Generates income on existing holdings, capping upside at strike price."
-                },
-                {
-                    "name": "Machine 5: Assigned Short Put + Covered Call", "action": "COMBINED PUT & CALL", "strike": f"{s_put_30} / {s_call}", "expiry": exp_30, "prem": f2(round(p_call + p_put_30, 2)),
-                    "max_profit": "Enhanced Yield", "max_risk": "Reduced Cost Basis",
-                    "comment": "Cost basis reduction.",
-                    "desc": "Combines premiums to lower break-even, transforming instability into profit."
-                }
+                {"name": "Machine 1: Long Call Based", "action": "BUY CALL", "strike": s_call, "expiry": exp_30, "prem": f2(p_call), "max_profit": "Unlimited", "max_risk": f"${f2(p_call*100)} ({pct(p_call*100)})", "comment": "Bullish.", "desc": "Capital appreciation."},
+                {"name": "Machine 2: Short Put Based", "action": "SELL PUT", "strike": s_put_30, "expiry": exp_30, "prem": f2(p_put_30), "max_profit": f"${f2(p_put_30*100)} ({pct(p_put_30*100)})", "max_risk": f"${f2(round((s_put_30 - p_put_30)*100, 2))} ({pct((s_put_30 - p_put_30)*100)})", "comment": "Income.", "desc": "Harvests volatility."},
+                {"name": "Machine 3: Married Put Based", "action": "BUY PUT (+100 Shares)", "strike": s_put_180, "expiry": exp_180, "prem": f2(p_put_180), "max_profit": "UNLIMITED", "max_risk": f"${f2(round((p_put_180 + (price - s_put_180))*100, 2))} ({pct((p_put_180 + (price - s_put_180))*100)})", "comment": "Structural.", "desc": "Capital protection."},
+                {"name": "Machine 4: Covered Call Based", "action": "SELL CALL (+100 Shares)", "strike": s_call, "expiry": exp_30, "prem": f2(p_call), "max_profit": f"${f2(round((p_call + (s_call - price))*100, 2))} ({pct((p_call + (s_call - price))*100)})", "max_risk": "Finite", "comment": "Yield enhancement.", "desc": "Generates income."},
+                {"name": "Machine 5: Assigned Short Put + Covered Call", "action": "COMBINED", "strike": f"{s_put_30} / {s_call}", "expiry": exp_30, "prem": f2(round(p_call + p_put_30, 2)), "max_profit": "Enhanced Yield", "max_risk": "Reduced Basis", "comment": "Cost reduction.", "desc": "Profit from instability."}
             ]
         })
     except Exception as e:
