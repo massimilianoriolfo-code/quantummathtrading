@@ -24,37 +24,32 @@ def find_nearest_strike(chain, target):
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.get_json(silent=True) or {}
-    query_val = data.get('query', '')
-    if not query_val:
+    user_query = data.get('query', '').upper()
+    if not user_query:
         return jsonify({"response": "Query missing."})
         
-    user_query = query_val.upper()
     today_str = get_now().strftime('%B %d, %Y')
     
     try:
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # IL TUO CODICE DEL 4 MAGGIO (con l'aggiunta del timeout)
+        # IL TUO CODICE ESATTO DEL 4 MAGGIO (con la sintassi corretta output_dimensionality)
         res_emb_raw = requests.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}", 
-            json={
-                "model": "models/gemini-embedding-2", 
-                "content": {"parts": [{"text": user_query}]}, 
-                "output_dimensionality": 768
-            },
+            json={"model": "models/gemini-embedding-2", "content": {"parts": [{"text": user_query}]}, "output_dimensionality": 768},
             timeout=8
         )
         res_emb = res_emb_raw.json()
         
         if 'embedding' not in res_emb:
-            return jsonify({"response": f"API Error: {res_emb.get('error', {}).get('message', 'Errore di connessione a Google')}"})
+            return jsonify({"response": f"Google API Error: {res_emb.get('error', {}).get('message', 'Errore embedding')}"})
             
         query_v = res_emb['embedding']['values']
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        # IL TUO CODICE DEL 4 MAGGIO (Modello aggiornato per evitare blocchi Vercel)
+        # Generazione sicura con timeout
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
         
         prompt_chat = f"""TODAY IS {today_str}. 
@@ -75,13 +70,12 @@ def chat():
         res_gen = res_gen_raw.json()
         
         if 'candidates' in res_gen and len(res_gen['candidates']) > 0:
-            ai_response = res_gen['candidates'][0]['content']['parts'][0]['text']
-            return jsonify({"response": ai_response})
+            return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
         else:
-            return jsonify({"response": f"API Error: {res_gen.get('error', {}).get('message', 'Risposta vuota dal modello')}"})
+            return jsonify({"response": f"Generation Error: {res_gen.get('error', {}).get('message', 'Errore AI')}"})
             
     except requests.exceptions.Timeout:
-        return jsonify({"response": "L'analisi richiede troppo tempo (Timeout Vercel). Riprova."})
+        return jsonify({"response": "L'analisi richiede troppo tempo e Vercel ha chiuso la connessione. Riprova."})
     except Exception as e:
         return jsonify({"response": f"Error: {str(e)}"}), 200
 
