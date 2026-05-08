@@ -8,12 +8,12 @@ from datetime import datetime, timedelta
 from pinecone import Pinecone
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+CORS(app)
 
-# Variabili d'ambiente
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-INDEX_HOST = os.getenv("INDEX_HOST")
+# Variabili Ambiente caricate da Vercel Dashboard
+GOOGLE_KEY = os.getenv("GOOGLE_API_KEY")
+PINECONE_KEY = os.getenv("PINECONE_API_KEY")
+PINECONE_HOST = os.getenv("INDEX_HOST")
 
 def get_now():
     return datetime(2026, 5, 4)
@@ -22,55 +22,39 @@ def find_nearest_strike(chain, target):
     strikes = chain['strike'].values
     return strikes[np.abs(strikes - target).argmin()]
 
-@app.route('/api/chat', methods=['POST', 'OPTIONS'])
+@app.route('/api/chat', methods=['POST'])
 def chat():
-    if request.method == 'OPTIONS': return jsonify({"status": "ok"}), 200
-    
     data = request.get_json(silent=True) or {}
-    user_query = data.get('query') or data.get('user_query')
+    query = data.get('query', '').upper()
     
-    if not user_query:
-        return jsonify({"response": "DEBUG: No query received by Flask."}), 400
+    if not GOOGLE_KEY or not PINECONE_KEY:
+        return jsonify({"response": "DEBUG ERROR: API Keys missing in Vercel settings."})
 
     try:
-        # Verifica preventiva Chiavi
-        if not GOOGLE_API_KEY or not PINECONE_API_KEY:
-            return jsonify({"response": "DEBUG: Missing API Keys in Vercel Environment."})
-
-        # 1. Inizializzazione Pinecone
-        pc = Pinecone(api_key=PINECONE_API_KEY)
-        index_pc = pc.Index(host=INDEX_HOST)
+        pc = Pinecone(api_key=PINECONE_KEY)
+        index_pc = pc.Index(host=PINECONE_HOST)
         
-        # 2. Embedding
-        emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={GOOGLE_API_KEY}"
-        emb_res = requests.post(emb_url, json={
+        # 1. Embedding
+        emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={GOOGLE_KEY}"
+        res_emb = requests.post(emb_url, json={
             "model": "models/text-embedding-004",
-            "content": {"parts": [{"text": user_query}]}
-        })
+            "content": {"parts": [{"text": query}]}
+        }).json()
         
-        if emb_res.status_code != 200:
-            return jsonify({"response": f"DEBUG: Google Embedding Error: {emb_res.text}"})
+        v_query = res_emb['embedding']['values']
         
-        query_v = emb_res.json()['embedding']['values']
-        
-        # 3. Ricerca contestuale
-        search = index_pc.query(vector=query_v, top_k=5, include_metadata=True)
+        # 2. Ricerca
+        search = index_pc.query(vector=v_query, top_k=5, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches if "text" in m.metadata])
         
-        # 4. Generazione Gemini 1.5 Flash
-        gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
-        prompt = f"IDENTITY: CRPM Engine. CONTEXT: {context}. QUERY: {user_query}. Respond in English only."
+        # 3. Risposta
+        gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_KEY}"
+        prompt = f"IDENTITY: CRPM Assistant. CONTEXT: {context}. QUERY: {query}. Respond in English."
         
-        gen_res = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]})
-        
-        if gen_res.status_code != 200:
-            return jsonify({"response": f"DEBUG: Gemini Generation Error: {gen_res.text}"})
-
-        final_text = gen_res.json()['candidates'][0]['content']['parts'][0]['text']
-        return jsonify({"response": final_text})
-        
+        res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}).json()
+        return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
     except Exception as e:
-        return jsonify({"error": f"CRITICAL SYSTEM ERROR: {str(e)}"}), 500
+        return jsonify({"response": f"SYSTEM ERROR: {str(e)}"}), 500
 
 @app.route('/api/index', methods=['GET', 'POST'])
 def index():
@@ -79,13 +63,8 @@ def index():
     
     try:
         stock = yf.Ticker(t.upper())
-        # Usiamo un timeout per evitare blocchi infiniti
         price = stock.fast_info['last_price']
-        
-        expirations = stock.options
-        if not expirations: return jsonify({"error": "No options available"}), 404
-        
-        exp = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - (get_now() + timedelta(days=30))).days))
+        exp = min(stock.options, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - (get_now() + timedelta(days=30))).days))
         c30 = stock.option_chain(exp)
         move = price * 0.27 * np.sqrt(30 / 365)
         
