@@ -26,7 +26,7 @@ def find_nearest_strike(chain, target):
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.get_json()
-    user_query = data.get('query').upper()
+    user_query = data.get('query', '').upper()
     try:
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
@@ -82,6 +82,8 @@ def index():
                 {"name": "Machine 5: Combined", "action": "PUT & CALL", "strike": f"{s_put30}/{s_call}", "expiry": exp_30, "prem": f2(p_call+p_put30), "max_profit": "Enhanced Yield", "max_risk": "Reduced Basis", "desc": "Cost reduction.", "comment": "Instability profit."}
             ]
         })
-    except Exception as e: return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-handler = app
+# Questa riga deve essere esattamente così per Vercel
+app = app
