@@ -10,6 +10,7 @@ from pinecone import Pinecone
 app = Flask(__name__)
 CORS(app)
 
+# Caricamento Variabili Ambiente
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_HOST = os.getenv("INDEX_HOST")
@@ -31,20 +32,23 @@ def chat():
     today_str = get_now().strftime('%B %d, %Y')
     
     try:
+        # Inizializzazione Pinecone
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # CORREZIONE ERRORE TYPEERROR:
-        # La tua versione di Pinecone vuole 'query' come primo argomento, non 'inputs'.
+        # RICERCA CON NAMESPACE OBBLIGATORIO
+        # query={"inputs": ...} è la sintassi corretta per gli indici Integrated
         search_res = index_pc.search(
+            namespace="", 
             query={"inputs": {"text": user_query}}, 
             top_k=5
         )
         
+        # Estrazione sicura del contesto
         context_parts = []
-        # Gestione robusta dei risultati
+        # Trasformiamo l'oggetto in dizionario per evitare errori di attributo
         results = search_res.to_dict() if hasattr(search_res, 'to_dict') else search_res
-        hits = results.get('result', {}).get('hits', [])
+        hits = results.get('result', {}).get('hits', []) if 'result' in results else results.get('hits', [])
         
         for h in hits:
             text_fragment = h.get('fields', {}).get('text', '')
@@ -53,26 +57,27 @@ def chat():
         
         context = "\n".join(context_parts)
         if not context:
-            context = "Focus on general CRPM principles for this analysis."
+            context = "Focus on general CRPM principles."
 
+        # Chiamata a Google Gemini 1.5 Flash
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
         
         prompt_chat = f"""TODAY IS {today_str}. 
-        IDENTITY: CRPM analytical engine.
-        CONTEXT: {context}.
-        USER QUERY: {user_query}. 
-        RULES: English only. Bold titles. Aseptic tone."""
+        IDENTITY: CRPM analytical engine. CONTEXT: {context}. QUERY: {user_query}. 
+        RULES: English only. Bold titles. Professional tone."""
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}, timeout=12).json()
         
         if 'candidates' in res_gen:
             return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
         else:
-            return jsonify({"response": "The engine is currently calibrating. Please retry."})
+            # Se Google dà errore, lo mostriamo chiaramente
+            error_details = res_gen.get('error', {}).get('message', 'Unknown Google Error')
+            return jsonify({"response": f"AI Error: {error_details}"})
             
     except Exception as e:
-        # Restituisce l'errore esatto nel box chat per capire se mancano le chiavi API
-        return jsonify({"response": f"Status: {str(e)}"}), 200
+        # Restituisce l'errore tecnico esatto per la diagnostica finale
+        return jsonify({"response": f"TECHNICAL STATUS: {str(e)}"}), 200
 
 @app.route('/api/index', methods=['POST', 'GET'])
 def index():
@@ -111,11 +116,11 @@ def index():
             "ticker": ticker_sym, "company": company_name, "price": f2(price), "inv_cap": f2(inv_cap),
             "volatility": 27.0, "high": s_call, "low": s_put_30, "date": today_dt.strftime('%B %d, %Y'),
             "machines": [
-                {"name": "Machine 1: Long Call Based", "action": "BUY CALL", "strike": s_call, "expiry": exp_30, "prem": f2(p_call), "max_profit": "Unlimited", "max_risk": f"${f2(p_call*100)} ({pct(p_call*100)})", "comment": "Bullish.", "desc": "Capital appreciation."},
-                {"name": "Machine 2: Short Put Based", "action": "SELL PUT", "strike": s_put_30, "expiry": exp_30, "prem": f2(p_put_30), "max_profit": f"${f2(p_put_30*100)} ({pct(p_put_30*100)})", "max_risk": f"${f2(round((s_put_30 - p_put_30)*100, 2))} ({pct((s_put_30 - p_put_30)*100)})", "comment": "Income.", "desc": "Harvests volatility."},
-                {"name": "Machine 3: Married Put Based", "action": "BUY PUT (+100 Shares)", "strike": s_put_180, "expiry": exp_180, "prem": f2(p_put_180), "max_profit": "UNLIMITED", "max_risk": f"${f2(round((p_put_180 + (price - s_put_180))*100, 2))} ({pct((p_put_180 + (price - s_put_180))*100)})", "comment": "Structural.", "desc": "Capital protection."},
-                {"name": "Machine 4: Covered Call Based", "action": "SELL CALL (+100 Shares)", "strike": s_call, "expiry": exp_30, "prem": f2(p_call), "max_profit": f"${f2(round((p_call + (s_call - price))*100, 2))} ({pct((p_call + (s_call - price))*100)})", "max_risk": "Finite", "comment": "Yield enhancement.", "desc": "Generates income."},
-                {"name": "Machine 5: Assigned Short Put + Covered Call", "action": "COMBINED", "strike": f"{s_put_30} / {s_call}", "expiry": exp_30, "prem": f2(round(p_call + p_put_30, 2)), "max_profit": "Enhanced Yield", "max_risk": "Reduced Basis", "comment": "Cost reduction.", "desc": "Profit from instability."}
+                {"name": "Machine 1: Long Call", "action": "BUY CALL", "strike": s_call, "expiry": exp_30, "prem": f2(p_call), "max_profit": "Unlimited", "max_risk": f"${f2(p_call*100)}", "comment": "Bullish."},
+                {"name": "Machine 2: Short Put", "action": "SELL PUT", "strike": s_put_30, "expiry": exp_30, "prem": f2(p_put_30), "max_profit": f"${f2(p_put_30*100)}", "max_risk": f"${f2(round((s_put_30 - p_put_30)*100, 2))}", "comment": "Income."},
+                {"name": "Machine 3: Married Put", "action": "BUY PUT", "strike": s_put_180, "expiry": exp_180, "prem": f2(p_put_180), "max_profit": "Unlimited", "max_risk": f"${f2(round((p_put_180 + (price - s_put_180))*100, 2))}", "comment": "Hedging."},
+                {"name": "Machine 4: Covered Call", "action": "SELL CALL", "strike": s_call, "expiry": exp_30, "prem": f2(p_call), "max_profit": f"${f2(round((p_call + (s_call - price))*100, 2))}", "max_risk": "Stock Ownership", "comment": "Yield."},
+                {"name": "Machine 5: Combined", "action": "PUT & CALL", "strike": f"{s_put_30}/{s_call}", "expiry": exp_30, "prem": f2(round(p_call + p_put_30, 2)), "max_profit": "Yield", "max_risk": "Reduced Basis", "comment": "Instability."}
             ]
         })
     except Exception as e:
