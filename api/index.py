@@ -23,45 +23,55 @@ def find_nearest_strike(chain, target):
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    data = request.get_json()
-    user_query = data.get('query', '') # Allineamento corretto
+    data = request.get_json(silent=True) or {}
+    user_query = data.get('query', '')
     today_str = get_now().strftime('%B %d, %Y')
+    
+    if not user_query:
+        return jsonify({"response": "Query missing."})
+
     try:
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # 1. Embedding con timeout
+        # 1. Modello Embedding Universale e reale
+        emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent?key={GOOGLE_API_KEY}"
         res_emb_raw = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={GOOGLE_API_KEY}", 
-            json={"model": "models/text-embedding-004", "content": {"parts": [{"text": user_query}]}},
-            timeout=5
+            emb_url, 
+            json={"model": "models/embedding-001", "content": {"parts": [{"text": user_query}]}},
+            timeout=8
         )
         res_emb = res_emb_raw.json()
         
-        # DIAGNOSTICA: Se Google non restituisce l'embedding, leggiamo il perché
         if 'embedding' not in res_emb:
-            error_detail = res_emb.get('error', {}).get('message', 'Unknown Error')
-            return jsonify({"response": f"Google API Error: {error_detail}"})
+            err_msg = res_emb.get('error', {}).get('message', 'Unknown API Error')
+            return jsonify({"response": f"Google Embedding Error: {err_msg}"})
 
         query_v = res_emb['embedding']['values']
         search = index_pc.query(vector=query_v, top_k=5, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches if "text" in m.metadata])
         
-        # 2. Generazione (Gemini 1.5 Flash)
+        # 2. Modello Generazione reale (Gemini 1.5 Flash)
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
-        prompt_chat = f"TODAY IS {today_str}. CONTEXT: {context}. QUERY: {user_query}. Respond in English as CRPM engine."
         
-        res_gen_raw = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}, timeout=10)
+        prompt_chat = f"""TODAY IS {today_str}. 
+        IDENTITY: CRPM Engine. CONTEXT: {context}. QUERY: {user_query}. 
+        STRICT RULES: English only. Professional tone. Section titles in bold."""
+        
+        res_gen_raw = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}, timeout=12)
         res_gen = res_gen_raw.json()
         
-        if 'candidates' in res_gen and len(res_gen['candidates']) > 0:
+        if 'candidates' in res_gen and res_gen['candidates']:
             ai_text = res_gen['candidates'][0]['content']['parts'][0]['text']
             return jsonify({"response": ai_text})
         else:
-            return jsonify({"response": f"Generation Error: {res_gen.get('error', {}).get('message', 'No candidates')}"})
+            err_msg = res_gen.get('error', {}).get('message', 'No output generated')
+            return jsonify({"response": f"Google Generation Error: {err_msg}"})
             
+    except requests.exceptions.Timeout:
+        return jsonify({"response": "API provider timeout. Please try a simpler query."})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"response": f"System Error: {str(e)}"}), 200
 
 @app.route('/api/index', methods=['POST', 'GET'])
 def index():
