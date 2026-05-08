@@ -3,4 +3,4 @@ flask-cors
 yfinance
 numpy
 requests
-pinecone-client
+pinecone
