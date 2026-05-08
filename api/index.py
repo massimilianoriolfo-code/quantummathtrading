@@ -34,11 +34,11 @@ def chat():
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # 1. Modello Embedding Universale e reale
-        emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/embedding-001:embedContent?key={GOOGLE_API_KEY}"
+        # 1. Modello Embedding Attuale (gemini-embedding-2)
+        emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}"
         res_emb_raw = requests.post(
             emb_url, 
-            json={"model": "models/embedding-001", "content": {"parts": [{"text": user_query}]}},
+            json={"model": "models/gemini-embedding-2", "content": {"parts": [{"text": user_query}]}},
             timeout=8
         )
         res_emb = res_emb_raw.json()
@@ -51,8 +51,8 @@ def chat():
         search = index_pc.query(vector=query_v, top_k=5, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches if "text" in m.metadata])
         
-        # 2. Modello Generazione reale (Gemini 1.5 Flash)
-        gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
+        # 2. Modello Generazione Attuale (Gemini 2.5 Flash)
+        gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GOOGLE_API_KEY}"
         
         prompt_chat = f"""TODAY IS {today_str}. 
         IDENTITY: CRPM Engine. CONTEXT: {context}. QUERY: {user_query}. 
