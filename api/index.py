@@ -24,7 +24,7 @@ def find_nearest_strike(chain, target):
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.get_json()
-    user_query = data.get('query').upper()
+  user_query = data.get('query', '')
     today_str = get_now().strftime('%B %d, %Y')
     try:
         pc = Pinecone(api_key=PINECONE_API_KEY)
@@ -35,7 +35,7 @@ def chat():
             json={"model": "models/text-embedding-004", "content": {"parts": [{"text": user_query}]}}).json()
         
         query_v = res_emb['embedding']['values']
-        search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
+        search = index_pc.query(vector=query_v, top_k=5, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
         # AGGIORNAMENTO: Modello generazione stabile (Gemini 1.5 Flash)
@@ -56,7 +56,13 @@ def chat():
         5. Tone: Aseptic, professional, and data-driven."""
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}).json()
-        return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
+        # Estrazione sicura: se Gemini risponde bene, prendi il testo, altrimenti dai errore chiaro
+        if 'candidates' in res_gen and len(res_gen['candidates']) > 0:
+            ai_text = res_gen['candidates'][0]['content']['parts'][0]['text']
+            return jsonify({"response": ai_text})
+        else:
+            return jsonify({"response": "API provider is busy. Please try again in a moment."})
+           
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
