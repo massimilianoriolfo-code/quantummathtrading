@@ -1,3 +1,4 @@
+
 import yfinance as yf
 import numpy as np
 import requests
@@ -10,7 +11,6 @@ from pinecone import Pinecone
 app = Flask(__name__)
 CORS(app)
 
-# Caricamento Variabili Ambiente
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_HOST = os.getenv("INDEX_HOST")
@@ -32,21 +32,17 @@ def chat():
     today_str = get_now().strftime('%B %d, %Y')
     
     try:
-        # Inizializzazione Pinecone
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # RICERCA CON NAMESPACE OBBLIGATORIO
-        # query={"inputs": ...} è la sintassi corretta per gli indici Integrated
+        # Sintassi corretta per Pinecone Document Integrated 2026
         search_res = index_pc.search(
-            namespace="", 
-            query={"inputs": {"text": user_query}}, 
+            namespace="",
+            inputs={"text": user_query},
             top_k=5
         )
         
-        # Estrazione sicura del contesto
         context_parts = []
-        # Trasformiamo l'oggetto in dizionario per evitare errori di attributo
         results = search_res.to_dict() if hasattr(search_res, 'to_dict') else search_res
         hits = results.get('result', {}).get('hits', []) if 'result' in results else results.get('hits', [])
         
@@ -57,26 +53,24 @@ def chat():
         
         context = "\n".join(context_parts)
         if not context:
-            context = "Focus on general CRPM principles."
+            context = "Focus on CRPM methodology."
 
-        # Chiamata a Google Gemini 1.5 Flash
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
         
         prompt_chat = f"""TODAY IS {today_str}. 
-        IDENTITY: CRPM analytical engine. CONTEXT: {context}. QUERY: {user_query}. 
-        RULES: English only. Bold titles. Professional tone."""
+        IDENTITY: CRPM analytical engine. 
+        CONTEXT: {context}. 
+        QUERY: {user_query}. 
+        RULES: English only. Bold titles. Aseptic tone."""
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}, timeout=12).json()
         
         if 'candidates' in res_gen:
             return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
         else:
-            # Se Google dà errore, lo mostriamo chiaramente
-            error_details = res_gen.get('error', {}).get('message', 'Unknown Google Error')
-            return jsonify({"response": f"AI Error: {error_details}"})
+            return jsonify({"response": "The engine is currently calibrating. Please retry."})
             
     except Exception as e:
-        # Restituisce l'errore tecnico esatto per la diagnostica finale
         return jsonify({"response": f"TECHNICAL STATUS: {str(e)}"}), 200
 
 @app.route('/api/index', methods=['POST', 'GET'])
