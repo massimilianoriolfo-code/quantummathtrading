@@ -5,11 +5,11 @@ import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from datetime import datetime, timedelta
-from pinecone import Pinecone
 
 app = Flask(__name__)
 CORS(app)
 
+# Configurazione API
 G_KEY = os.getenv("GOOGLE_API_KEY")
 P_KEY = os.getenv("PINECONE_API_KEY")
 P_HOST = os.getenv("INDEX_HOST")
@@ -24,24 +24,28 @@ def find_nearest_strike(chain, target):
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    data = request.get_json(silent=True) or {}
-    query = data.get('query', '')
-    if not query: return jsonify({"response": "No query."})
+    # La logica AI è isolata per non rompere il resto
     try:
+        from pinecone import Pinecone
+        data = request.get_json(silent=True) or {}
+        query = data.get('query', '')
+        if not query: return jsonify({"response": "Query missing."})
+        
         pc = Pinecone(api_key=P_KEY)
         idx_pc = pc.Index(host=P_HOST)
-        # Embedding
-        res_emb = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={G_KEY}", 
+        
+        emb_res = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={G_KEY}", 
             json={"model": "models/text-embedding-004", "content": {"parts": [{"text": query}]}}).json()
-        # Search
-        search = idx_pc.query(vector=res_emb['embedding']['values'], top_k=5, include_metadata=True)
+        
+        v_query = emb_res['embedding']['values']
+        search = idx_pc.query(vector=v_query, top_k=5, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches if "text" in m.metadata])
-        # Gemini
+        
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={G_KEY}"
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": f"Context: {context}\nQuestion: {query}"}]}]}).json()
         return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
     except Exception as e:
-        return jsonify({"response": f"AI Error: {str(e)}"}), 500
+        return jsonify({"response": f"Assistant is temporarily offline. Error: {str(e)}"}), 200
 
 @app.route('/api/index', methods=['GET'])
 def index():
@@ -49,12 +53,15 @@ def index():
     if not t: return jsonify({"error": "No ticker"}), 400
     try:
         stock = yf.Ticker(t)
-        # Recupero prezzo che alimentava il cono
-        price = float(stock.fast_info['last_price'])
+        # Questa è la parte che genera il cono
+        p_info = stock.fast_info
+        price = float(p_info['last_price'])
+        
         expirations = stock.options
         exp = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - (get_now() + timedelta(days=30))).days))
         
         c = stock.option_chain(exp)
+        # Volatilità fissa al 27% come da tuo modello
         move = price * 0.27 * np.sqrt(30 / 365)
         
         s_call = find_nearest_strike(c.calls, price + move)
@@ -74,6 +81,6 @@ def index():
             ]
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Cone Error: {str(e)}"}), 500
 
 handler = app
