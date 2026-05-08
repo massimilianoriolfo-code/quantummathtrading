@@ -8,8 +8,9 @@ from datetime import datetime, timedelta
 from pinecone import Pinecone
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
+# Variabili d'ambiente
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_HOST = os.getenv("INDEX_HOST")
@@ -23,59 +24,71 @@ def find_nearest_strike(chain, target):
 
 @app.route('/api/chat', methods=['POST', 'OPTIONS'])
 def chat():
-    if request.method == 'OPTIONS': return jsonify({}), 200
+    if request.method == 'OPTIONS': return jsonify({"status": "ok"}), 200
     
     data = request.get_json(silent=True) or {}
-    # Prova a leggere sia 'query' che 'user_query'
-    user_query = (data.get('query') or data.get('user_query') or "").upper()
+    user_query = data.get('query') or data.get('user_query')
     
     if not user_query:
-        return jsonify({"response": "Please enter a question."})
+        return jsonify({"response": "DEBUG: No query received by Flask."}), 400
 
     try:
-        # Inizializzazione Pinecone
+        # Verifica preventiva Chiavi
+        if not GOOGLE_API_KEY or not PINECONE_API_KEY:
+            return jsonify({"response": "DEBUG: Missing API Keys in Vercel Environment."})
+
+        # 1. Inizializzazione Pinecone
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # Embedding
+        # 2. Embedding
         emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={GOOGLE_API_KEY}"
-        res_emb = requests.post(emb_url, json={
+        emb_res = requests.post(emb_url, json={
             "model": "models/text-embedding-004",
             "content": {"parts": [{"text": user_query}]}
-        }).json()
+        })
         
-        query_v = res_emb['embedding']['values']
+        if emb_res.status_code != 200:
+            return jsonify({"response": f"DEBUG: Google Embedding Error: {emb_res.text}"})
         
-        # Ricerca nel libro
+        query_v = emb_res.json()['embedding']['values']
+        
+        # 3. Ricerca contestuale
         search = index_pc.query(vector=query_v, top_k=5, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches if "text" in m.metadata])
         
-        # Generazione Gemini
+        # 4. Generazione Gemini 1.5 Flash
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
-        prompt = f"CONTEXT: {context}\nQUERY: {user_query}\nRespond in English using CRPM methodology."
+        prompt = f"IDENTITY: CRPM Engine. CONTEXT: {context}. QUERY: {user_query}. Respond in English only."
         
-        res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}).json()
+        gen_res = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]})
         
-        return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
+        if gen_res.status_code != 200:
+            return jsonify({"response": f"DEBUG: Gemini Generation Error: {gen_res.text}"})
+
+        final_text = gen_res.json()['candidates'][0]['content']['parts'][0]['text']
+        return jsonify({"response": final_text})
+        
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"CRITICAL SYSTEM ERROR: {str(e)}"}), 500
 
 @app.route('/api/index', methods=['GET', 'POST'])
 def index():
-    if request.method == 'POST':
-        data = request.get_json(silent=True) or {}
-        t = data.get('ticker', '').upper()
-    else:
-        t = request.args.get('ticker', '').upper()
-        
+    t = request.args.get('ticker') or (request.get_json(silent=True) or {}).get('ticker')
     if not t: return jsonify({"error": "Ticker missing"}), 400
     
     try:
-        stock = yf.Ticker(t)
+        stock = yf.Ticker(t.upper())
+        # Usiamo un timeout per evitare blocchi infiniti
         price = stock.fast_info['last_price']
-        exp = min(stock.options, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - (get_now() + timedelta(days=30))).days))
+        
+        expirations = stock.options
+        if not expirations: return jsonify({"error": "No options available"}), 404
+        
+        exp = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - (get_now() + timedelta(days=30))).days))
         c30 = stock.option_chain(exp)
         move = price * 0.27 * np.sqrt(30 / 365)
+        
         s_call = find_nearest_strike(c30.calls, price + move)
         p_call = round(c30.calls[c30.calls['strike'] == s_call]['lastPrice'].values[0], 2)
         s_put = find_nearest_strike(c30.puts, price - move)
@@ -84,7 +97,7 @@ def index():
         def f2(v): return "{:.2f}".format(v)
         
         return jsonify({
-            "ticker": t, "company": stock.info.get('longName', t), "price": f2(price),
+            "ticker": t.upper(), "company": stock.info.get('longName', t), "price": f2(price),
             "volatility": 27.0, "high": s_call, "low": s_put, "date": "May 04, 2026",
             "machines": [
                 {"name": "Machine 1", "action": "BUY CALL", "strike": s_call, "expiry": exp, "prem": f2(p_call), "max_profit": "Unlimited", "max_risk": f"${f2(p_call*100)}", "comment": "Bullish.", "desc": "Appreciation."},
