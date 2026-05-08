@@ -24,26 +24,18 @@ def find_nearest_strike(chain, target):
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.get_json()
-    user_query = data.get('query').upper()
+    user_query = data.get('query', '').upper()
     today_str = get_now().strftime('%B %d, %Y')
     try:
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
-        
-        # 1. Embedding (Modello stabile)
         res_emb = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={GOOGLE_API_KEY}", 
             json={"model": "models/text-embedding-004", "content": {"parts": [{"text": user_query}]}}).json()
         query_v = res_emb['embedding']['values']
-        
-        # 2. Pinecone
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
-        
-        # 3. Generazione (Modello Gemini 1.5 Flash: l'unico che garantisce risposta oggi)
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
-        
         prompt_chat = f"TODAY IS {today_str}. IDENTITY: CRPM Engine. CONTEXT: {context}. QUERY: {user_query}. Tone: Aseptic. Respond in English."
-        
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}).json()
         return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
     except Exception as e:
@@ -73,8 +65,10 @@ def index():
         p_put30 = round(c30.puts[c30.puts['strike'] == s_put30]['lastPrice'].values[0], 2)
         s_put180 = find_nearest_strike(c180.puts, price * 1.02)
         p_put180 = round(c180.puts[c180.puts['strike'] == s_put180]['lastPrice'].values[0], 2)
+        
         def pct(v): return f"{round((v / inv_cap) * 100, 2)}%"
         def f2(v): return "{:.2f}".format(v)
+        
         return jsonify({
             "ticker": ticker_sym, "company": company_name, "price": f2(price), "inv_cap": f2(inv_cap),
             "volatility": 27.0, "high": s_call, "low": s_put30, "date": today_dt.strftime('%B %d, %Y'),
@@ -86,6 +80,7 @@ def index():
                 {"name": "Machine 5: Combined", "action": "PUT & CALL", "strike": f"{s_put30}/{s_call}", "expiry": exp_30, "prem": f2(p_call+p_put30), "max_profit": "Yield+", "max_risk": "Basis-", "comment": "Cost reduction.", "desc": "Profit."}
             ]
         })
-    except Exception as e: return jsonify({"error": str(e)}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 handler = app
