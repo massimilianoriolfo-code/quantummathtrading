@@ -21,19 +21,23 @@ def find_nearest_strike(chain, target):
     strikes = chain['strike'].values
     return strikes[np.abs(strikes - target).argmin()]
 
-@app.route('/api/chat', methods=['POST'])
+@app.route('/api/chat', methods=['POST', 'OPTIONS'])
 def chat():
+    if request.method == 'OPTIONS': return jsonify({}), 200
+    
     data = request.get_json(silent=True) or {}
-    user_query = data.get('query', '').upper()
+    # Prova a leggere sia 'query' che 'user_query'
+    user_query = (data.get('query') or data.get('user_query') or "").upper()
+    
     if not user_query:
         return jsonify({"response": "Please enter a question."})
-    
+
     try:
-        # 1. Inizializzazione Pinecone
+        # Inizializzazione Pinecone
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # 2. Embedding (Genera il vettore per la ricerca nel libro)
+        # Embedding
         emb_url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={GOOGLE_API_KEY}"
         res_emb = requests.post(emb_url, json={
             "model": "models/text-embedding-004",
@@ -42,25 +46,17 @@ def chat():
         
         query_v = res_emb['embedding']['values']
         
-        # 3. Ricerca nel database (Knowledge Base del libro)
+        # Ricerca nel libro
         search = index_pc.query(vector=query_v, top_k=5, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches if "text" in m.metadata])
         
-        # 4. Generazione risposta con Gemini 1.5 Flash
+        # Generazione Gemini
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
+        prompt = f"CONTEXT: {context}\nQUERY: {user_query}\nRespond in English using CRPM methodology."
         
-        prompt = f"""IDENTITY: Quantitative engine based on 'The Essence of Quantitative Math Trading with Options'.
-        CONTEXT FROM BOOK: {context}
-        USER QUERY: {user_query}
-        RULES: English only. Professional tone. No names. Bold for sections."""
+        res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}).json()
         
-        res_gen = requests.post(gen_url, json={
-            "contents": [{"parts": [{"text": prompt}]}]
-        }).json()
-        
-        ai_text = res_gen['candidates'][0]['content']['parts'][0]['text']
-        return jsonify({"response": ai_text})
-        
+        return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -76,28 +72,23 @@ def index():
     
     try:
         stock = yf.Ticker(t)
-        price = round(stock.fast_info['last_price'], 2)
-        inv_cap = price * 100
-        expirations = stock.options
-        exp_30 = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - (get_now() + timedelta(days=30))).days))
-        
-        c30 = stock.option_chain(exp_30)
+        price = stock.fast_info['last_price']
+        exp = min(stock.options, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - (get_now() + timedelta(days=30))).days))
+        c30 = stock.option_chain(exp)
         move = price * 0.27 * np.sqrt(30 / 365)
-        
         s_call = find_nearest_strike(c30.calls, price + move)
         p_call = round(c30.calls[c30.calls['strike'] == s_call]['lastPrice'].values[0], 2)
-        s_put30 = find_nearest_strike(c30.puts, price - move)
-        p_put30 = round(c30.puts[c30.puts['strike'] == s_put30]['lastPrice'].values[0], 2)
+        s_put = find_nearest_strike(c30.puts, price - move)
+        p_put = round(c30.puts[c30.puts['strike'] == s_put]['lastPrice'].values[0], 2)
         
         def f2(v): return "{:.2f}".format(v)
         
         return jsonify({
-            "ticker": t, "company": stock.info.get('longName', t), "price": f2(price), "inv_cap": f2(inv_cap),
-            "volatility": 27.0, "high": s_call, "low": s_put30, "date": "May 04, 2026",
+            "ticker": t, "company": stock.info.get('longName', t), "price": f2(price),
+            "volatility": 27.0, "high": s_call, "low": s_put, "date": "May 04, 2026",
             "machines": [
-                {"name": "Machine 1", "action": "BUY CALL", "strike": s_call, "expiry": exp_30, "prem": f2(p_call), "max_profit": "Unlimited", "max_risk": f"${f2(p_call*100)}", "comment": "Bullish.", "desc": "Appreciation."},
-                {"name": "Machine 4", "action": "SELL CALL", "strike": s_call, "expiry": exp_30, "prem": f2(p_call), "max_profit": "Yield", "max_risk": "Stock", "comment": "Income.", "desc": "Yield generation."},
-                {"name": "Machine 5", "action": "COMBINED", "strike": f"{s_put30}/{s_call}", "expiry": exp_30, "prem": f2(p_call + p_put30), "max_profit": "Yield+", "max_risk": "Basis", "comment": "Cost reduction.", "desc": "Profit."}
+                {"name": "Machine 1", "action": "BUY CALL", "strike": s_call, "expiry": exp, "prem": f2(p_call), "max_profit": "Unlimited", "max_risk": f"${f2(p_call*100)}", "comment": "Bullish.", "desc": "Appreciation."},
+                {"name": "Machine 5", "action": "COMBINED", "strike": f"{s_put}/{s_call}", "expiry": exp, "prem": f2(p_call + p_put), "max_profit": "Yield+", "max_risk": "Basis", "comment": "Cost reduction.", "desc": "Profit."}
             ]
         })
     except Exception as e: return jsonify({"error": str(e)}), 500
