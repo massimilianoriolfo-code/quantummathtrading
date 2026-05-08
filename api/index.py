@@ -1,7 +1,7 @@
 import yfinance as yf
 import numpy as np
-import requests
 import os
+import google.generativeai as genai
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from datetime import datetime, timedelta
@@ -10,9 +10,13 @@ from pinecone import Pinecone
 app = Flask(__name__)
 CORS(app)
 
+# Configurazione API Keys (Vercel Environments)
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 INDEX_HOST = os.getenv("INDEX_HOST")
+
+# Inizializzazione ufficiale Google AI
+genai.configure(api_key=GOOGLE_API_KEY)
 
 def get_now():
     return datetime(2026, 5, 4)
@@ -27,34 +31,43 @@ def chat():
     user_query = data.get('query').upper()
     today_str = get_now().strftime('%B %d, %Y')
     try:
+        # 1. Ricerca nel database vettoriale (Libro)
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
-        res_emb = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}", 
-            json={"model": "models/gemini-embedding-2", "content": {"parts": [{"text": user_query}]}, "output_dimensionality": 768}).json()
-        query_v = res_emb['embedding']['values']
-        search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
+        
+        # Generazione embedding con modello stabile
+        res_emb = genai.embed_content(
+            model="models/text-embedding-004",
+            content=user_query,
+            task_type="retrieval_query"
+        )
+        query_v = res_emb['embedding']
+        
+        search = index_pc.query(vector=query_v, top_k=10, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
+        # 2. Generazione risposta con Gemini 1.5 Flash (Affidabilità Enterprise)
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt_chat = f"""TODAY IS {today_str}. 
         IDENTITY: You are a quantitative analytical engine based on the 'Calculated Risk and Profit Machines' (CRPM) methodology.
-        CONTEXT: {context}.
+        CONTEXT FROM BOOK: {context}.
         USER QUERY: {user_query}. 
         
         STRICT FORMATTING RULES:
         1. Respond EXCLUSIVELY in English.
         2. NO personal names. NO square brackets [].
         3. Use ONLY bold text for section titles (e.g., **Title:**).
-        4. If the query is about owning 100 shares, ALWAYS present due options:
+        4. If the query is about owning 100 shares, ALWAYS present two options:
            - **Machine 3: Married Put Based** (For structural protection).
            - **Machine 4: Covered Call Based** (For yield generation).
         5. Tone: Aseptic, professional, and data-driven."""
         
-        res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}).json()
-        return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
+        res_gen = model.generate_content(prompt_chat)
+        return jsonify({"response": res_gen.text})
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"AI Engine temporary offline: {str(e)}"}), 500
 
 @app.route('/api/index', methods=['POST', 'GET'])
 def index():
