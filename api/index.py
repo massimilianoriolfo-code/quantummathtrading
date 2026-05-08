@@ -24,13 +24,13 @@ def find_nearest_strike(chain, target):
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.get_json()
-    user_query = data.get('query', '')
+    user_query = data.get('query', '') # Allineamento corretto
     today_str = get_now().strftime('%B %d, %Y')
     try:
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # 1. Embedding con timeout per evitare blocchi
+        # 1. Embedding con timeout
         res_emb_raw = requests.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={GOOGLE_API_KEY}", 
             json={"model": "models/text-embedding-004", "content": {"parts": [{"text": user_query}]}},
@@ -38,19 +38,18 @@ def chat():
         )
         res_emb = res_emb_raw.json()
         
+        # DIAGNOSTICA: Se Google non restituisce l'embedding, leggiamo il perché
         if 'embedding' not in res_emb:
-            return jsonify({"response": "System initializing. Please try again in 5 seconds."})
+            error_detail = res_emb.get('error', {}).get('message', 'Unknown Error')
+            return jsonify({"response": f"Google API Error: {error_detail}"})
 
         query_v = res_emb['embedding']['values']
         search = index_pc.query(vector=query_v, top_k=5, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches if "text" in m.metadata])
         
-        # 2. Generazione con Gemini 1.5 Flash (Stabile)
+        # 2. Generazione (Gemini 1.5 Flash)
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
-        
-        prompt_chat = f"""TODAY IS {today_str}. 
-        IDENTITY: CRPM Engine. CONTEXT: {context}. QUERY: {user_query}. 
-        STRICT RULES: English only. Professional tone. Section titles in bold. No personal names."""
+        prompt_chat = f"TODAY IS {today_str}. CONTEXT: {context}. QUERY: {user_query}. Respond in English as CRPM engine."
         
         res_gen_raw = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}, timeout=10)
         res_gen = res_gen_raw.json()
@@ -59,11 +58,10 @@ def chat():
             ai_text = res_gen['candidates'][0]['content']['parts'][0]['text']
             return jsonify({"response": ai_text})
         else:
-            return jsonify({"response": "The engine is currently calculating complex data. Please resubmit your query."})
+            return jsonify({"response": f"Generation Error: {res_gen.get('error', {}).get('message', 'No candidates')}"})
             
     except Exception as e:
-        # Restituiamo un messaggio pulito all'utente invece di un crash 500
-        return jsonify({"response": f"Connection active, but analysis timed out. Detail: {str(e)}"}), 200
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/index', methods=['POST', 'GET'])
 def index():
@@ -113,4 +111,3 @@ def index():
         return jsonify({"error": str(e)}), 500
 
 handler = app
-
