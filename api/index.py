@@ -29,13 +29,17 @@ def chat():
     try:
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
-        res_emb = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key={GOOGLE_API_KEY}", 
-            json={"model": "models/gemini-embedding-2", "content": {"parts": [{"text": user_query}]}, "output_dimensionality": 768}).json()
+        
+        # AGGIORNAMENTO: Modello embedding stabile
+        res_emb = requests.post(f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={GOOGLE_API_KEY}", 
+            json={"model": "models/text-embedding-004", "content": {"parts": [{"text": user_query}]}}).json()
+        
         query_v = res_emb['embedding']['values']
         search = index_pc.query(vector=query_v, top_k=15, include_metadata=True)
         context = "\n".join([m.metadata["text"] for m in search.matches])
         
-        gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent?key={GOOGLE_API_KEY}"
+        # AGGIORNAMENTO: Modello generazione stabile (Gemini 1.5 Flash)
+        gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
         
         prompt_chat = f"""TODAY IS {today_str}. 
         IDENTITY: You are a quantitative analytical engine based on the 'Calculated Risk and Profit Machines' (CRPM) methodology.
