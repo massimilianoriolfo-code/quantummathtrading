@@ -34,41 +34,41 @@ def chat():
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # LA SVOLTA: Usiamo la nuova API Document di Pinecone.
-        # Nessun modello di embedding esterno, fa tutto il database!
         try:
-            res_search = index_pc.search(
-                query={
-                    "inputs": {"text": user_query},
-                    "top_k": 5
-                }
-            )
-        except Exception as search_err:
-            return jsonify({"response": f"Pinecone Document API Error: {str(search_err)}"})
+            res_search = index_pc.search(inputs={"text": user_query}, top_k=5)
+        except TypeError:
+            try:
+                res_search = index_pc.search({"inputs": {"text": user_query}, "top_k": 5})
+            except TypeError:
+                try:
+                    res_search = index_pc.search(user_query, top_k=5)
+                except Exception as sdk_err:
+                    rest_url = f"https://{INDEX_HOST}/search"
+                    headers = {"Api-Key": PINECONE_API_KEY, "Content-Type": "application/json"}
+                    payload = {"query": {"inputs": {"text": user_query}}, "top_k": 5}
+                    res_search = requests.post(rest_url, headers=headers, json=payload).json()
             
-        # Estrazione del contesto dai risultati nativi di Pinecone
         context_parts = []
         try:
-            # Gestione sicura del formato JSON di ritorno
             if isinstance(res_search, dict):
-                hits = res_search.get('result', {}).get('hits', [])
+                hits = res_search.get('hits', []) or res_search.get('result', {}).get('hits', [])
                 for h in hits:
                     fields = h.get('fields', {})
                     context_parts.append(fields.get('text', str(fields)))
             else:
-                hits = res_search.result.hits if hasattr(res_search, 'result') else getattr(res_search, 'hits', [])
+                hits = getattr(res_search, 'hits', [])
+                if not hits and hasattr(res_search, 'result'):
+                    hits = getattr(res_search.result, 'hits', [])
                 for h in hits:
                     fields = getattr(h, 'fields', {})
-                    text_val = fields.get('text', str(fields)) if isinstance(fields, dict) else str(fields)
-                    context_parts.append(text_val)
+                    text_val = fields.get('text', str(fields)) if isinstance(fields, dict) else getattr(fields, 'text', str(fields))
+                    context_parts.append(str(text_val))
         except Exception:
             pass
             
         context = "\n".join(context_parts)
         
-        # 2. Motore di Generazione della Risposta CRPM
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GOOGLE_API_KEY}"
-        
         prompt_chat = f"""TODAY IS {today_str}. 
         IDENTITY: CRPM Engine. CONTEXT: {context}. QUERY: {user_query}. 
         STRICT RULES: English only. Professional tone. Section titles in bold."""
