@@ -1,6 +1,7 @@
-yfinance
-numpy
 flask
 flask-cors
+yfinance
+numpy
+google-generativeai
+pinecone-client
 requests
-pinecone
