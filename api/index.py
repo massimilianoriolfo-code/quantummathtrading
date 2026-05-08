@@ -66,7 +66,6 @@ def index():
         s_put180 = find_nearest_strike(c180.puts, price * 1.02)
         p_put180 = round(c180.puts[c180.puts['strike'] == s_put180]['lastPrice'].values[0], 2)
         
-        def pct(v): return f"{round((v / inv_cap) * 100, 2)}%"
         def f2(v): return "{:.2f}".format(v)
         
         return jsonify({
