@@ -1,4 +1,3 @@
-
 import yfinance as yf
 import numpy as np
 import requests
@@ -35,16 +34,18 @@ def chat():
         pc = Pinecone(api_key=PINECONE_API_KEY)
         index_pc = pc.Index(host=INDEX_HOST)
         
-        # Sintassi corretta per Pinecone Document Integrated 2026
+        # CORREZIONE FINALE: Il namespace NON può essere vuoto. 
+        # Usiamo il nome del tuo archivio documenti.
         search_res = index_pc.search(
-            namespace="",
+            namespace="book-content",
             inputs={"text": user_query},
             top_k=5
         )
         
         context_parts = []
         results = search_res.to_dict() if hasattr(search_res, 'to_dict') else search_res
-        hits = results.get('result', {}).get('hits', []) if 'result' in results else results.get('hits', [])
+        # Navigazione sicura nei risultati Document-Integrated
+        hits = results.get('result', {}).get('hits', [])
         
         for h in hits:
             text_fragment = h.get('fields', {}).get('text', '')
@@ -53,7 +54,7 @@ def chat():
         
         context = "\n".join(context_parts)
         if not context:
-            context = "Focus on CRPM methodology."
+            context = "Focus on CRPM methodology and quantitative risk management."
 
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
         
@@ -61,14 +62,14 @@ def chat():
         IDENTITY: CRPM analytical engine. 
         CONTEXT: {context}. 
         QUERY: {user_query}. 
-        RULES: English only. Bold titles. Aseptic tone."""
+        RULES: English only. Bold titles. Aseptic professional tone."""
         
         res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}, timeout=12).json()
         
         if 'candidates' in res_gen:
             return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
         else:
-            return jsonify({"response": "The engine is currently calibrating. Please retry."})
+            return jsonify({"response": "Analysis complete, but no output generated. Please retry."})
             
     except Exception as e:
         return jsonify({"response": f"TECHNICAL STATUS: {str(e)}"}), 200
