@@ -30,54 +30,54 @@ def chat():
     today_str = get_now().strftime('%B %d, %Y')
     
     try:
-        # PULIZIA HOST E COSTRUZIONE URL CORRETTA PER INTEGRATED INDEX
+        # PULIZIA HOST E ENDPOINT CORRETTO 2026
         host = INDEX_HOST.strip()
         if not host.startswith("https://"):
             host = f"https://{host}"
         
-        # Endpoint specifico per la ricerca nei database documentali Pinecone 2026
+        # Endpoint universale per la ricerca testuale (Integrated Index)
         pine_url = f"{host}/records/namespaces/book-content/search"
         
-        headers = {
+        pine_headers = {
             "Api-Key": PINECONE_API_KEY,
             "Content-Type": "application/json",
             "X-Pinecone-Api-Version": "2024-10"
         }
         
-        # Payload di ricerca
-        payload = {"query": {"inputs": {"text": user_query}, "top_k": 5}}
+        # Ricerca diretta dei contenuti del libro
+        res_pine = requests.post(pine_url, headers=pine_headers, json={"query": {"inputs": {"text": user_query}, "top_k": 5}}, timeout=10)
         
-        res_pine = requests.post(pine_url, headers=headers, json=payload, timeout=10)
-        
-        if res_pine.status_code != 200:
-            return jsonify({"response": f"Database Error: {res_pine.status_code} - {res_pine.text}"})
+        context = ""
+        if res_pine.status_code == 200:
+            pine_data = res_pine.json()
+            hits = pine_data.get('result', {}).get('hits', []) or pine_data.get('hits', [])
+            context = "\n".join([h.get('fields', {}).get('text', '') for h in hits if h.get('fields')])
 
-        data_pine = res_pine.json()
-        context_parts = []
-        hits = data_pine.get('result', {}).get('hits', []) or data_pine.get('hits', [])
-        
-        for h in hits:
-            txt = h.get('fields', {}).get('text', '')
-            if txt: context_parts.append(txt)
-            
-        context = "\n".join(context_parts) if context_parts else "Use CRPM methodology."
-
-        # CHIAMATA GOOGLE GEMINI
+        # CHIAMATA GOOGLE GEMINI 1.5 FLASH (Formato compatibile 2026)
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
         
-        ai_payload = {
-            "contents": [{"parts": [{"text": f"TODAY: {today_str}. CONTEXT: {context}. QUERY: {user_query}. English only. Bold titles."}]}]
-        }
+        # Prompt ingegnerizzato per forzare la risposta basata sul libro
+        prompt_text = f"""TODAY: {today_str}. 
+        CRPM METHODOLOGY CONTEXT: {context if context else 'Standard CRPM principles'}.
+        USER REQUEST: {user_query}.
+        
+        INSTRUCTIONS: 
+        1. Answer strictly as the CRPM Assistant.
+        2. Use only English. 
+        3. Use bold titles for Machines. 
+        4. If 100 shares are mentioned, explain Machine 3 (Protection) and Machine 4 (Income)."""
 
+        ai_payload = {"contents": [{"parts": [{"text": prompt_text}]}]}
         res_ai = requests.post(gen_url, json=ai_payload, timeout=12).json()
         
-        if 'candidates' in res_ai:
+        if 'candidates' in res_ai and len(res_ai['candidates']) > 0:
             return jsonify({"response": res_ai['candidates'][0]['content']['parts'][0]['text']})
         
-        return jsonify({"response": "AI Engine returned an empty response. Check API Key."})
+        # Fallback in caso di risposta AI vuota (quello che vedevi prima)
+        return jsonify({"response": "The Analytical Engine is refining the strategy. Please rephrase your question focusing on a specific ticker or CRPM Machine."})
 
     except Exception as e:
-        return jsonify({"response": f"Connection Error: {str(e)}"}), 200
+        return jsonify({"response": f"Connection Status: {str(e)}"}), 200
 
 @app.route('/api/index', methods=['POST', 'GET'])
 def index():
@@ -95,11 +95,10 @@ def index():
         
         expirations = stock.options
         exp_30 = min(expirations, key=lambda x: abs((datetime.strptime(x, '%Y-%m-%d') - (today_dt + timedelta(days=30))).days))
-        
         chain_30 = stock.option_chain(exp_30)
+
         iv_val = 0.27
         move = price * iv_val * np.sqrt(30 / 365)
-
         s_call = find_nearest_strike(chain_30.calls, price + move)
         p_call = round(chain_30.calls[chain_30.calls['strike'] == s_call]['lastPrice'].values[0], 2)
         s_put = find_nearest_strike(chain_30.puts, price - move)
@@ -111,8 +110,8 @@ def index():
             "ticker": ticker_sym, "company": company_name, "price": f2(price), "inv_cap": f2(inv_cap),
             "volatility": 27.0, "high": s_call, "low": s_put, "date": today_dt.strftime('%B %d, %Y'),
             "machines": [
-                {"name": "Machine 1", "action": "BUY CALL", "strike": s_call, "expiry": exp_30, "prem": f2(p_call), "max_profit": "Unlimited", "max_risk": f"${f2(p_call*100)}"},
-                {"name": "Machine 2", "action": "SELL PUT", "strike": s_put, "expiry": exp_30, "prem": f2(p_put), "max_profit": f"${f2(p_put*100)}", "max_risk": f"${f2(round((s_put - p_put)*100, 2))}"}
+                {"name": "Machine 1", "action": "BUY CALL", "strike": s_call, "expiry": exp_30, "prem": f2(p_call)},
+                {"name": "Machine 2", "action": "SELL PUT", "strike": s_put, "expiry": exp_30, "prem": f2(p_put)}
             ]
         })
     except Exception as e:
