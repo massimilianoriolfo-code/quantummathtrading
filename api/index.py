@@ -5,7 +5,6 @@ import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from datetime import datetime, timedelta
-from pinecone import Pinecone
 
 app = Flask(__name__)
 CORS(app)
@@ -31,48 +30,46 @@ def chat():
     today_str = get_now().strftime('%B %d, %Y')
     
     try:
-        pc = Pinecone(api_key=PINECONE_API_KEY)
-        index_pc = pc.Index(host=INDEX_HOST)
+        # 1. RICERCA DIRETTA SU PINECONE (Senza libreria, massima stabilità)
+        clean_host = INDEX_HOST.replace("https://", "").replace("http://", "").strip("/")
+        pine_url = f"https://{clean_host}/records/namespaces/book-content/search"
         
-        # CORREZIONE FINALE: Il namespace NON può essere vuoto. 
-        # Usiamo il nome del tuo archivio documenti.
-        search_res = index_pc.search(
-            namespace="book-content",
-            inputs={"text": user_query},
-            top_k=5
-        )
+        pine_headers = {
+            "Api-Key": PINECONE_API_KEY,
+            "Content-Type": "application/json",
+            "X-Pinecone-Api-Version": "2024-10"
+        }
+        
+        pine_payload = {"query": {"inputs": {"text": user_query}, "top_k": 5}}
+        
+        res_pine = requests.post(pine_url, headers=pine_headers, json=pine_payload, timeout=10).json()
         
         context_parts = []
-        results = search_res.to_dict() if hasattr(search_res, 'to_dict') else search_res
-        # Navigazione sicura nei risultati Document-Integrated
-        hits = results.get('result', {}).get('hits', [])
-        
+        hits = res_pine.get('result', {}).get('hits', []) or res_pine.get('hits', [])
         for h in hits:
-            text_fragment = h.get('fields', {}).get('text', '')
-            if text_fragment:
-                context_parts.append(text_fragment)
-        
-        context = "\n".join(context_parts)
-        if not context:
-            context = "Focus on CRPM methodology and quantitative risk management."
+            txt = h.get('fields', {}).get('text', '')
+            if txt: context_parts.append(txt)
+            
+        context = "\n".join(context_parts) if context_parts else "Focus on CRPM quantitative methodology."
 
+        # 2. GENERAZIONE AI (Gemini 1.5 Flash - Veloce e affidabile)
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
         
-        prompt_chat = f"""TODAY IS {today_str}. 
-        IDENTITY: CRPM analytical engine. 
-        CONTEXT: {context}. 
-        QUERY: {user_query}. 
-        RULES: English only. Bold titles. Aseptic professional tone."""
+        prompt = f"""TODAY: {today_str}. 
+        CONTEXT FROM BOOK: {context}.
+        QUERY: {user_query}.
+        TASK: Quantitative analysis based on CRPM. English only. Bold titles. 
+        If about 100 shares, include Machine 3 (Married Put) and Machine 4 (Covered Call)."""
+
+        res_ai = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=12).json()
         
-        res_gen = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt_chat}]}]}, timeout=12).json()
+        if 'candidates' in res_ai and res_ai['candidates']:
+            return jsonify({"response": res_ai['candidates'][0]['content']['parts'][0]['text']})
         
-        if 'candidates' in res_gen:
-            return jsonify({"response": res_gen['candidates'][0]['content']['parts'][0]['text']})
-        else:
-            return jsonify({"response": "Analysis complete, but no output generated. Please retry."})
-            
+        return jsonify({"response": "The engine is busy. Please try a simpler query."})
+
     except Exception as e:
-        return jsonify({"response": f"TECHNICAL STATUS: {str(e)}"}), 200
+        return jsonify({"response": f"Status: {str(e)}"}), 200
 
 @app.route('/api/index', methods=['POST', 'GET'])
 def index():
