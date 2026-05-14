@@ -2,67 +2,114 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CRPM Strategy Hub</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; background: #f4f7f9; color: #333; }
-        .card { background: white; padding: 30px; border-radius: 16px; max-width: 1000px; margin: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        .header-info { text-align: center; margin-bottom: 25px; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
-        input { padding: 12px; border: 2px solid #dfe3e8; border-radius: 8px; width: 220px; font-size: 16px; text-transform: uppercase; }
-        button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .strategy-table { width: 100%; border-collapse: collapse; margin-top: 25px; background: #fff; border: 1px solid #eee; font-size: 14px; }
-        .strategy-table th { background: #333; color: #fff; padding: 12px; text-align: left; text-transform: uppercase; letter-spacing: 1px; }
-        .strategy-table td { padding: 12px; border-bottom: 1px solid #eee; }
-        .action-buy { color: #007bff; font-weight: bold; }
-        .action-sell { color: #dc3545; font-weight: bold; }
-        .unlimited { color: #28a745; font-weight: bold; text-transform: uppercase; }
-        .desc-cell { font-size: 0.88rem; color: #444; line-height: 1.5; padding: 15px !important; border-right: 1px solid #eee; }
-        .comment-box { background: #f9f9f9; padding: 15px !important; color: #666; font-size: 0.85rem; vertical-align: middle; width: 30%; }
-        #chartContainer { width: 100%; height: 450px; margin: 20px 0; }
-        .op-note { margin-top: 25px; padding: 15px; background: #fff9e6; border-radius: 8px; font-size: 0.85rem; border: 1px solid #ffeeba; }
-        
-        #chat-response { 
-            margin-top: 25px; 
-            padding: 0; 
-            background: #fff; 
-            border-radius: 8px; 
-            display: none; 
-            border: 1px solid #eee;
-            overflow: hidden;
-        }
-        .ai-header { background: #333; color: #fff; padding: 12px; font-weight: bold; text-transform: uppercase; font-size: 14px; text-align: center; }
-        .ai-body { padding: 25px; line-height: 1.8; font-size: 0.95rem; color: #2c3e50; }
-        .ai-body strong { color: #000; font-weight: 700; }
+        body { font-family: sans-serif; padding: 20px; background: #f4f7f9; }
+        .card { background: white; padding: 25px; border-radius: 12px; max-width: 900px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { padding: 10px; border: 1px solid #ccc; border-radius: 5px; flex-grow: 1; }
+        button { padding: 10px 20px; background: #000; color: #fff; border: none; cursor: pointer; border-radius: 5px; }
+        .strategy-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .strategy-table th, .strategy-table td { border: 1px solid #eee; padding: 12px; text-align: left; }
+        .strategy-table th { background: #f8f9fa; }
+        #chartContainer { height: 350px; margin: 20px 0; }
+        #chat-response { margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 8px; display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <div class="header-info">
-        <h2 id="main-title">CRPM Quantitative Analysis</h2>
-        <div id="display-date" style="color:#888;">May 04, 2026</div>
-        <div style="margin-top:5px; font-size: 0.95rem;"><strong>Capital Invested (100 Shares):</strong> $<span id="cap-invested">---</span></div>
-    </div>
+    <h2 id="main-title">CRPM Quantitative Hub</h2>
+    <p>Capital (100 shares): $<span id="cap-invested">---</span></p>
     
     <div class="input-group">
-        <input type="text" id="ticker" placeholder="ENTER TICKER" maxlength="5">
-        <button onclick="calcola()">Run CRPM Analysis</button>
+        <input type="text" id="ticker" placeholder="Enter Ticker (e.g. NVDA)">
+        <button onclick="calcola()">Run CRPM</button>
     </div>
 
-    <div id="summary-data" style="text-align:center; font-weight:bold; margin-bottom:10px; display:none;">
-        Spot: $<span id="spot"></span> | IV: <span id="iv"></span>% | 1-Sigma: $<span id="low"></span> - $<span id="high"></span>
+    <div id="summary" style="display:none; text-align:center; font-weight:bold;">
+        Spot: $<span id="spot"></span> | 1-Sigma: $<span id="low"></span> - $<span id="high"></span>
     </div>
 
     <div id="chartContainer"><canvas id="probabilityChart"></canvas></div>
     <div id="tables-container"></div>
 
-    <div class="op-note">
-        <strong>OPERATIONAL NOTE:</strong> Calculations refer to 1 standard contract (100 shares). Max risks/profits are absolute values and as a percentage of the capital required to purchase 100 shares at spot.
+    <hr>
+    <h4>CRPM Assistant</h4>
+    <div class="input-group">
+        <input type="text" id="chat-input" placeholder="Ask about the methodology...">
+        <button onclick="askAI()" style="background: #007bff;">Ask</button>
     </div>
+    <div id="chat-response"></div>
+</div>
 
-    <div id="chat-section" style="margin-top:40px; border-top:1px solid #eee; padding-top:20px;">
-        <h4 style="margin-bottom:15px; color: #333;">Ask the CRPM Assistant</h4>
-        <div class="input-group">
-            <input
+<script>
+    let myChart = null;
+
+    async function calcola() {
+        const t = document.getElementById('ticker').value.toUpperCase();
+        const response = await fetch('/api/index?ticker=' + t);
+        const data = await response.json();
+        
+        document.getElementById('main-title').innerText = data.company;
+        document.getElementById('cap-invested').innerText = data.inv_cap;
+        document.getElementById('summary').style.display = 'block';
+        document.getElementById('spot').innerText = data.price;
+        document.getElementById('low').innerText = data.low;
+        document.getElementById('high').innerText = data.high;
+
+        let html = '';
+        data.machines.forEach(m => {
+            html += `<table class="strategy-table">
+                <thead><tr><th colspan="2">${m.name}</th></tr></thead>
+                <tbody>
+                    <tr><td>Action: ${m.action}</td><td>Strike: $${m.strike}</td></tr>
+                    <tr><td>Profit: ${m.max_profit}</td><td>Risk: ${m.max_risk}</td></tr>
+                    <tr><td colspan="2">Note: ${m.comment}</td></tr>
+                </tbody>
+            </table>`;
+        });
+        document.getElementById('tables-container').innerHTML = html;
+        drawChart(parseFloat(data.price), 0.27);
+    }
+
+    async function askAI() {
+        const q = document.getElementById('chat-input').value;
+        const respBox = document.getElementById('chat-response');
+        respBox.style.display = 'block';
+        respBox.innerHTML = "Analyzing...";
+        
+        const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ query: q })
+        });
+        const data = await res.json();
+        respBox.innerHTML = data.response.replace(/\n/g, '<br>');
+    }
+
+    function drawChart(price, iv) {
+        const ctx = document.getElementById('probabilityChart').getContext('2d');
+        const labels = []; const upper = []; const lower = [];
+        for (let i = 0; i <= 30; i++) {
+            labels.push(i);
+            const move = price * iv * Math.sqrt(i/365);
+            upper.push(price + move); lower.push(price - move);
+        }
+        if (myChart) myChart.destroy();
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: '+1σ', data: upper, borderColor: 'green', fill: false },
+                    { label: '-1σ', data: lower, borderColor: 'red', fill: false }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+</script>
+</body>
+</html>
