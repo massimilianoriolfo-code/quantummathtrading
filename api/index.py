@@ -29,7 +29,6 @@ def chat():
         host = INDEX_HOST.strip().replace("https://", "").replace("http://", "").rstrip("/")
         pine_url = f"https://{host}/records/namespaces/book-content/search"
         
-        # Recupero contesto dal libro
         res_pine = requests.post(pine_url, 
             headers={"Api-Key": PINECONE_API_KEY, "Content-Type": "application/json", "X-Pinecone-Api-Version": "2024-10"},
             json={"query": {"inputs": {"text": user_query}, "top_k": 5}}, timeout=10)
@@ -39,15 +38,14 @@ def chat():
             hits = res_pine.json().get('result', {}).get('hits', [])
             context = "\n".join([h.get('fields', {}).get('text', '') for h in hits if h.get('fields')])
 
-        # Chiamata Gemini 1.5 Flash (Sintassi 2026)
         gen_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GOOGLE_API_KEY}"
-        prompt = f"Using Massimiliano Riolfo's CRPM book: {context}\nQuestion: {user_query}\nRule: English only, bold titles."
+        prompt = f"Using Massimiliano Riolfo's CRPM book context: {context}\nQuestion: {user_query}\nRule: Professional, English only, bold titles."
         
         res_ai = requests.post(gen_url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=12).json()
         
         if 'candidates' in res_ai and res_ai['candidates']:
             return jsonify({"response": res_ai['candidates'][0]['content']['parts'][0]['text']})
-        return jsonify({"response": "Engine is recalibrating. Try again."})
+        return jsonify({"response": "Analytical engine recalibrating. Please try again."})
     except Exception as e:
         return jsonify({"response": f"System error: {str(e)}"}), 200
 
@@ -76,11 +74,11 @@ def index():
             "low": f"{s_put:.2f}",
             "high": f"{s_call:.2f}",
             "machines": [
-                {"name": "Machine 1: Long Call", "action": "BUY CALL", "strike": s_call, "expiry": "30d", "prem": "Market", "max_profit": "UNLIMITED", "max_risk": "Premium"},
-                {"name": "Machine 2: Short Put", "action": "SELL PUT", "strike": s_put, "expiry": "30d", "prem": "Market", "max_profit": "Premium", "max_risk": "Capital"},
-                {"name": "Machine 3: Married Put", "action": "BUY PUT", "strike": price, "expiry": "180d", "prem": "Calculated", "max_profit": "UNLIMITED", "max_risk": "Premium"},
-                {"name": "Machine 4: Covered Call", "action": "SELL CALL", "strike": s_call, "expiry": "30d", "prem": "Market", "max_profit": "Capped", "max_risk": "Stock Ownership"},
-                {"name": "Machine 5: Combined Strategy", "action": "STRANGLE", "strike": f"{s_put}/{s_call}", "expiry": "30d", "prem": "Net", "max_profit": "Variable", "max_risk": "Calculated"}
+                {"id": 1, "name": "MACHINE 1: LONG CALL BASE", "action": "BUY CALL", "strike": s_call, "expiry": "30d", "prem": "Market", "max_profit": "UNLIMITED", "max_risk": "Premium"},
+                {"id": 2, "name": "MACHINE 2: SHORT PUT BASED", "action": "SELL PUT", "strike": s_put, "expiry": "30d", "prem": "Market", "max_profit": "Premium", "max_risk": "Capital"},
+                {"id": 3, "name": "MACHINE 3: MARRIED PUT (PROTECTION)", "action": "BUY PUT", "strike": price, "expiry": "180d", "prem": "Calculated", "max_profit": "UNLIMITED", "max_risk": "Premium"},
+                {"id": 4, "name": "MACHINE 4: COVERED CALL (INCOME)", "action": "SELL CALL", "strike": s_call, "expiry": "30d", "prem": "Market", "max_profit": "Capped", "max_risk": "Stock Ownership"},
+                {"id": 5, "name": "MACHINE 5: COMBINED SHORT PUT & COVERED CALL", "action": "PUT & CALL", "strike": f"{s_put}/{s_call}", "expiry": "30d", "prem": "Net", "max_profit": "Yield", "max_risk": "Calculated"}
             ]
         })
     except Exception as e:
