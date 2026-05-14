@@ -2,46 +2,58 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CRPM Strategy Hub</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f7f9; }
-        .card { background: white; padding: 25px; border-radius: 12px; max-width: 900px; margin: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        input { padding: 10px; border: 1px solid #ccc; border-radius: 5px; flex-grow: 1; }
-        button { padding: 10px 20px; background: #000; color: #fff; border: none; cursor: pointer; border-radius: 5px; }
-        .strategy-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        .strategy-table th, .strategy-table td { border: 1px solid #eee; padding: 12px; text-align: left; }
-        .strategy-table th { background: #f8f9fa; }
-        #chartContainer { height: 350px; margin: 20px 0; }
-        #chat-response { margin-top: 20px; padding: 15px; background: #f0f4f8; border-radius: 8px; display: none; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; background: #f4f7f9; color: #333; }
+        .card { background: white; padding: 30px; border-radius: 16px; max-width: 1000px; margin: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .header-info { text-align: center; margin-bottom: 25px; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+        input { padding: 12px; border: 2px solid #dfe3e8; border-radius: 8px; width: 220px; font-size: 16px; text-transform: uppercase; }
+        button { padding: 12px 24px; background: #000; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .strategy-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; border: 1px solid #eee; font-size: 13px; }
+        .strategy-table th { background: #333; color: #fff; padding: 10px; text-align: left; text-transform: uppercase; }
+        .strategy-table td { padding: 10px; border-bottom: 1px solid #eee; }
+        .unlimited { color: #28a745; font-weight: bold; }
+        #chartContainer { width: 100%; height: 380px; margin: 20px 0; }
+        #chat-response { margin-top: 25px; display: none; border: 1px solid #eee; border-radius: 8px; overflow: hidden; }
+        .ai-header { background: #333; color: #fff; padding: 10px; text-align: center; font-weight: bold; }
+        .ai-body { padding: 20px; line-height: 1.6; background: #fafafa; font-size: 0.95rem; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2 id="main-title">CRPM Quantitative Hub</h2>
-    <p>Capital (100 shares): $<span id="cap-invested">---</span></p>
+    <div class="header-info">
+        <h2 id="main-title">CRPM Quantitative Analysis</h2>
+        <div style="color:#888;">May 14, 2026</div>
+        <div style="margin-top:10px;"><strong>Capital (100 Shares):</strong> $<span id="cap-invested">---</span></div>
+    </div>
     
     <div class="input-group">
-        <input type="text" id="ticker" placeholder="Enter Ticker (e.g. NVDA)">
-        <button onclick="calcola()">Run CRPM</button>
+        <input type="text" id="ticker" placeholder="ENTER TICKER">
+        <button onclick="calcola()">Run CRPM Analysis</button>
     </div>
 
-    <div id="summary" style="display:none; text-align:center; font-weight:bold;">
-        Spot: $<span id="spot"></span> | 1-Sigma: $<span id="low"></span> - $<span id="high"></span>
+    <div id="summary-data" style="text-align:center; font-weight:bold; margin: 20px 0; display:none; background:#eef2f5; padding:10px; border-radius:8px;">
+        Spot: $<span id="spot"></span> | Expected Range: $<span id="low"></span> - $<span id="high"></span>
     </div>
 
     <div id="chartContainer"><canvas id="probabilityChart"></canvas></div>
     <div id="tables-container"></div>
 
-    <hr>
-    <h4>CRPM Assistant</h4>
-    <div class="input-group">
-        <input type="text" id="chat-input" placeholder="Ask about the methodology...">
-        <button onclick="askAI()" style="background: #007bff;">Ask</button>
+    <div style="margin-top:40px; border-top:2px solid #eee; padding-top:20px;">
+        <h4 style="margin-bottom:15px;">Ask the CRPM Assistant</h4>
+        <div class="input-group">
+            <input type="text" id="chat-input" placeholder="Query the methodology..." style="width: 70%;">
+            <button onclick="askAI()" style="background: #007bff;">Ask Assistant</button>
+        </div>
+        <div id="chat-response">
+            <div class="ai-header">Analytical Engine Response</div>
+            <div class="ai-body" id="ai-content-body"></div>
+        </div>
     </div>
-    <div id="chat-response"></div>
 </div>
 
 <script>
@@ -49,53 +61,72 @@
 
     async function calcola() {
         const t = document.getElementById('ticker').value.toUpperCase();
-        const response = await fetch('/api/index?ticker=' + t);
-        const data = await response.json();
-        
-        document.getElementById('main-title').innerText = data.company;
-        document.getElementById('cap-invested').innerText = data.inv_cap;
-        document.getElementById('summary').style.display = 'block';
-        document.getElementById('spot').innerText = data.price;
-        document.getElementById('low').innerText = data.low;
-        document.getElementById('high').innerText = data.high;
+        if(!t) return;
+        try {
+            const resp = await fetch('/api/index?ticker=' + t);
+            const data = await resp.json();
+            
+            document.getElementById('main-title').innerText = data.company;
+            document.getElementById('cap-invested').innerText = Number(data.inv_cap).toLocaleString('en-US', {minimumFractionDigits: 2});
+            document.getElementById('summary-data').style.display = 'block';
+            document.getElementById('spot').innerText = data.price;
+            document.getElementById('low').innerText = data.low;
+            document.getElementById('high').innerText = data.high;
 
-        let html = '';
-        data.machines.forEach(m => {
-            html += `<table class="strategy-table">
-                <thead><tr><th colspan="2">${m.name}</th></tr></thead>
-                <tbody>
-                    <tr><td>Action: ${m.action}</td><td>Strike: $${m.strike}</td></tr>
-                    <tr><td>Profit: ${m.max_profit}</td><td>Risk: ${m.max_risk}</td></tr>
-                    <tr><td colspan="2">Note: ${m.comment}</td></tr>
-                </tbody>
-            </table>`;
-        });
-        document.getElementById('tables-container').innerHTML = html;
-        drawChart(parseFloat(data.price), 0.27);
+            let html = '';
+            data.machines.forEach(m => {
+                html += `<table class="strategy-table">
+                    <thead><tr><th colspan="4">${m.name}</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Action:</strong> ${m.action}</td>
+                            <td><strong>Strike:</strong> $${m.strike}</td>
+                            <td><strong>Expiry:</strong> ${m.expiry}</td>
+                            <td><strong>Prem:</strong> ${m.prem}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Profit:</strong> <span class="unlimited">${m.max_profit}</span></td>
+                            <td colspan="3"><strong>Risk:</strong> <span style="color:red; font-weight:bold;">${m.max_risk}</span></td>
+                        </tr>
+                        <tr><td colspan="4"><strong>Analysis:</strong> ${m.desc} | <em>Note: ${m.comment}</em></td></tr>
+                    </tbody>
+                </table>`;
+            });
+            document.getElementById('tables-container').innerHTML = html;
+            drawChart(parseFloat(data.price), data.volatility / 100);
+        } catch (e) {
+            console.error("Fetch error:", e);
+        }
     }
 
     async function askAI() {
         const q = document.getElementById('chat-input').value;
-        const respBox = document.getElementById('chat-response');
-        respBox.style.display = 'block';
-        respBox.innerHTML = "Analyzing...";
+        if(!q) return;
+        const respDiv = document.getElementById('chat-response');
+        const bodyDiv = document.getElementById('ai-content-body');
+        respDiv.style.display = 'block';
+        bodyDiv.innerHTML = "<em>Analyzing the mathematical models...</em>";
         
-        const res = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ query: q })
-        });
-        const data = await res.json();
-        respBox.innerHTML = data.response.replace(/\n/g, '<br>');
+        try {
+            const resp = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ query: q })
+            });
+            const data = await resp.json();
+            bodyDiv.innerHTML = data.response.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        } catch (e) {
+            bodyDiv.innerHTML = "Error connecting to the analytical engine.";
+        }
     }
 
     function drawChart(price, iv) {
         const ctx = document.getElementById('probabilityChart').getContext('2d');
-        const labels = []; const upper = []; const lower = [];
-        for (let i = 0; i <= 30; i++) {
-            labels.push(i);
-            const move = price * iv * Math.sqrt(i/365);
-            upper.push(price + move); lower.push(price - move);
+        const labels = []; const u = []; const l = []; const s = [];
+        for (let d = 0; d <= 30; d++) {
+            labels.push('Day ' + d);
+            const move = price * iv * Math.sqrt(d / 365);
+            u.push(price + move); l.push(price - move); s.push(price);
         }
         if (myChart) myChart.destroy();
         myChart = new Chart(ctx, {
@@ -103,11 +134,12 @@
             data: {
                 labels: labels,
                 datasets: [
-                    { label: '+1σ', data: upper, borderColor: 'green', fill: false },
-                    { label: '-1σ', data: lower, borderColor: 'red', fill: false }
+                    { label: '+1σ Boundary', data: u, borderColor: '#2ecc71', pointRadius: 0, fill: false, tension: 0.2 },
+                    { label: '-1σ Boundary', data: l, borderColor: '#e74c3c', pointRadius: 0, fill: false, tension: 0.2 },
+                    { label: 'Spot Price', data: s, borderColor: '#ccc', borderDash: [5, 5], pointRadius: 0, fill: false }
                 ]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } } }
         });
     }
 </script>
